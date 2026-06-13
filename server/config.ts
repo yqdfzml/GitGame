@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 /**
  * 读取后端运行所需的环境变量。
  * 功能：集中管理端口、数据库、JWT 和 CORS 配置。
