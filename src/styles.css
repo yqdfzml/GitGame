@@ -177,7 +177,7 @@ input:focus-visible {
 }
 
 .brand-button,
-.topbar nav button {
+.topbar nav a {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -186,6 +186,7 @@ input:focus-visible {
   padding: 0 14px;
   color: var(--color-text);
   background: transparent;
+  text-decoration: none;
   transition: background-color 160ms ease, color 160ms ease;
 }
 
@@ -210,8 +211,8 @@ input:focus-visible {
   height: 18px;
 }
 
-.topbar nav button:hover,
-.topbar nav button.active {
+.topbar nav a:hover,
+.topbar nav a.active {
   color: var(--color-gold);
   background: var(--color-gold-soft);
 }
@@ -2068,7 +2069,7 @@ code {
     justify-content: stretch;
   }
 
-  .topbar nav button {
+  .topbar nav a {
     flex: 1;
     justify-content: center;
   }
