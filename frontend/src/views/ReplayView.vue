@@ -29,32 +29,47 @@ onMounted(() => {
 
 <template>
   <div>
-    <h1 class="page-title">通关复盘</h1>
-    <p class="page-desc">回顾本次练习的全部命令历史</p>
+    <header class="page-header">
+      <span class="page-eyebrow">Replay</span>
+      <h1 class="page-title">通关复盘</h1>
+      <p class="page-desc">回顾本次练习的全部命令历史</p>
+    </header>
 
-    <p v-if="loading">加载中...</p>
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner" />
+      <span>加载中...</span>
+    </div>
+
     <p v-if="error" class="error-msg">{{ error }}</p>
 
     <div v-if="!loading && !error" class="card">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>步骤</th>
-            <th>命令</th>
-            <th>结果</th>
-            <th>反馈</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="cmd in commands" :key="cmd.stepIndex">
-            <td>{{ cmd.stepIndex }}</td>
-            <td style="font-family:var(--font-mono);font-size:0.85rem">{{ cmd.command }}</td>
-            <td>{{ cmd.success ? '成功' : '失败' }}</td>
-            <td>{{ cmd.feedback }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <RouterLink to="/levels" class="btn-ghost" style="margin-top:16px;display:inline-block">返回关卡</RouterLink>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>步骤</th>
+              <th>命令</th>
+              <th>结果</th>
+              <th>反馈</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="cmd in commands" :key="cmd.stepIndex">
+              <td class="mono">{{ cmd.stepIndex }}</td>
+              <td class="replay-cmd">{{ cmd.command }}</td>
+              <td>
+                <span class="result-tag" :class="cmd.success ? 'ok' : 'fail'">
+                  {{ cmd.success ? '成功' : '失败' }}
+                </span>
+              </td>
+              <td>{{ cmd.feedback }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <RouterLink to="/levels" class="btn-ghost">返回关卡</RouterLink>
+      </div>
     </div>
   </div>
 </template>

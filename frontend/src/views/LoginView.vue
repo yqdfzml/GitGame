@@ -34,23 +34,28 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <div class="auth-page card">
-    <h1 class="page-title">登录</h1>
-    <p class="page-desc">登录后开始 Git 练习</p>
-    <form @submit.prevent="handleSubmit">
-      <div class="form-group">
-        <label>邮箱</label>
-        <input v-model="email" type="email" required />
+  <div class="auth-layout">
+    <div class="card auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">⌥</div>
+        <h1>欢迎回来</h1>
+        <p>登录后开始 Git 练习</p>
       </div>
-      <div class="form-group">
-        <label>密码</label>
-        <input v-model="password" type="password" required />
-      </div>
-      <button type="submit" class="btn-primary" style="width:100%">登录</button>
-      <p v-if="error" class="error-msg">{{ error }}</p>
-    </form>
-    <p style="margin-top:16px;color:var(--text-muted);font-size:0.9rem">
-      还没有账号？<RouterLink to="/register">注册</RouterLink>
-    </p>
+      <form @submit.prevent="handleSubmit">
+        <div class="form-group">
+          <label>邮箱</label>
+          <input v-model="email" type="email" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input v-model="password" type="password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-primary btn-block">登录</button>
+        <p v-if="error" class="error-msg">{{ error }}</p>
+      </form>
+      <p class="auth-footer">
+        还没有账号？<RouterLink to="/register">注册</RouterLink>
+      </p>
+    </div>
   </div>
 </template>

@@ -45,11 +45,17 @@ const buildGraph = () => {
 
 <template>
   <div class="commit-graph">
-    <div v-for="node in buildGraph()" :key="node.id" class="commit-node">
+    <div
+      v-for="node in buildGraph()"
+      :key="node.id"
+      class="commit-node"
+      :class="{ 'is-head': node.isHead }"
+    >
       <span class="commit-dot" :class="{ head: node.isHead }" />
-      <span>{{ node.id.slice(0, 7) }} — {{ node.message }}</span>
-      <span v-if="node.branch" style="color:var(--accent);font-size:0.75rem">({{ node.branch }})</span>
+      <span class="commit-id">{{ node.id.slice(0, 7) }}</span>
+      <span class="commit-msg">{{ node.message }}</span>
+      <span v-if="node.branch" class="commit-branch">{{ node.branch }}</span>
     </div>
-    <p v-if="buildGraph().length === 0" style="color:var(--text-muted)">暂无提交</p>
+    <p v-if="buildGraph().length === 0" class="empty-hint">暂无提交</p>
   </div>
 </template>

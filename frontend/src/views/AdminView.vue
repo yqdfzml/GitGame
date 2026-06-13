@@ -52,14 +52,19 @@ const createAndPublish = () => {
 
 <template>
   <div>
-    <h1 class="page-title">管理后台</h1>
-    <p class="page-desc">创建、编辑和发布关卡（需管理员权限）</p>
+    <header class="page-header">
+      <span class="page-eyebrow">Admin</span>
+      <h1 class="page-title">管理后台</h1>
+      <p class="page-desc">创建、编辑和发布关卡（需管理员权限）</p>
+    </header>
 
     <div class="card">
       <p class="panel-title">新建关卡 JSON</p>
-      <textarea v-model="levelJson" rows="20" style="width:100%;font-family:var(--font-mono);font-size:0.8rem" />
-      <button class="btn-primary" style="margin-top:12px" @click="createAndPublish">创建并发布</button>
-      <p v-if="message" :class="isError ? 'error-msg' : 'success-msg'">{{ message }}</p>
+      <div class="form-group">
+        <textarea v-model="levelJson" rows="20" />
+      </div>
+      <button class="btn-primary" @click="createAndPublish">创建并发布</button>
+      <p v-if="message" :class="isError ? 'error-msg' : 'success-msg'" style="margin-top:12px">{{ message }}</p>
     </div>
   </div>
 </template>

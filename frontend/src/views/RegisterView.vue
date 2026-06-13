@@ -32,26 +32,32 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <div class="auth-page card">
-    <h1 class="page-title">注册</h1>
-    <form @submit.prevent="handleSubmit">
-      <div class="form-group">
-        <label>昵称</label>
-        <input v-model="displayName" required maxlength="64" />
+  <div class="auth-layout">
+    <div class="card auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">⌥</div>
+        <h1>创建账号</h1>
+        <p>加入 GitGame，动手学 Git</p>
       </div>
-      <div class="form-group">
-        <label>邮箱</label>
-        <input v-model="email" type="email" required />
-      </div>
-      <div class="form-group">
-        <label>密码（至少 6 位）</label>
-        <input v-model="password" type="password" required minlength="6" />
-      </div>
-      <button type="submit" class="btn-primary" style="width:100%">注册</button>
-      <p v-if="error" class="error-msg">{{ error }}</p>
-    </form>
-    <p style="margin-top:16px;color:var(--text-muted);font-size:0.9rem">
-      已有账号？<RouterLink to="/login">登录</RouterLink>
-    </p>
+      <form @submit.prevent="handleSubmit">
+        <div class="form-group">
+          <label>昵称</label>
+          <input v-model="displayName" required maxlength="64" autocomplete="nickname" />
+        </div>
+        <div class="form-group">
+          <label>邮箱</label>
+          <input v-model="email" type="email" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>密码（至少 6 位）</label>
+          <input v-model="password" type="password" required minlength="6" autocomplete="new-password" />
+        </div>
+        <button type="submit" class="btn-primary btn-block">注册</button>
+        <p v-if="error" class="error-msg">{{ error }}</p>
+      </form>
+      <p class="auth-footer">
+        已有账号？<RouterLink to="/login">登录</RouterLink>
+      </p>
+    </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { attemptsApi, levelsApi } from "../api/client";
 import CommitGraph from "../components/CommitGraph.vue";
@@ -29,8 +29,18 @@ const commandInput = ref("");
 const submitting = ref(false);
 /** 是否已通关 */
 const completed = ref(false);
+/** 当前步数 */
+const stepCount = ref(0);
 /** 错误信息 */
 const error = ref("");
+
+/** 目标完成百分比，供进度环使用 */
+const progressPct = computed(() => {
+  if (!judge.value) return 0;
+  const total = judge.value.satisfied.length + judge.value.gaps.length;
+  if (total === 0) return judge.value.passed ? 100 : 0;
+  return Math.round((judge.value.satisfied.length / total) * 100);
+});
 
 onMounted(() => {
   levelsApi.get(levelId).then((level) => {
@@ -42,6 +52,7 @@ onMounted(() => {
     attemptId.value = attempt.id;
     repoState.value = attempt.state;
     judge.value = attempt.judge;
+    stepCount.value = attempt.stepCount;
     terminalLines.value.push({ text: "练习已开始。输入 git 命令并按 Enter 执行。", type: "success" });
   }).catch((err: Error) => {
     error.value = err.message;
@@ -73,6 +84,7 @@ const submitCommand = () => {
       });
       repoState.value = result.state;
       judge.value = result.judge;
+      stepCount.value = result.stepCount;
       completed.value = result.completed;
       if (result.completed) {
         terminalLines.value.push({ text: `通关！得分: ${result.judge.score}`, type: "success" });
@@ -99,12 +111,34 @@ const goReplay = () => {
 
 <template>
   <div>
-    <h1 class="page-title">{{ levelTitle || '练习' }}</h1>
+    <header class="practice-header">
+      <div class="page-header" style="margin-bottom:0">
+        <span class="page-eyebrow">Practice</span>
+        <h1 class="page-title">{{ levelTitle || '练习' }}</h1>
+      </div>
+      <div v-if="judge" class="practice-meta">
+        <span class="meta-chip">步骤 {{ stepCount }}</span>
+        <span class="meta-chip" :class="{ done: judge.passed }">
+          {{ judge.passed ? '已通关' : `进度 ${progressPct}%` }}
+        </span>
+      </div>
+    </header>
+
     <p v-if="error" class="error-msg">{{ error }}</p>
 
+    <div v-if="completed && judge" class="success-banner">
+      <span class="success-banner-icon">✓</span>
+      恭喜通关！得分 {{ judge.score }} 分
+    </div>
+
     <div v-if="repoState && judge" class="practice-layout">
-      <div class="card">
-        <p class="panel-title">终端</p>
+      <div class="card terminal-panel">
+        <div class="terminal-chrome">
+          <span class="terminal-dot red" />
+          <span class="terminal-dot yellow" />
+          <span class="terminal-dot green" />
+          <span class="terminal-chrome-title">git — zsh</span>
+        </div>
         <div class="terminal">
           <div
             v-for="(line, i) in terminalLines"
@@ -113,37 +147,38 @@ const goReplay = () => {
             :class="line.type"
           >{{ line.text }}</div>
         </div>
-        <div class="terminal-input-row">
-          <input
-            v-model="commandInput"
-            placeholder="git status"
-            :disabled="completed || submitting"
-            @keydown.enter="submitCommand"
-          />
-          <button class="btn-primary" :disabled="completed || submitting" @click="submitCommand">
-            执行
-          </button>
+        <div class="terminal-input-area">
+          <div class="terminal-input-row">
+            <span class="prompt-symbol">❯</span>
+            <input
+              v-model="commandInput"
+              placeholder="git status"
+              :disabled="completed || submitting"
+              @keydown.enter="submitCommand"
+            />
+            <button class="btn-primary" :disabled="completed || submitting" @click="submitCommand">
+              执行
+            </button>
+          </div>
+          <div v-if="completed" class="terminal-actions">
+            <button class="btn-success" @click="goReplay">查看复盘</button>
+            <RouterLink to="/levels" class="btn-ghost">返回关卡</RouterLink>
+          </div>
         </div>
-        <button
-          v-if="completed"
-          class="btn-primary"
-          style="margin-top:12px"
-          @click="goReplay"
-        >查看复盘</button>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="practice-sidebar">
         <div class="card">
           <p class="panel-title">Commit Graph</p>
           <CommitGraph :state="repoState" />
         </div>
         <div class="card">
-          <p class="panel-title">Working Tree / Staging</p>
+          <p class="panel-title">Working Tree</p>
           <WorkingTreePanel :state="repoState" />
         </div>
         <div class="card">
           <p class="panel-title">目标反馈</p>
-          <GoalFeedback :judge="judge" :goal-hints="goalHints" />
+          <GoalFeedback :judge="judge" :goal-hints="goalHints" :progress-pct="progressPct" />
         </div>
       </div>
     </div>
