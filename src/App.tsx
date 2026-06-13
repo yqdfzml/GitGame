@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CHALLENGES } from "./game/challenges";
+import { evaluateCommand, getLayeredHint } from "./game/commandEngine";
+import { syncChallengeAttempt } from "./game/cloudSync";
 import {
   applyChallengeResult,
   createChallengeResult,
@@ -27,14 +29,18 @@ import {
 } from "./game/growth";
 import { clearProfile, loadProfile, saveProfile } from "./game/storage";
 import { getTitleById, TITLE_RULES } from "./game/titles";
-import type { Challenge, ChallengeResult, PlayerProfile } from "./game/types";
+import type { Challenge, ChallengeResult, ChallengeSyncStatus, PlayerProfile } from "./game/types";
 
 type Page = "home" | "levels" | "play" | "profile";
 type TerminalLine = { kind: "input" | "success" | "warn" | "info"; text: string };
-type CompletionNotice = { result: ChallengeResult; unlockedTitles: string[] };
+type CompletionNotice = {
+  result: ChallengeResult;
+  unlockedTitles: string[];
+  bestScoreUpdated: boolean;
+  syncStatus: ChallengeSyncStatus;
+};
 
-const normalizeCommand = (value: string) =>
-  value.trim().replaceAll('"', "").replaceAll("'", "").replace(/\s+/g, " ");
+const ACCESS_TOKEN_KEY = "gitgame.access-token.v1";
 
 const kindIcon = {
   commit: GitCommitHorizontal,
@@ -61,10 +67,13 @@ function App() {
   const [profile, setProfile] = useState<PlayerProfile>(() => loadProfile());
   const [activeChallengeId, setActiveChallengeId] = useState(CHALLENGES[0].id);
   const [completedCommands, setCompletedCommands] = useState<string[]>([]);
+  const [commandLog, setCommandLog] = useState<string[]>([]);
   const [terminalInput, setTerminalInput] = useState("");
   const [mistakeCount, setMistakeCount] = useState(0);
   const [hintCount, setHintCount] = useState(0);
   const [inOrder, setInOrder] = useState(true);
+  const [runStartedAt, setRunStartedAt] = useState(() => Date.now());
+  const [completionInFlight, setCompletionInFlight] = useState(false);
   const [notice, setNotice] = useState<CompletionNotice | null>(null);
   const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([
     { kind: "info", text: "阅读任务目标后输入 Git 命令，系统会判断仓库状态是否推进。" },
@@ -77,6 +86,8 @@ function App() {
       return groups;
     }, {});
   }, []);
+  const recommendedChallenge =
+    CHALLENGES.find((challenge) => !profile.completedChallengeIds.includes(challenge.id)) ?? CHALLENGES.at(-1) ?? CHALLENGES[0];
 
   useEffect(() => saveProfile(profile), [profile]);
 
@@ -84,10 +95,13 @@ function App() {
     const challenge = CHALLENGES.find((item) => item.id === challengeId) ?? CHALLENGES[0];
     setActiveChallengeId(challenge.id);
     setCompletedCommands([]);
+    setCommandLog([]);
     setTerminalInput("");
     setMistakeCount(0);
     setHintCount(0);
     setInOrder(true);
+    setRunStartedAt(Date.now());
+    setCompletionInFlight(false);
     setNotice(null);
     setTerminalLines([{ kind: "info", text: `进入「${challenge.title}」，先读目标，再判断该输入什么命令。` }]);
   };
@@ -99,59 +113,51 @@ function App() {
 
   const submitCommand = (rawValue = terminalInput) => {
     const visibleInput = rawValue.trim();
-    const command = normalizeCommand(rawValue);
-    if (!command) return;
+    if (!visibleInput) return;
 
-    const expected = activeChallenge.commands[completedCommands.length];
-    const commandIndex = activeChallenge.commands.findIndex((item) => normalizeCommand(item) === command);
-    const alreadyDone = completedCommands.includes(activeChallenge.commands[commandIndex]);
-
-    if (normalizeCommand(expected) === command) {
-      setCompletedCommands((commands) => [...commands, expected]);
-      setTerminalLines((lines) => [
-        ...lines,
-        { kind: "input", text: `$ ${visibleInput}` },
-        { kind: "success", text: "校验通过：仓库状态沿推荐路径推进。" },
-      ]);
-    } else if (commandIndex >= 0 && !alreadyDone) {
-      const commandToRecord = activeChallenge.commands[commandIndex];
-      setCompletedCommands((commands) => [...commands, commandToRecord]);
-      setInOrder(false);
-      setTerminalLines((lines) => [
-        ...lines,
-        { kind: "input", text: `$ ${visibleInput}` },
-        { kind: "warn", text: "命令可用：已记录到执行路径，但顺序偏离推荐路线。" },
-      ]);
-    } else if (commandIndex >= 0 && alreadyDone) {
-      setMistakeCount((count) => count + 1);
-      setTerminalLines((lines) => [
-        ...lines,
-        { kind: "input", text: `$ ${visibleInput}` },
-        { kind: "warn", text: "这一步已经完成：请继续判断下一条会改变状态的命令。" },
-      ]);
-    } else {
-      setMistakeCount((count) => count + 1);
-      setTerminalLines((lines) => [
-        ...lines,
-        { kind: "input", text: `$ ${visibleInput}` },
-        { kind: "warn", text: "校验未通过：这条命令没有改变当前目标状态。" },
-      ]);
-    }
+    const evaluation = evaluateCommand(activeChallenge, completedCommands, visibleInput);
+    setCompletedCommands(evaluation.completedCommands);
+    setCommandLog((commands) => [...commands, visibleInput]);
+    setMistakeCount((count) => count + evaluation.mistakeDelta);
+    if (!evaluation.keepsOrder) setInOrder(false);
+    setTerminalLines((lines) => [
+      ...lines,
+      { kind: "input", text: `$ ${visibleInput}` },
+      { kind: evaluation.feedbackKind, text: evaluation.feedback },
+    ]);
 
     setTerminalInput("");
   };
 
-  const requestHint = () => {
-    const hint = activeChallenge.hints[Math.min(hintCount, activeChallenge.hints.length - 1)];
+  const requestHint = (levelIndex = hintCount) => {
+    const hint = getLayeredHint(activeChallenge, levelIndex);
     setHintCount((count) => count + 1);
-    setTerminalLines((lines) => [...lines, { kind: "info", text: `提示：${hint}` }]);
+    setTerminalLines((lines) => [...lines, { kind: "info", text: `提示 ${hint.level}/3：${hint.text}` }]);
   };
 
-  const completeChallenge = () => {
-    const result = createChallengeResult({ profile, challenge: activeChallenge, mistakeCount, hintCount, inOrder });
+  const completeChallenge = async () => {
+    if (completionInFlight) return;
+    setCompletionInFlight(true);
+    const result = createChallengeResult({
+      profile,
+      challenge: activeChallenge,
+      mistakeCount,
+      hintCount,
+      inOrder,
+      commandCount: Math.max(commandLog.length, activeChallenge.commands.length),
+    });
+    const bestScoreUpdated = result.score > (profile.bestScores[activeChallenge.id] ?? 0);
     const applied = applyChallengeResult(profile, result);
+    const accessToken = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+    const syncStatus = await syncChallengeAttempt({
+      result,
+      commandLog,
+      accessToken,
+      durationSeconds: Math.max(1, Math.round((Date.now() - runStartedAt) / 1000)),
+    });
     setProfile(applied.profile);
-    setNotice({ result, unlockedTitles: applied.newlyUnlocked });
+    setNotice({ result, unlockedTitles: applied.newlyUnlocked, bestScoreUpdated, syncStatus });
+    setCompletionInFlight(false);
   };
 
   const chooseTitle = (titleId: string) => {
@@ -170,7 +176,14 @@ function App() {
   return (
     <main className="app-shell">
       <AppHeader page={page} setPage={setPage} />
-      {page === "home" && <HomePage profile={profile} onStart={() => setPage("levels")} />}
+      {page === "home" && (
+        <HomePage
+          profile={profile}
+          recommendedChallenge={recommendedChallenge}
+          onStart={() => startChallenge(recommendedChallenge.id)}
+          onViewLevels={() => setPage("levels")}
+        />
+      )}
       {page === "levels" && (
         <LevelsPage groupedChallenges={groupedChallenges} profile={profile} onStart={startChallenge} />
       )}
@@ -180,6 +193,7 @@ function App() {
           challenge={activeChallenge}
           completedCommands={completedCommands}
           hintCount={hintCount}
+          completionInFlight={completionInFlight}
           inOrder={inOrder}
           input={terminalInput}
           mistakeCount={mistakeCount}
@@ -220,10 +234,19 @@ function AppHeader({ page, setPage }: { page: Page; setPage: (page: Page) => voi
   );
 }
 
-function HomePage({ profile, onStart }: { profile: PlayerProfile; onStart: () => void }) {
+function HomePage({
+  onStart,
+  onViewLevels,
+  profile,
+  recommendedChallenge,
+}: {
+  onStart: () => void;
+  onViewLevels: () => void;
+  profile: PlayerProfile;
+  recommendedChallenge: Challenge;
+}) {
   const activeTitle = getTitleById(profile.activeTitleId);
   const levelInfo = getLevelInfo(profile.level);
-  const progress = getLevelProgress(profile.xp);
   return (
     <section className="home-layout">
       <article className="hero-panel split-hero">
@@ -231,14 +254,17 @@ function HomePage({ profile, onStart }: { profile: PlayerProfile; onStart: () =>
           <p className="eyebrow">Git 等级挑战</p>
           <h1>GitGame</h1>
           <p className="hero-copy">关卡负责训练 Git 能力，个人中心负责记录你的工程师段位与修仙称号。</p>
-          <button className="primary cta" type="button" onClick={onStart}>进入关卡</button>
+          <div className="hero-actions">
+            <button className="primary cta" type="button" onClick={onStart}>继续修炼</button>
+            <button className="secondary cta" type="button" onClick={onViewLevels}>查看关卡</button>
+          </div>
         </div>
         <PlayerSummary profile={profile} />
       </article>
       <section className="insight-grid">
         <MetricCard label="当前段位" value={`Lv.${levelInfo.level} ${levelInfo.name}`} />
         <MetricCard label="当前称号" value={activeTitle.name} />
-        <MetricCard label="经验进度" value={`${progress.current}/${progress.required} XP`} />
+        <MetricCard label="推荐下一关" value={recommendedChallenge.title} />
       </section>
     </section>
   );
@@ -283,12 +309,21 @@ function ChallengeCard({
 }) {
   const Icon = kindIcon[challenge.kind];
   const locked = getLocked(challenge, profile);
+  const completed = profile.completedChallengeIds.includes(challenge.id);
+  const bestScore = profile.bestScores[challenge.id] ?? 0;
   return (
     <button className="challenge-card" disabled={locked} onClick={() => onStart(challenge.id)} type="button">
       <Icon aria-hidden="true" />
       <span>
         <strong>{challenge.title}</strong>
-        <small>{locked ? "先完成上一关" : `${challenge.difficulty} · 最高分 ${profile.bestScores[challenge.id] ?? 0}`}</small>
+        <small>{challenge.skill}</small>
+        <small>
+          {locked
+            ? "完成上一关后解锁"
+            : completed
+              ? `已完成 · 最高分 ${bestScore} · 再修炼可刷新成绩`
+              : `${challenge.difficulty} · 基础 ${challenge.baseXp} XP · 开始挑战`}
+        </small>
       </span>
       <ChevronRight aria-hidden="true" />
     </button>
@@ -361,6 +396,7 @@ function PlayerSummary({ onReset, profile }: { onReset?: () => void; profile: Pl
 function PlayPage(props: {
   challenge: Challenge;
   completedCommands: string[];
+  completionInFlight: boolean;
   hintCount: number;
   inOrder: boolean;
   input: string;
@@ -368,7 +404,7 @@ function PlayPage(props: {
   notice: CompletionNotice | null;
   onBack: () => void;
   onComplete: () => void;
-  onHint: () => void;
+  onHint: (levelIndex?: number) => void;
   onInput: (value: string) => void;
   onNext: (challengeId: string) => void;
   onReset: () => void;
@@ -377,21 +413,27 @@ function PlayPage(props: {
 }) {
   const nextChallenge = CHALLENGES[CHALLENGES.findIndex((item) => item.id === props.challenge.id) + 1];
   const done = props.challenge.commands.every((command) => props.completedCommands.includes(command));
+  const firstOpenIndex = props.challenge.commands.findIndex((command) => !props.completedCommands.includes(command));
   const routePercent = Math.round((props.completedCommands.length / props.challenge.commands.length) * 100);
+  const currentStateIndex = Math.min(props.completedCommands.length, props.challenge.repositoryStates.length - 1);
 
   return (
     <section className="play-layout command-mode">
       <article className="surface mission-panel command-brief">
         <button className="ghost-link" type="button" onClick={props.onBack}>返回关卡</button>
         <PageTitle eyebrow={props.challenge.chapter} title={props.challenge.title} copy={props.challenge.summary} />
+        <div className="learning-card">
+          <span>{props.challenge.skill}</span>
+          <p>{props.challenge.concept}</p>
+        </div>
         <div className="brief-meter" aria-label="执行路径进度">
           <span>{routePercent}%</span>
           <div className="progress-track"><div style={{ width: `${routePercent}%` }} /></div>
         </div>
         <ol className="objective-list compact-objectives">
           {props.challenge.objectives.map((objective, index) => {
-            const complete = index < props.completedCommands.length;
-            const current = index === props.completedCommands.length && !done;
+            const complete = props.completedCommands.includes(props.challenge.commands[index]);
+            const current = index === firstOpenIndex && !done;
             return (
               <li className={`${complete ? "done" : ""} ${current ? "current" : ""}`} key={objective}>
                 <span>{complete ? <Check aria-hidden="true" /> : <CircleDot aria-hidden="true" />}</span>
@@ -400,6 +442,14 @@ function PlayPage(props: {
             );
           })}
         </ol>
+        <div className="state-rail" aria-label="模拟仓库状态">
+          {props.challenge.repositoryStates.map((state, index) => (
+            <div className={`${index <= currentStateIndex ? "active" : ""} ${index === currentStateIndex ? "current" : ""}`} key={state}>
+              <span>{index + 1}</span>
+              <p>{state}</p>
+            </div>
+          ))}
+        </div>
       </article>
 
       <article className="surface command-console">
@@ -427,10 +477,18 @@ function PlayPage(props: {
           {props.terminalLines.map((line, index) => <p className={line.kind} key={`${line.text}-${index}`}>{line.text}</p>)}
         </div>
 
+        <div className="hint-grid" aria-label="分层提示">
+          {props.challenge.hintLevels.map((_hint, index) => (
+            <button key={index} type="button" onClick={() => props.onHint(index)} disabled={done}>
+              提示 {index + 1}
+            </button>
+          ))}
+        </div>
         <div className="console-actions">
-          <button type="button" onClick={props.onHint} disabled={done}>概念提示</button>
           <button type="button" onClick={props.onReset}>重练本关</button>
-          <button className="primary" type="button" onClick={props.onComplete} disabled={!done}>完成挑战</button>
+          <button className="primary" type="button" onClick={props.onComplete} disabled={!done || props.completionInFlight}>
+            {props.completionInFlight ? "结算中" : "完成挑战"}
+          </button>
         </div>
         <div className="run-stats"><span>误操作 {props.mistakeCount}</span><span>提示 {props.hintCount}</span><span>{props.inOrder ? "路径稳定" : "路径偏离"}</span></div>
       </article>
@@ -457,7 +515,13 @@ function ResultModal({
         <p className="eyebrow">境界突破</p>
         <h2 id="result-title">{challenge.title} 已完成</h2>
         <div className="result-score">{notice.result.score}</div>
-        <p>获得 XP：{notice.result.baseXp + notice.result.bonusXp}</p>
+        <p>获得 XP：{notice.result.baseXp + notice.result.bonusXp}（基础 {notice.result.baseXp} / 精进 {notice.result.bonusXp}）</p>
+        <p className="result-lesson">本关掌握：{challenge.concept}</p>
+        <div className="result-flags">
+          <span>{notice.bestScoreUpdated ? "刷新最佳成绩" : "保持当前最佳"}</span>
+          <span>{notice.result.inOrder ? "路径顺序稳定" : "路径有偏离"}</span>
+          <span>{notice.syncStatus.message}</span>
+        </div>
         {notice.unlockedTitles.length > 0 && (
           <div className="new-titles">
             {notice.unlockedTitles.map((titleId) => <span key={titleId}>{getTitleById(titleId).name}</span>)}

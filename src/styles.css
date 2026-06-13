@@ -143,6 +143,13 @@ input:focus-visible {
   min-width: 180px;
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -440,7 +447,15 @@ input:focus-visible {
   margin-top: 16px;
 }
 
+.hint-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .console-actions button,
+.hint-grid button,
 .library-toggle,
 .command-selector button,
 .revealed-command button {
@@ -457,6 +472,7 @@ input:focus-visible {
 }
 
 .console-actions button:hover:not(:disabled),
+.hint-grid button:hover:not(:disabled),
 .command-selector button:hover,
 .revealed-command button:hover {
   transform: translateY(-1px);
@@ -551,6 +567,81 @@ input:focus-visible {
 
 .mission-panel {
   padding: 24px;
+}
+
+.learning-card {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+  border: 1px solid rgba(47, 179, 136, 0.22);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(47, 179, 136, 0.08);
+}
+
+.learning-card span {
+  color: #7fe3b5;
+  font-weight: 800;
+}
+
+.learning-card p {
+  margin: 0;
+  color: #d8cdbd;
+  line-height: 1.6;
+}
+
+.state-rail {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.state-rail div {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #8b8175;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.state-rail span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: #1a1209;
+  background: #8b8175;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.state-rail p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.state-rail .active {
+  color: #dff7ee;
+  border-color: rgba(47, 179, 136, 0.24);
+}
+
+.state-rail .active span {
+  background: #2fb388;
+}
+
+.state-rail .current {
+  border-color: rgba(242, 189, 75, 0.5);
+  background: rgba(242, 189, 75, 0.1);
+}
+
+.state-rail .current span {
+  background: #f2bd4b;
 }
 
 .ghost-link {
@@ -714,6 +805,7 @@ h3 {
 .action-row button,
 .terminal-form button,
 .console-actions button,
+.hint-grid button,
 .revealed-command button {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -734,6 +826,19 @@ h3 {
 .terminal-form button {
   color: #1a1209 !important;
   background: linear-gradient(135deg, #f2bd4b, #df6e2f) !important;
+}
+
+.secondary {
+  border: 1px solid rgba(242, 189, 75, 0.25);
+  border-radius: 8px;
+  padding: 0 18px;
+  color: #f7efe3;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.secondary:hover {
+  border-color: rgba(242, 189, 75, 0.48);
+  background: rgba(242, 189, 75, 0.12);
 }
 
 .section-heading {
@@ -968,6 +1073,27 @@ code {
   line-height: 1;
 }
 
+.result-lesson {
+  color: #d8cdbd;
+  line-height: 1.6;
+}
+
+.result-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.result-flags span {
+  border: 1px solid rgba(242, 189, 75, 0.2);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #f6d88b;
+  background: rgba(242, 189, 75, 0.08);
+  font-size: 13px;
+}
+
 .new-titles {
   display: flex;
   flex-wrap: wrap;
@@ -1035,6 +1161,10 @@ code {
   }
 
   .terminal-form {
+    grid-template-columns: 1fr;
+  }
+
+  .hint-grid {
     grid-template-columns: 1fr;
   }
 

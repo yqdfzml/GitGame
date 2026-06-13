@@ -77,11 +77,13 @@ type CreateChallengeResultInput = {
   mistakeCount: number;
   hintCount: number;
   inOrder: boolean;
+  commandCount?: number;
 };
 
 export const createChallengeResult = ({
   profile,
   challenge,
+  commandCount,
   mistakeCount,
   hintCount,
   inOrder,
@@ -96,6 +98,8 @@ export const createChallengeResult = ({
     bonusXp,
     mistakeCount,
     hintCount,
+    inOrder,
+    commandCount: commandCount ?? challenge.commands.length,
     completedAt: new Date().toISOString(),
   };
 };

@@ -21,8 +21,12 @@ export type Challenge = {
   chapter: string;
   title: string;
   summary: string;
+  skill: string;
+  concept: string;
+  repositoryStates: string[];
   objectives: string[];
   hints: string[];
+  hintLevels: string[];
   kind: ChallengeKind;
   difficulty: "入门" | "进阶" | "突破";
   baseXp: number;
@@ -36,6 +40,8 @@ export type ChallengeResult = {
   bonusXp: number;
   mistakeCount: number;
   hintCount: number;
+  inOrder: boolean;
+  commandCount: number;
   completedAt: string;
 };
 
@@ -54,3 +60,37 @@ export type LevelInfo = {
   level: number;
   name: string;
 };
+
+export type CommandEvaluationStatus =
+  | "accepted"
+  | "out-of-order"
+  | "duplicate"
+  | "invalid";
+
+export type CommandEvaluation = {
+  status: CommandEvaluationStatus;
+  completedCommands: string[];
+  feedbackKind: "success" | "warn";
+  feedback: string;
+  mistakeDelta: number;
+  keepsOrder: boolean;
+  acceptedCommand?: string;
+  expectedCommand?: string;
+};
+
+export type ChallengeAttemptPayload = {
+  challengeKey: string;
+  challengeVersion: number;
+  score: number;
+  mistakeCount: number;
+  hintCount: number;
+  inOrder: boolean;
+  commandCount: number;
+  durationSeconds?: number;
+  commandLog: string[];
+};
+
+export type ChallengeSyncStatus =
+  | { status: "disabled"; message: string }
+  | { status: "synced"; earnedXp: number; bestScoreUpdated: boolean; unlockedTitles: string[]; message: string }
+  | { status: "failed"; message: string };
