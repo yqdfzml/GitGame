@@ -1,18 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { CHALLENGES } from "./challenges";
+import { buildLocalGameBootstrap } from "./gameContent";
 import {
   applyChallengeResult,
   calculateScore,
+  configureGameContent,
   createChallengeResult,
   createInitialProfile,
   getLevelFromXp,
 } from "./growth";
-import { getTitleById } from "./titles";
+import { findTitleById } from "./gameContent";
+
+const localBootstrap = buildLocalGameBootstrap();
+configureGameContent({
+  levels: localBootstrap.levels,
+  xpPerLevel: localBootstrap.config.xpPerLevel,
+  defaultTitleKey: localBootstrap.config.defaultTitleKey,
+  titles: localBootstrap.titles,
+});
 
 const challenge = (id: string) => {
   const item = CHALLENGES.find((entry) => entry.id === id);
   if (!item) throw new Error(`Missing challenge ${id}`);
   return item;
+};
+
+const applyOptions = {
+  allChallenges: localBootstrap.challenges,
+  titles: localBootstrap.titles,
 };
 
 describe("growth system", () => {
@@ -38,11 +53,11 @@ describe("growth system", () => {
       hintCount: 0,
       inOrder: true,
     });
-    const applied = applyChallengeResult(profile, result);
+    const applied = applyChallengeResult(profile, result, applyOptions);
 
     expect(applied.profile.unlockedTitleIds).toContain("first-commit");
     expect(applied.profile.unlockedTitleIds).toContain("flawless-mind");
-    expect(getTitleById(applied.profile.activeTitleId).name).toBe("无瑕剑心");
+    expect(findTitleById(localBootstrap.titles, applied.profile.activeTitleId).name).toBe("无瑕剑心");
   });
 
   it("unlocks steady cultivator after three completed challenges", () => {
@@ -56,7 +71,7 @@ describe("growth system", () => {
         hintCount: 1,
         inOrder: true,
       });
-      profile = applyChallengeResult(profile, result).profile;
+      profile = applyChallengeResult(profile, result, applyOptions).profile;
     }
 
     expect(profile.completedChallengeIds).toHaveLength(3);
@@ -72,7 +87,7 @@ describe("growth system", () => {
       hintCount: 0,
       inOrder: true,
     });
-    const afterFirst = applyChallengeResult(profile, first).profile;
+    const afterFirst = applyChallengeResult(profile, first, applyOptions).profile;
 
     const repeat = createChallengeResult({
       profile: afterFirst,
@@ -81,7 +96,7 @@ describe("growth system", () => {
       hintCount: 1,
       inOrder: false,
     });
-    const afterRepeat = applyChallengeResult(afterFirst, repeat).profile;
+    const afterRepeat = applyChallengeResult(afterFirst, repeat, applyOptions).profile;
 
     expect(afterRepeat.xp).toBe(afterFirst.xp);
     expect(afterRepeat.bestScores["first-commit"]).toBe(100);
@@ -98,7 +113,7 @@ describe("growth system", () => {
         hintCount: 1,
         inOrder: true,
       });
-      profile = applyChallengeResult(profile, result).profile;
+      profile = applyChallengeResult(profile, result, applyOptions).profile;
     }
 
     expect(profile.unlockedTitleIds).toContain("git-daojun");

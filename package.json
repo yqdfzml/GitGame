@@ -10,7 +10,8 @@
     "test": "vitest run",
     "preview": "vite preview",
     "server:dev": "tsx watch server/index.ts",
-    "server:migrate": "tsx server/scripts/migrate.ts"
+    "server:migrate": "tsx server/scripts/migrate.ts",
+    "server:seed": "tsx server/scripts/seedContent.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",

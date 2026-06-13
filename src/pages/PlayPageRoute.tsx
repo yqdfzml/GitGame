@@ -1,16 +1,18 @@
 import { Check, ChevronRight, CircleDot, Medal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { CHALLENGES } from "../game/challenges";
+import { getChallengeById } from "../game/challengeCatalog";
+import { isApiEnabled } from "../game/apiClient";
 import { evaluateCommand, getLayeredHint } from "../game/commandEngine";
 import { syncChallengeAttempt } from "../game/cloudSync";
+import { findTitleById } from "../game/gameContent";
 import { loadAuthSession } from "../game/authStorage";
 import {
   applyChallengeResult,
   createChallengeResult,
 } from "../game/growth";
-import { getTitleById } from "../game/titles";
-import type { Challenge, ChallengeResult, ChallengeSyncStatus, PlayerProfile } from "../game/types";
+import { pullCloudProfile } from "../game/profileSync";
+import type { Challenge, ChallengeResult, ChallengeSyncStatus, PlayerProfile, PublicTitle } from "../game/types";
 
 type TerminalLine = { kind: "input" | "success" | "warn" | "info"; text: string };
 type CompletionNotice = {
@@ -23,19 +25,23 @@ type CompletionNotice = {
 /**
  * 游戏页路由容器，根据 URL 中的 challengeId 加载关卡并管理本局状态。
  * 功能：解析路由参数、初始化终端、处理命令与结算。
- * 参数：profile - 玩家档案；setProfile - 更新玩家档案。
+ * 参数：profile - 玩家档案；setProfile - 更新玩家档案；challenges/titles - 服务端内容。
  * 返回值：游戏页 JSX，无效关卡时重定向到关卡列表。
  */
 export function PlayPageRoute({
+  challenges,
   profile,
   setProfile,
+  titles,
 }: {
+  challenges: Challenge[];
   profile: PlayerProfile;
   setProfile: (value: PlayerProfile | ((current: PlayerProfile) => PlayerProfile)) => void;
+  titles: PublicTitle[];
 }) {
   const navigate = useNavigate();
   const { challengeId } = useParams();
-  const challenge = CHALLENGES.find((item) => item.id === challengeId);
+  const challenge = getChallengeById(challenges, challengeId ?? "");
 
   const [completedCommands, setCompletedCommands] = useState<string[]>([]);
   const [commandLog, setCommandLog] = useState<string[]>([]);
@@ -117,7 +123,7 @@ export function PlayPageRoute({
 
   /**
    * 完成关卡并结算经验值、同步云端。
-   * 功能：计算得分、更新档案、展示结算弹窗。
+   * 功能：登录用户以服务端结算为准；游客或未同步时走本地规则。
    * 参数：无。
    * 返回值：Promise。
    */
@@ -134,18 +140,37 @@ export function PlayPageRoute({
       commandCount: Math.max(commandLog.length, challenge.commands.length),
     });
     const bestScoreUpdated = result.score > (profile.bestScores[challenge.id] ?? 0);
-    const applied = applyChallengeResult(profile, result);
     const accessToken = loadAuthSession()?.accessToken ?? null;
+    const apiEnabled = isApiEnabled();
 
     return syncChallengeAttempt({
       result,
       commandLog,
       accessToken,
+      challengeVersion: challenge.version ?? 1,
       durationSeconds: Math.max(1, Math.round((Date.now() - runStartedAt) / 1000)),
     })
       .then((syncStatus) => {
+        if (apiEnabled && accessToken && syncStatus.status === "synced") {
+          return pullCloudProfile({ accessToken }).then((cloudProfile) => {
+            setProfile(cloudProfile);
+            setNotice({
+              result,
+              unlockedTitles: syncStatus.unlockedTitles,
+              bestScoreUpdated: syncStatus.bestScoreUpdated,
+              syncStatus,
+            });
+          });
+        }
+
+        const applied = applyChallengeResult(profile, result, { allChallenges: challenges, titles });
         setProfile(applied.profile);
-        setNotice({ result, unlockedTitles: applied.newlyUnlocked, bestScoreUpdated, syncStatus });
+        setNotice({
+          result,
+          unlockedTitles: applied.newlyUnlocked,
+          bestScoreUpdated,
+          syncStatus,
+        });
       })
       .finally(() => {
         setCompletionInFlight(false);
@@ -155,6 +180,7 @@ export function PlayPageRoute({
   return (
     <PlayPage
       challenge={challenge}
+      challenges={challenges}
       completedCommands={completedCommands}
       completionInFlight={completionInFlight}
       hintCount={hintCount}
@@ -169,12 +195,14 @@ export function PlayPageRoute({
       onReset={() => resetChallengeRun(challenge)}
       onSubmit={submitCommand}
       terminalLines={terminalLines}
+      titles={titles}
     />
   );
 }
 
 function PlayPage(props: {
   challenge: Challenge;
+  challenges: Challenge[];
   completedCommands: string[];
   completionInFlight: boolean;
   hintCount: number;
@@ -189,9 +217,10 @@ function PlayPage(props: {
   onReset: () => void;
   onSubmit: (value?: string) => void;
   terminalLines: TerminalLine[];
+  titles: PublicTitle[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const nextChallenge = CHALLENGES[CHALLENGES.findIndex((item) => item.id === props.challenge.id) + 1];
+  const nextChallenge = props.challenges[props.challenges.findIndex((item) => item.id === props.challenge.id) + 1];
   const done = props.challenge.commands.every((command) => props.completedCommands.includes(command));
   const firstOpenIndex = props.challenge.commands.findIndex((command) => !props.completedCommands.includes(command));
   const objectiveDone = props.completedCommands.length;
@@ -310,6 +339,7 @@ function PlayPage(props: {
           nextChallenge={nextChallenge}
           notice={props.notice}
           onNext={props.onNext}
+          titles={props.titles}
         />
       )}
     </section>
@@ -321,11 +351,13 @@ function ResultModal({
   nextChallenge,
   notice,
   onNext,
+  titles,
 }: {
   challenge: Challenge;
   nextChallenge?: Challenge;
   notice: CompletionNotice;
   onNext: (challengeId: string) => void;
+  titles: PublicTitle[];
 }) {
   return (
     <div className="modal-backdrop" role="presentation">
@@ -352,7 +384,9 @@ function ResultModal({
         {notice.unlockedTitles.length > 0 && (
           <div className="new-titles">
             <p className="new-titles-label">新解锁道号</p>
-            {notice.unlockedTitles.map((titleId) => <span key={titleId}>{getTitleById(titleId).name}</span>)}
+            {notice.unlockedTitles.map((titleId) => (
+              <span key={titleId}>{findTitleById(titles, titleId).name}</span>
+            ))}
           </div>
         )}
         {nextChallenge && (

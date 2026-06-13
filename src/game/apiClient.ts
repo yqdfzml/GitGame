@@ -6,6 +6,8 @@ import type {
   BackendTitle,
   ChallengeAttemptPayload,
   ChallengeAttemptResult,
+  ChallengeCatalogResponse,
+  ContentBootstrap,
 } from "./types";
 
 type ApiRequestOptions = {
@@ -82,6 +84,32 @@ export const apiRequest = <T>(path: string, options: ApiRequestOptions = {}): Pr
       }
       return body.data as T;
     });
+  });
+};
+
+/**
+ * 读取公开内容引导包。
+ * 功能：GET /api/content/bootstrap，无需登录。
+ * 参数：fetcher - 可选 fetch 替身。
+ * 返回值：关卡、称号、等级与全局配置。
+ */
+export const fetchContentBootstrap = (fetcher?: typeof fetch): Promise<ContentBootstrap> => {
+  return apiRequest<ContentBootstrap>("/api/content/bootstrap", {
+    fetcher,
+  });
+};
+
+/**
+ * 读取公开关卡目录。
+ * 功能：GET /api/content/challenges，无需登录。
+ * 参数：fetcher - 可选 fetch 替身。
+ * 返回值：关卡列表与总数。
+ */
+export const fetchChallengeCatalog = (
+  fetcher?: typeof fetch,
+): Promise<ChallengeCatalogResponse> => {
+  return apiRequest<ChallengeCatalogResponse>("/api/content/challenges", {
+    fetcher,
   });
 };
 

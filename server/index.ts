@@ -5,8 +5,10 @@ import { initDb } from "./db";
 import { errorHandler } from "./middleware/errorHandler";
 import { attachRequestId } from "./utils/requestId";
 import { createAuthRouter } from "./routes/auth";
+import { createContentRouter } from "./routes/content";
 import { createHealthRouter } from "./routes/health";
 import { createPlayerRouter } from "./routes/player";
+import { refreshContentCache } from "./game/contentCache";
 
 /**
  * 启动 GitGame 后端 API 服务。
@@ -14,9 +16,16 @@ import { createPlayerRouter } from "./routes/player";
  * 参数：无。
  * 返回值：无。
  */
-const bootstrap = () => {
+const bootstrap = async () => {
   const config = loadConfig();
   initDb(config);
+
+  try {
+    await refreshContentCache();
+    console.log("游戏内容缓存已加载");
+  } catch (error) {
+    console.warn("关卡目录缓存加载失败，将使用内置兜底目录", error);
+  }
 
   const app = express();
   app.use(cors({ origin: config.corsOrigin, credentials: true }));
@@ -24,6 +33,7 @@ const bootstrap = () => {
   app.use(attachRequestId);
 
   app.use(createHealthRouter());
+  app.use("/api/content", createContentRouter());
   app.use("/api/auth", createAuthRouter(config));
   app.use("/api/player", createPlayerRouter(config));
 
@@ -34,4 +44,7 @@ const bootstrap = () => {
   });
 };
 
-bootstrap();
+bootstrap().catch((error) => {
+  console.error("GitGame API 启动失败", error);
+  process.exit(1);
+});

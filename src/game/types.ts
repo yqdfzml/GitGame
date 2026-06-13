@@ -1,3 +1,5 @@
+import type { UnlockRule } from "./unlockRule";
+
 export type ChallengeKind =
   | "commit"
   | "staging"
@@ -31,6 +33,7 @@ export type Challenge = {
   difficulty: "入门" | "进阶" | "突破";
   baseXp: number;
   commands: string[];
+  version?: number;
 };
 
 export type ChallengeResult = {
@@ -43,6 +46,33 @@ export type ChallengeResult = {
   inOrder: boolean;
   commandCount: number;
   completedAt: string;
+};
+
+export type PublicTitle = {
+  id: string;
+  name: string;
+  flavorText: string;
+  rarity: string;
+  unlockRule: UnlockRule;
+};
+
+export type PublicLevel = {
+  level: number;
+  name: string;
+};
+
+export type PublicGameConfig = {
+  xpPerLevel: number;
+  defaultTitleKey: string;
+};
+
+export type ContentBootstrap = {
+  challenges: Challenge[];
+  titles: PublicTitle[];
+  levels: PublicLevel[];
+  config: PublicGameConfig;
+  totalChallenges: number;
+  totalTitles: number;
 };
 
 export type TitleRule = {
@@ -139,6 +169,11 @@ export type ChallengeAttemptResult = {
   levelAfter: number;
   bestScoreUpdated: boolean;
   unlockedTitles: { key: string; name: string }[];
+};
+
+export type ChallengeCatalogResponse = {
+  challenges: Challenge[];
+  total: number;
 };
 
 export type ApiErrorResponse = {

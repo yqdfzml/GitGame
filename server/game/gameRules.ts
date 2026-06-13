@@ -2,17 +2,18 @@
  * 服务端成长规则，需与 src/game/growth.ts 保持同步。
  */
 
-export const XP_PER_LEVEL = 100;
-export const MAX_LEVEL = 10;
+import { getMaxLevel, getXpPerLevel } from "./contentCache";
 
 /**
- * 根据总 XP 计算等级。
+ * 根据总经验值计算等级。
  * 功能：写入 player_profiles.level 时使用。
- * 参数：totalXp - 玩家累计 XP。
- * 返回值：1~10 的等级。
+ * 参数：totalXp - 玩家累计经验值。
+ * 返回值：等级数值。
  */
 export const getLevelFromXp = (totalXp: number) => {
-  return Math.min(MAX_LEVEL, Math.floor(Math.max(0, totalXp) / XP_PER_LEVEL) + 1);
+  const xpPerLevel = getXpPerLevel();
+  const maxLevel = getMaxLevel();
+  return Math.min(maxLevel, Math.floor(Math.max(0, totalXp) / xpPerLevel) + 1);
 };
 
 /**

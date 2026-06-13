@@ -2,8 +2,9 @@ import type { RowDataPacket } from "mysql2";
 import type { PoolConnection } from "mysql2/promise";
 import { withTransaction } from "../db";
 import { getChallengeBaseXp, getChallengeVersion, isValidChallengeKey } from "../game/challengeCatalog";
+import { getAllChallengeKeys } from "../game/contentCache";
 import { calculateEarnedXp, getLevelFromXp, isPerfectScore } from "../game/gameRules";
-import { DEFAULT_TITLE_KEY, getNewlyUnlockedTitleKeys, getTitleDisplayName } from "../game/titleRules";
+import { getDefaultTitleKey, getNewlyUnlockedTitleKeys, getTitleDisplayName } from "../game/titleRules";
 import { ApiError } from "../utils/response";
 
 type ProfileRow = RowDataPacket & {
@@ -197,7 +198,7 @@ export const submitChallengeAttempt = async (input: SubmitAttemptInput) => {
         perfectChallengeCount: nextPerfectCount,
         currentChallengeKey: input.challengeKey,
         currentScore: input.score,
-        totalChallengeCount: 6,
+        totalChallengeCount: getAllChallengeKeys().length,
       },
       ownedTitleKeys,
     );
@@ -214,7 +215,7 @@ export const submitChallengeAttempt = async (input: SubmitAttemptInput) => {
       await connection.query("UPDATE player_profiles SET current_title_key = ? WHERE id = ?", [latestTitle, profile.id]);
     } else if (!profile.current_title_key) {
       await connection.query("UPDATE player_profiles SET current_title_key = ? WHERE id = ?", [
-        DEFAULT_TITLE_KEY,
+        getDefaultTitleKey(),
         profile.id,
       ]);
     }
