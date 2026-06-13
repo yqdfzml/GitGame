@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { levelsApi } from "../api/client";
+import { levelsApi, usersApi } from "../api/client";
+import LevelChallengeCard from "../components/LevelChallengeCard.vue";
 import type { LevelSummary } from "../types";
+import { getLevelPresentation } from "../utils/levelPresentation";
 
 /** 关卡列表 */
 const levels = ref<LevelSummary[]>([]);
+/** 已通关关卡数 */
+const completedCount = ref(0);
 /** 加载中 */
 const loading = ref(true);
 /** 错误信息 */
@@ -22,54 +26,50 @@ onMounted(() => {
     .finally(() => {
       loading.value = false;
     });
+
+  usersApi
+    .stats()
+    .then((stats) => {
+      completedCount.value = stats.completedLevelCount;
+    })
+    .catch(() => {
+      completedCount.value = 0;
+    });
 });
 
 /**
- * 按课程分组关卡列表。
- * 功能：将 flat 列表按 courseId 分组供模板渲染。
+ * 按章节中文名分组关卡。
+ * 功能：沿用重构前的「修炼路径」章节布局。
  * 参数：无。
- * 返回值：courseId -> 关卡数组 的映射。
+ * 返回值：章节名 -> 关卡数组。
  */
-const groupedLevels = computed(() => {
+const groupedByChapter = computed(() => {
   const groups: Record<string, LevelSummary[]> = {};
-  for (const level of levels.value) {
-    if (!groups[level.courseId]) {
-      groups[level.courseId] = [];
+  const sorted = [...levels.value].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  for (const level of sorted) {
+    const chapterLabel = getLevelPresentation(level.chapterId).chapterLabel;
+    if (!groups[chapterLabel]) {
+      groups[chapterLabel] = [];
     }
-    groups[level.courseId].push(level);
+    groups[chapterLabel].push(level);
   }
   return groups;
 });
 
-/**
- * 难度 badge 样式类名。
- * 功能：根据难度返回 CSS class。
- * 参数：difficulty - 难度枚举字符串。
- * 返回值：CSS class 名。
- */
-const difficultyClass = (difficulty: string) => {
-  return `badge badge-${difficulty.toLowerCase()}`;
-};
-
-/**
- * 课程显示名。
- * 功能：将 courseId 转为可读标题。
- * 参数：courseId - 课程 id。
- * 返回值：中文课程名。
- */
-const courseLabel = (courseId: string) => {
-  if (courseId === "basics") return "基础入门";
-  if (courseId === "workflow") return "工作流";
-  return courseId;
-};
+/** 全路径通关百分比 */
+const routePercent = computed(() => {
+  if (levels.value.length === 0) return 0;
+  return Math.round((completedCount.value / levels.value.length) * 100);
+});
 </script>
 
 <template>
-  <div>
+  <section class="page-stack">
     <header class="page-header">
-      <span class="page-eyebrow">Practice</span>
-      <h1 class="page-title">关卡列表</h1>
-      <p class="page-desc">选择关卡开始练习。系统只检查最终仓库状态，不限命令路径。</p>
+      <span class="page-eyebrow">关卡</span>
+      <h1 class="page-title page-title-serif">修炼路径</h1>
+      <p class="page-desc">按章节选择关卡，在终端输入 Git 命令完成目标。系统只检查最终仓库状态。</p>
     </header>
 
     <div v-if="loading" class="loading-state">
@@ -79,33 +79,38 @@ const courseLabel = (courseId: string) => {
 
     <p v-if="error" class="error-msg">{{ error }}</p>
 
-    <div v-if="!loading && !error">
-      <section
-        v-for="(courseLevels, courseId) in groupedLevels"
-        :key="courseId"
-        class="course-section"
-      >
-        <h2 class="course-section-title">{{ courseLabel(courseId) }}</h2>
-        <div class="card-grid">
-          <article
-            v-for="level in courseLevels"
-            :key="level.id"
-            class="card card-hover level-card"
-          >
-            <div class="level-card-header">
-              <h3 class="level-card-title">{{ level.title }}</h3>
-              <span :class="difficultyClass(level.difficulty)">{{ level.difficulty }}</span>
-            </div>
-            <p class="level-card-desc">{{ level.description }}</p>
-            <div class="level-card-meta">
-              <span>{{ level.chapterId }}</span>
-            </div>
-            <div class="level-card-footer">
-              <RouterLink :to="`/practice/${level.id}`" class="btn-primary">开始练习</RouterLink>
-            </div>
-          </article>
+    <template v-if="!loading && !error">
+      <div class="levels-strip card">
+        <span>{{ completedCount }}/{{ levels.length }} 关已通关</span>
+        <div class="progress-track levels-strip-track" aria-label="全路径进度">
+          <div :style="{ width: `${routePercent}%` }" />
         </div>
-      </section>
-    </div>
-  </div>
+        <strong>{{ routePercent }}%</strong>
+      </div>
+
+      <div class="chapter-grid">
+        <article
+          v-for="(chapterLevels, chapterName) in groupedByChapter"
+          :key="chapterName"
+          class="card challenge-map"
+        >
+          <header class="chapter-header">
+            <div>
+              <h2>{{ chapterName }}</h2>
+              <p class="chapter-progress">{{ chapterLevels.length }} 关可修炼</p>
+            </div>
+            <span>{{ chapterLevels.length }} 关</span>
+          </header>
+          <div class="challenge-list">
+            <LevelChallengeCard
+              v-for="(level, idx) in chapterLevels"
+              :key="level.id"
+              :level="level"
+              :index="idx + 1"
+            />
+          </div>
+        </article>
+      </div>
+    </template>
+  </section>
 </template>

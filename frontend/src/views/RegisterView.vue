@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { GitBranch } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 
@@ -35,7 +36,9 @@ const handleSubmit = () => {
   <div class="auth-layout">
     <div class="card auth-card">
       <div class="auth-logo">
-        <div class="auth-logo-mark">⌥</div>
+        <div class="auth-logo-mark auth-logo-icon">
+          <GitBranch aria-hidden="true" />
+        </div>
         <h1>创建账号</h1>
         <p>加入 GitGame，动手学 Git</p>
       </div>

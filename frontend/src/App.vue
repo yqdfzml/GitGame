@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
+import { BookOpenCheck, GitBranch, Shield, Trophy } from "lucide-vue-next";
 import { RouterLink, RouterView } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 
@@ -37,13 +38,22 @@ const handleLogout = () => {
   <div class="app-shell">
     <header class="topbar">
       <RouterLink to="/levels" class="brand">
-        <span class="brand-mark">⌥</span>
-        GitGame
+        <GitBranch class="brand-icon" aria-hidden="true" />
+        <span>GitGame</span>
       </RouterLink>
       <nav class="nav-links">
-        <RouterLink to="/levels">关卡</RouterLink>
-        <RouterLink to="/leaderboard">排行榜</RouterLink>
-        <RouterLink v-if="auth.isAdmin" to="/admin">管理</RouterLink>
+        <RouterLink to="/levels">
+          <BookOpenCheck aria-hidden="true" />
+          关卡
+        </RouterLink>
+        <RouterLink to="/leaderboard">
+          <Trophy aria-hidden="true" />
+          排行榜
+        </RouterLink>
+        <RouterLink v-if="auth.isAdmin" to="/admin">
+          <Shield aria-hidden="true" />
+          管理
+        </RouterLink>
       </nav>
       <div class="user-area">
         <div v-if="auth.user" class="user-chip">
