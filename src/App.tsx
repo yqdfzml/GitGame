@@ -1,5 +1,4 @@
 import {
-  Award,
   BookOpenCheck,
   ChevronRight,
   CircleDot,
@@ -9,7 +8,6 @@ import {
   Home,
   RotateCcw,
   Sparkles,
-  Trophy,
   User,
   Zap,
 } from "lucide-react";
@@ -171,7 +169,7 @@ function App() {
 
   return (
     <main className="app-shell">
-      <AppHeader />
+      <AppHeader profile={profile} />
       <Routes>
         <Route
           path="/"
@@ -225,12 +223,16 @@ function App() {
 }
 
 /**
- * 顶部导航栏，使用 NavLink 与 URL 同步高亮。
- * 功能：品牌入口与页面切换。
- * 参数：无。
+ * 顶部导航栏，展示品牌、页面切换与玩家状态摘要。
+ * 功能：品牌入口、主导航、个人中心快捷入口。
+ * 参数：profile - 当前玩家档案，用于顶栏等级与经验展示。
  * 返回值：顶部导航 JSX。
  */
-function AppHeader() {
+function AppHeader({ profile }: { profile: PlayerProfile }) {
+  const levelInfo = getLevelInfo(profile.level);
+  const levelProgress = getLevelProgress(profile.xp);
+  const activeTitle = getTitleById(profile.activeTitleId);
+
   return (
     <header className="topbar">
       <NavLink className="brand-button" to="/">
@@ -253,6 +255,16 @@ function AppHeader() {
           );
         })}
       </nav>
+      <NavLink className="player-chip" to="/profile" aria-label="打开个人中心">
+        <span className="player-chip-level">Lv.{levelInfo.level}</span>
+        <div className="player-chip-meta">
+          <strong>{activeTitle.name}</strong>
+          <small>{profile.xp} 经验值 · {levelProgress.percent}%</small>
+        </div>
+        <div className="player-chip-bar" aria-hidden="true">
+          <div style={{ width: `${levelProgress.percent}%` }} />
+        </div>
+      </NavLink>
     </header>
   );
 }
@@ -269,38 +281,71 @@ function HomePage({
   recommendedChallenge: Challenge;
 }) {
   const levelInfo = getLevelInfo(profile.level);
+  const activeTitle = getTitleById(profile.activeTitleId);
+  const levelProgress = getLevelProgress(profile.xp);
   const completedCount = profile.completedChallengeIds.length;
   const totalCount = CHALLENGES.length;
   const routePercent = Math.round((completedCount / totalCount) * 100);
   const isNewPlayer = completedCount === 0;
   const RecommendedIcon = kindIcon[recommendedChallenge.kind];
+  // 首页技能路径节点：按技能方向统计通关数
+  const skillPathNodes = (Object.keys(SKILL_KIND_LABELS) as Challenge["kind"][]).map((kind) => {
+    const total = CHALLENGES.filter((item) => item.kind === kind).length;
+    const done = CHALLENGES.filter(
+      (item) => item.kind === kind && profile.completedChallengeIds.includes(item.id),
+    ).length;
+    const nodeState = done >= total && total > 0 ? "done" : done > 0 ? "partial" : "idle";
+    return { kind, label: SKILL_KIND_LABELS[kind], done, total, nodeState };
+  });
 
   return (
     <section className="home-layout">
       <article className="surface hero-card">
-        <div className="hero-grid">
-          <div className="hero-copy-block">
-            <p className="eyebrow">Git 修仙录</p>
-            <h1 className="hero-title">GitGame</h1>
-            <p className="hero-subtitle">从凡人开发者到版本控制宗师</p>
-            <p className="hero-copy">在命令行里修炼 Git，从第一枚 commit 到冲突化解，逐关建立对工作流的直觉。</p>
-            <div className="hero-actions">
-              <button className="primary cta" type="button" onClick={onStart}>
-                {isNewPlayer ? "开始修炼" : "继续修炼"}
-              </button>
-              <button className="secondary cta" type="button" onClick={onViewLevels}>查看关卡</button>
-            </div>
-            <div className="hero-route">
-              <div className="hero-route-head">
-                <span>修炼路径</span>
-                <strong>{completedCount}/{totalCount} 关 · {routePercent}%</strong>
+        <p className="eyebrow">Git 修仙录</p>
+        <h1 className="hero-title">GitGame</h1>
+        <p className="hero-subtitle">从凡人开发者到版本控制宗师</p>
+        <p className="hero-copy">命令行里练 Git，逐关掌握 commit、分支与合并。</p>
+
+        <div className="home-skill-path" aria-label="六大 Git 技能路径">
+          {skillPathNodes.map((node) => {
+            const SkillIcon = kindIcon[node.kind];
+            return (
+              <div className={`home-skill-node ${node.nodeState}`} key={node.kind} title={node.label}>
+                <span className="home-skill-node-icon" aria-hidden="true"><SkillIcon /></span>
+                <span className="home-skill-node-label">{node.label}</span>
+                <span className="home-skill-node-count">{node.done}/{node.total}</span>
               </div>
-              <div className="progress-track hero-route-track" aria-label="总关卡进度">
-                <div style={{ width: `${routePercent}%` }} />
-              </div>
+            );
+          })}
+        </div>
+
+        <div className="hero-status">
+          <div className="hero-status-main">
+            <span className="hero-status-level">Lv.{levelInfo.level}</span>
+            <div className="hero-status-meta">
+              <strong>{levelInfo.name}</strong>
+              <span>{activeTitle.name}</span>
             </div>
           </div>
-          <PlayerSummary profile={profile} compact />
+          <div className="hero-status-progress">
+            <div className="hero-route-head">
+              <span>修炼路径 {completedCount}/{totalCount} 关</span>
+              <strong>{routePercent}%</strong>
+            </div>
+            <div className="progress-track hero-route-track" aria-label="总关卡进度">
+              <div style={{ width: `${routePercent}%` }} />
+            </div>
+            <div className="hero-status-xp">
+              <span>经验值 {profile.xp}</span>
+              <span>{levelProgress.percent}%</span>
+            </div>
+          </div>
+        </div>
+        <div className="hero-actions">
+          <button className="primary cta" type="button" onClick={onStart}>
+            {isNewPlayer ? "开始修炼" : "继续修炼"}
+          </button>
+          <button className="secondary cta" type="button" onClick={onViewLevels}>查看关卡</button>
         </div>
       </article>
 
@@ -317,9 +362,9 @@ function HomePage({
             <h2>{recommendedChallenge.title}</h2>
             <p>{recommendedChallenge.summary}</p>
             <div className="mission-spotlight-tags">
-              <span>{recommendedChallenge.skill}</span>
-              <span>{recommendedChallenge.difficulty}</span>
-              <span>{recommendedChallenge.baseXp} XP</span>
+              <span className="tag">{recommendedChallenge.skill}</span>
+              <span className="tag">{recommendedChallenge.difficulty}</span>
+              <span className="tag tag-accent">{recommendedChallenge.baseXp} 经验值</span>
             </div>
           </div>
           <button className="primary mission-spotlight-cta" type="button" onClick={onStart}>
@@ -420,7 +465,7 @@ function ChallengeCard({
             ? "完成上一关后解锁"
             : completed
               ? `最高分 ${bestScore} · 可再修炼刷新成绩`
-              : `${challenge.difficulty} · 基础 ${challenge.baseXp} XP`}
+              : `${challenge.difficulty} · 基础 ${challenge.baseXp} 经验值`}
         </small>
       </span>
       <ChevronRight aria-hidden="true" />
@@ -464,6 +509,13 @@ function ProfilePage({
   profile: PlayerProfile;
 }) {
   const apiEnabled = isApiEnabled();
+  const activeTitle = getTitleById(profile.activeTitleId);
+  const levelInfo = getLevelInfo(profile.level);
+  const levelProgress = getLevelProgress(profile.xp);
+  const completedCount = profile.completedChallengeIds.length;
+  const titleCount = profile.unlockedTitleIds.length;
+  const routePercent = Math.round((completedCount / CHALLENGES.length) * 100);
+
   // 按技能方向统计掌握进度
   const skillStats = (Object.keys(SKILL_KIND_LABELS) as Challenge["kind"][]).map((kind) => {
     const total = CHALLENGES.filter((item) => item.kind === kind).length;
@@ -475,180 +527,206 @@ function ProfilePage({
 
   return (
     <section className="profile-layout">
-      <aside className="profile-sidebar">
-        <PlayerSummary profile={profile} onReset={onReset} />
-        <article className="surface auth-panel">
-          <div className="section-title">
-            <p className="eyebrow">云存档</p>
-            <h2>{authUser ? "账号已连接" : "登录后同步进度"}</h2>
-            <p>
-              {apiEnabled
-                ? "本地优先游玩，登录后在通关时自动同步 XP、关卡进度和称号。"
-                : "当前未配置 VITE_API_BASE_URL，云同步功能处于关闭状态。"}
-            </p>
-          </div>
-          {authUser ? (
-            <div className="auth-session">
-              <div className="auth-user-card">
-                <div className="auth-avatar" aria-hidden="true">{authUser.displayName.slice(0, 1)}</div>
-                <div>
-                  <strong>{authUser.displayName}</strong>
-                  <p className="muted">{authUser.email}</p>
-                </div>
-              </div>
-              <button type="button" onClick={onLogout}>退出登录</button>
+      <article className="surface profile-hero">
+        <div className="profile-hero-top">
+          <div className="profile-identity">
+            <div className="avatar profile-avatar" aria-hidden="true"><Sparkles /></div>
+            <div className="profile-identity-copy">
+              <p className="eyebrow">个人中心</p>
+              <h1>Lv.{levelInfo.level} {levelInfo.name}</h1>
+              <p className="profile-title-line">{activeTitle.name}</p>
+              <p className="profile-title-flavor">{activeTitle.flavorText}</p>
             </div>
-          ) : (
-            <form
-              className="auth-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                onSubmitAuth();
-              }}
-            >
-              <div className="auth-tabs">
-                <button
-                  className={authMode === "login" ? "active" : ""}
-                  type="button"
-                  onClick={() => onAuthModeChange("login")}
-                >
-                  登录
-                </button>
-                <button
-                  className={authMode === "register" ? "active" : ""}
-                  type="button"
-                  onClick={() => onAuthModeChange("register")}
-                >
-                  注册
-                </button>
+          </div>
+          <div className="profile-hero-actions">
+            <NavLink className="primary" to="/">继续修炼</NavLink>
+            <NavLink className="secondary" to="/levels">查看关卡</NavLink>
+          </div>
+        </div>
+
+        <div className="profile-level-block">
+          <div className="profile-level-head">
+            <span>升级进度 · {levelProgress.current}/{levelProgress.required} 经验值</span>
+            <strong>{levelProgress.percent}%</strong>
+          </div>
+          <div className="progress-track" aria-label="等级经验进度">
+            <div style={{ width: `${levelProgress.percent}%` }} />
+          </div>
+        </div>
+
+        <div className="profile-stat-grid">
+          <div className="profile-stat-card">
+            <strong>{profile.xp}</strong>
+            <span>总经验值</span>
+          </div>
+          <div className="profile-stat-card">
+            <strong>{profile.totalScore}</strong>
+            <span>总积分</span>
+          </div>
+          <div className="profile-stat-card">
+            <strong>{completedCount}/{CHALLENGES.length}</strong>
+            <span>已通关</span>
+          </div>
+          <div className="profile-stat-card">
+            <strong>{titleCount}/{TITLE_RULES.length}</strong>
+            <span>已解锁称号</span>
+          </div>
+        </div>
+      </article>
+
+      <div className="profile-body">
+        <div className="profile-main">
+          <article className="surface profile-section">
+            <div className="profile-section-head">
+              <h2>学习进度</h2>
+              <span className="profile-section-meta">全路径 {routePercent}%</span>
+            </div>
+            <div className="profile-route-bar">
+              <div className="progress-track">
+                <div style={{ width: `${routePercent}%` }} />
               </div>
-              {authMode === "register" && (
+            </div>
+            <div className="skill-strip">
+              {skillStats.map((skill) => {
+                const percent = skill.total === 0 ? 0 : Math.round((skill.done / skill.total) * 100);
+                const mastered = skill.done >= skill.total && skill.total > 0;
+                return (
+                  <div className={`skill-row ${mastered ? "mastered" : ""}`} key={skill.kind}>
+                    <span className="skill-row-label">{skill.label}</span>
+                    <div className="progress-track skill-row-track">
+                      <div style={{ width: `${percent}%` }} />
+                    </div>
+                    <span className="skill-row-count">{skill.done}/{skill.total}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+
+          <article className="surface profile-section">
+            <div className="profile-section-head">
+              <h2>称号成就</h2>
+              <span className="profile-section-meta">点击已解锁称号切换展示</span>
+            </div>
+            <div className="titles-grid">
+              {TITLE_RULES.map((title) => {
+                const unlocked = profile.unlockedTitleIds.includes(title.id);
+                const active = profile.activeTitleId === title.id;
+                return (
+                  <button
+                    className={`title-card ${unlocked ? "unlocked" : "locked"} ${active ? "active" : ""}`}
+                    disabled={!unlocked}
+                    key={title.id}
+                    onClick={() => onChooseTitle(title.id)}
+                    type="button"
+                  >
+                    <span className="title-card-name">{title.name}</span>
+                    {active && <span className="title-card-badge">当前</span>}
+                    <small>{unlocked ? title.flavorText : "尚未悟得此道"}</small>
+                  </button>
+                );
+              })}
+            </div>
+          </article>
+        </div>
+
+        <aside className="profile-aside">
+          <article className="surface profile-section profile-account">
+            <div className="profile-section-head">
+              <h2>账号与云同步</h2>
+            </div>
+            <p className="profile-account-note">
+              {apiEnabled
+                ? "登录后通关时自动同步经验值、关卡与称号。"
+                : "未配置 VITE_API_BASE_URL，云同步已关闭。"}
+            </p>
+            {authUser ? (
+              <div className="auth-session">
+                <div className="auth-user-card">
+                  <div className="auth-avatar" aria-hidden="true">{authUser.displayName.slice(0, 1)}</div>
+                  <div>
+                    <strong>{authUser.displayName}</strong>
+                    <p className="muted">{authUser.email}</p>
+                  </div>
+                </div>
+                <button className="secondary profile-aside-btn" type="button" onClick={onLogout}>退出登录</button>
+              </div>
+            ) : (
+              <form
+                className="auth-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  onSubmitAuth();
+                }}
+              >
+                <div className="auth-tabs">
+                  <button
+                    className={authMode === "login" ? "active" : ""}
+                    type="button"
+                    onClick={() => onAuthModeChange("login")}
+                  >
+                    登录
+                  </button>
+                  <button
+                    className={authMode === "register" ? "active" : ""}
+                    type="button"
+                    onClick={() => onAuthModeChange("register")}
+                  >
+                    注册
+                  </button>
+                </div>
+                {authMode === "register" && (
+                  <label>
+                    昵称
+                    <input
+                      value={authDisplayName}
+                      onChange={(event) => onAuthDisplayNameChange(event.target.value)}
+                      placeholder="Git 少侠"
+                      required
+                    />
+                  </label>
+                )}
                 <label>
-                  昵称
+                  邮箱
                   <input
-                    value={authDisplayName}
-                    onChange={(event) => onAuthDisplayNameChange(event.target.value)}
-                    placeholder="Git 少侠"
+                    type="email"
+                    value={authEmail}
+                    onChange={(event) => onAuthEmailChange(event.target.value)}
+                    placeholder="player@example.com"
                     required
                   />
                 </label>
-              )}
-              <label>
-                邮箱
-                <input
-                  type="email"
-                  value={authEmail}
-                  onChange={(event) => onAuthEmailChange(event.target.value)}
-                  placeholder="player@example.com"
-                  required
-                />
-              </label>
-              <label>
-                密码
-                <input
-                  type="password"
-                  value={authPassword}
-                  onChange={(event) => onAuthPasswordChange(event.target.value)}
-                  placeholder="至少 6 位"
-                  minLength={6}
-                  required
-                />
-              </label>
-              <button className="primary auth-submit" type="submit" disabled={authBusy || !apiEnabled}>
-                {authBusy ? "处理中…" : authMode === "register" ? "注册并登录" : "登录"}
-              </button>
-            </form>
-          )}
-          {authMessage && <p className="auth-message">{authMessage}</p>}
-        </article>
-      </aside>
-      <div className="profile-main-stack">
-        <article className="surface skill-panel">
-          <div className="section-title section-title-compact">
-            <p className="eyebrow">能力图谱</p>
-            <h2>Git 技能掌握</h2>
-          </div>
-          <div className="skill-strip">
-            {skillStats.map((skill) => {
-              const percent = skill.total === 0 ? 0 : Math.round((skill.done / skill.total) * 100);
-              const mastered = skill.done >= skill.total && skill.total > 0;
-              return (
-                <div className={`skill-row ${mastered ? "mastered" : ""}`} key={skill.kind}>
-                  <span className="skill-row-label">{skill.label}</span>
-                  <div className="progress-track skill-row-track">
-                    <div style={{ width: `${percent}%` }} />
-                  </div>
-                  <span className="skill-row-count">{skill.done}/{skill.total}</span>
-                </div>
-              );
-            })}
-          </div>
-        </article>
-        <article className="surface title-wall profile-main">
-        <div className="section-title">
-          <p className="eyebrow">个人中心</p>
-          <h2>称号墙</h2>
-          <p>已解锁称号可以设为当前展示称号，未解锁称号保留神秘感。</p>
-        </div>
-        <div className="titles-grid">
-          {TITLE_RULES.map((title) => {
-            const unlocked = profile.unlockedTitleIds.includes(title.id);
-            const active = profile.activeTitleId === title.id;
-            return (
-              <button
-                className={`title-card ${unlocked ? "unlocked" : "locked"} ${active ? "active" : ""}`}
-                disabled={!unlocked}
-                key={title.id}
-                onClick={() => onChooseTitle(title.id)}
-                type="button"
-              >
-                <span>{title.name}</span>
-                <small>{unlocked ? title.flavorText : "尚未悟得此道"}</small>
-              </button>
-            );
-          })}
-        </div>
-      </article>
+                <label>
+                  密码
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(event) => onAuthPasswordChange(event.target.value)}
+                    placeholder="至少 6 位"
+                    minLength={6}
+                    required
+                  />
+                </label>
+                <button className="primary profile-aside-btn" type="submit" disabled={authBusy || !apiEnabled}>
+                  {authBusy ? "处理中…" : authMode === "register" ? "注册并登录" : "登录"}
+                </button>
+              </form>
+            )}
+            {authMessage && <p className="auth-message">{authMessage}</p>}
+          </article>
+
+          <article className="surface profile-section profile-settings">
+            <div className="profile-section-head">
+              <h2>数据管理</h2>
+            </div>
+            <p className="profile-settings-note">重置会清空本地修炼进度，此操作不可撤销。</p>
+            <button className="secondary profile-aside-btn profile-reset-btn" type="button" onClick={onReset}>
+              <RotateCcw aria-hidden="true" /> 重置本地进度
+            </button>
+          </article>
+        </aside>
       </div>
     </section>
-  );
-}
-
-function PlayerSummary({
-  compact = false,
-  onReset,
-  profile,
-}: {
-  compact?: boolean;
-  onReset?: () => void;
-  profile: PlayerProfile;
-}) {
-  const activeTitle = getTitleById(profile.activeTitleId);
-  const levelInfo = getLevelInfo(profile.level);
-  const progress = getLevelProgress(profile.xp);
-  return (
-    <article className={`player-card surface ${compact ? "player-card-compact" : ""}`}>
-      <div className="player-heading">
-        <div className="avatar" aria-hidden="true"><Sparkles /></div>
-        <div className="player-meta">
-          <p className="muted">当前段位</p>
-          <h2>Lv.{levelInfo.level} {levelInfo.name}</h2>
-          <p className="title-line">{activeTitle.name}</p>
-        </div>
-        <div className="score-badge" aria-label={`总积分 ${profile.totalScore}`}>
-          <small>积分</small>
-          <strong>{profile.totalScore}</strong>
-        </div>
-      </div>
-      {!compact && <p className="title-flavor">{activeTitle.flavorText}</p>}
-      <div className="xp-row"><span>总 XP {profile.xp}</span><span>{progress.percent}%</span></div>
-      <div className="progress-track" aria-label="等级经验进度"><div style={{ width: `${progress.percent}%` }} /></div>
-      <div className="stat-strip">
-        <span><Trophy aria-hidden="true" /> {profile.completedChallengeIds.length}/{CHALLENGES.length} 关</span>
-        <span><Award aria-hidden="true" /> {profile.unlockedTitleIds.length}/{TITLE_RULES.length} 称号</span>
-        {onReset && <button type="button" onClick={onReset}><RotateCcw aria-hidden="true" /> 重置</button>}
-      </div>
-    </article>
   );
 }
 

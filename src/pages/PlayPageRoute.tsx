@@ -116,7 +116,7 @@ export function PlayPageRoute({
   };
 
   /**
-   * 完成关卡并结算 XP、同步云端。
+   * 完成关卡并结算经验值、同步云端。
    * 功能：计算得分、更新档案、展示结算弹窗。
    * 参数：无。
    * 返回值：Promise。
@@ -206,8 +206,15 @@ function PlayPage(props: {
 
   return (
     <section className="play-layout">
-      <article className="surface mission-panel">
+      <header className="play-page-head">
         <button className="ghost-link" type="button" onClick={props.onBack}>返回关卡</button>
+        <div className="play-page-meta">
+          <span className="tag">{props.challenge.chapter}</span>
+          <span className="play-page-progress">{objectiveDone}/{objectiveTotal} 目标完成</span>
+        </div>
+      </header>
+
+      <article className="surface mission-panel">
         <p className="eyebrow">{props.challenge.chapter}</p>
         <h2 className="mission-title">{props.challenge.title}</h2>
         <p className="mission-summary">{props.challenge.summary}</p>
@@ -283,13 +290,13 @@ function PlayPage(props: {
           </div>
           <div className="hint-grid" aria-label="分层提示">
             {props.challenge.hintLevels.map((_hint, index) => (
-              <button key={index} type="button" onClick={() => props.onHint(index)} disabled={done}>
+              <button className="btn-ghost" key={index} type="button" onClick={() => props.onHint(index)} disabled={done}>
                 提示 {index + 1}
               </button>
             ))}
           </div>
           <div className="console-actions">
-            <button type="button" onClick={props.onReset}>重练</button>
+            <button className="btn-ghost" type="button" onClick={props.onReset}>重练</button>
             <button className="primary" type="button" onClick={props.onComplete} disabled={!done || props.completionInFlight}>
               {props.completionInFlight ? "结算中" : "完成挑战"}
             </button>
@@ -332,7 +339,7 @@ function ResultModal({
           <div className="result-score">{notice.result.score}</div>
         </div>
         <div className="result-xp-row">
-          <span>获得 XP</span>
+          <span>获得经验值</span>
           <strong>{notice.result.baseXp + notice.result.bonusXp}</strong>
           <small>基础 {notice.result.baseXp} · 精进 {notice.result.bonusXp}</small>
         </div>
