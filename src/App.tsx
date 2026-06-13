@@ -11,12 +11,11 @@ import {
   Medal,
   RotateCcw,
   Sparkles,
-  Terminal,
   Trophy,
   User,
   Zap,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CHALLENGES } from "./game/challenges";
 import { evaluateCommand, getLayeredHint } from "./game/commandEngine";
 import { syncChallengeAttempt } from "./game/cloudSync";
@@ -62,6 +61,16 @@ const navItems = [
   { page: "levels" as const, label: "关卡", icon: BookOpenCheck },
   { page: "profile" as const, label: "个人中心", icon: User },
 ];
+
+/** Git 技能方向的中文标签，用于个人页能力掌握展示 */
+const SKILL_KIND_LABELS: Record<Challenge["kind"], string> = {
+  commit: "提交基础",
+  staging: "暂存区理解",
+  branch: "分支操作",
+  merge: "合并流程",
+  history: "历史回溯",
+  conflict: "冲突处理",
+};
 
 const getLocked = (challenge: Challenge, profile: PlayerProfile) => {
   const index = CHALLENGES.findIndex((item) => item.id === challenge.id);
@@ -315,6 +324,12 @@ function App() {
   );
 }
 
+/**
+ * 顶部导航栏。
+ * 功能：品牌入口与页面切换，不参与 sticky 避免滚动遮挡内容。
+ * 参数：page - 当前页面；setPage - 页面切换回调。
+ * 返回值：顶部导航 JSX。
+ */
 function AppHeader({ page, setPage }: { page: Page; setPage: (page: Page) => void }) {
   return (
     <header className="topbar">
@@ -348,29 +363,66 @@ function HomePage({
   profile: PlayerProfile;
   recommendedChallenge: Challenge;
 }) {
-  const activeTitle = getTitleById(profile.activeTitleId);
   const levelInfo = getLevelInfo(profile.level);
+  const completedCount = profile.completedChallengeIds.length;
+  const totalCount = CHALLENGES.length;
+  const routePercent = Math.round((completedCount / totalCount) * 100);
+  const isNewPlayer = completedCount === 0;
+  const RecommendedIcon = kindIcon[recommendedChallenge.kind];
+
   return (
     <section className="home-layout">
       <article className="surface hero-card">
         <div className="hero-grid">
           <div className="hero-copy-block">
-            <p className="eyebrow">Git 等级挑战</p>
+            <p className="eyebrow">Git 修仙录</p>
             <h1 className="hero-title">GitGame</h1>
-            <p className="hero-copy">在命令行里修炼 Git，从第一枚 commit 到冲突化解，逐关突破工程师段位。</p>
+            <p className="hero-subtitle">从凡人开发者到版本控制宗师</p>
+            <p className="hero-copy">在命令行里修炼 Git，从第一枚 commit 到冲突化解，逐关建立对工作流的直觉。</p>
             <div className="hero-actions">
-              <button className="primary cta" type="button" onClick={onStart}>继续修炼</button>
+              <button className="primary cta" type="button" onClick={onStart}>
+                {isNewPlayer ? "开始修炼" : "继续修炼"}
+              </button>
               <button className="secondary cta" type="button" onClick={onViewLevels}>查看关卡</button>
+            </div>
+            <div className="hero-route">
+              <div className="hero-route-head">
+                <span>修炼路径</span>
+                <strong>{completedCount}/{totalCount} 关 · {routePercent}%</strong>
+              </div>
+              <div className="progress-track hero-route-track" aria-label="总关卡进度">
+                <div style={{ width: `${routePercent}%` }} />
+              </div>
             </div>
           </div>
           <PlayerSummary profile={profile} compact />
         </div>
       </article>
-      <section className="insight-grid">
-        <MetricCard label="当前段位" value={`Lv.${levelInfo.level} ${levelInfo.name}`} />
-        <MetricCard label="当前称号" value={activeTitle.name} />
-        <MetricCard label="推荐下一关" value={recommendedChallenge.title} />
-      </section>
+
+      <article className="surface mission-spotlight">
+        <div className="mission-spotlight-head">
+          <p className="eyebrow">{isNewPlayer ? "入门指引" : "推荐下一关"}</p>
+          <span className="mission-spotlight-badge">{recommendedChallenge.chapter}</span>
+        </div>
+        <div className="mission-spotlight-body">
+          <div className="mission-spotlight-icon" aria-hidden="true">
+            <RecommendedIcon />
+          </div>
+          <div className="mission-spotlight-copy">
+            <h2>{recommendedChallenge.title}</h2>
+            <p>{recommendedChallenge.summary}</p>
+            <div className="mission-spotlight-tags">
+              <span>{recommendedChallenge.skill}</span>
+              <span>{recommendedChallenge.difficulty}</span>
+              <span>{recommendedChallenge.baseXp} XP</span>
+            </div>
+          </div>
+          <button className="primary mission-spotlight-cta" type="button" onClick={onStart}>
+            {isNewPlayer ? "进入挑战" : "继续"}
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      </article>
     </section>
   );
 }
@@ -384,23 +436,46 @@ function LevelsPage({
   onStart: (challengeId: string) => void;
   profile: PlayerProfile;
 }) {
+  const completedCount = profile.completedChallengeIds.length;
+  const totalCount = CHALLENGES.length;
+  const routePercent = Math.round((completedCount / totalCount) * 100);
+
   return (
     <section className="page-stack">
-      <PageTitle eyebrow="关卡" title="按章节突破 Git 能力" copy="这里选择挑战，不展示答案；进入关卡后根据目标自己输入命令。" />
+      <PageTitle eyebrow="关卡" title="修炼路径" copy="按章节选择关卡，在终端输入 Git 命令完成目标。" />
+      <div className="levels-strip surface">
+        <span>{completedCount}/{totalCount} 关已通关</span>
+        <div className="progress-track levels-strip-track" aria-label="全路径进度">
+          <div style={{ width: `${routePercent}%` }} />
+        </div>
+        <strong>{routePercent}%</strong>
+      </div>
       <div className="chapter-grid">
-        {Object.entries(groupedChallenges).map(([chapter, challenges]) => (
-          <article className="surface challenge-map" key={chapter}>
-            <header className="chapter-header">
-              <h2>{chapter}</h2>
-              <span>{challenges.length} 关</span>
-            </header>
-            <div className="challenge-list">
-              {challenges.map((challenge) => (
-                <ChallengeCard challenge={challenge} key={challenge.id} onStart={onStart} profile={profile} />
-              ))}
-            </div>
-          </article>
-        ))}
+        {Object.entries(groupedChallenges).map(([chapter, challenges]) => {
+          const chapterDone = challenges.filter((item) => profile.completedChallengeIds.includes(item.id)).length;
+          return (
+            <article className="surface challenge-map" key={chapter}>
+              <header className="chapter-header">
+                <div>
+                  <h2>{chapter}</h2>
+                  <p className="chapter-progress">{chapterDone}/{challenges.length} 关已通关</p>
+                </div>
+                <span>{challenges.length} 关</span>
+              </header>
+              <div className="challenge-list">
+                {challenges.map((challenge) => (
+                  <ChallengeCard
+                    challenge={challenge}
+                    index={CHALLENGES.findIndex((item) => item.id === challenge.id) + 1}
+                    key={challenge.id}
+                    onStart={onStart}
+                    profile={profile}
+                  />
+                ))}
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -408,10 +483,12 @@ function LevelsPage({
 
 function ChallengeCard({
   challenge,
+  index,
   onStart,
   profile,
 }: {
   challenge: Challenge;
+  index: number;
   onStart: (challengeId: string) => void;
   profile: PlayerProfile;
 }) {
@@ -423,6 +500,7 @@ function ChallengeCard({
   const statusClass = locked ? "locked" : completed ? "done" : "open";
   return (
     <button className={`challenge-card ${statusClass}`} disabled={locked} onClick={() => onStart(challenge.id)} type="button">
+      <span className="challenge-index">{String(index).padStart(2, "0")}</span>
       <div className="challenge-icon-wrap">
         <Icon aria-hidden="true" />
       </div>
@@ -481,6 +559,14 @@ function ProfilePage({
   profile: PlayerProfile;
 }) {
   const apiEnabled = isApiEnabled();
+  // 按技能方向统计掌握进度
+  const skillStats = (Object.keys(SKILL_KIND_LABELS) as Challenge["kind"][]).map((kind) => {
+    const total = CHALLENGES.filter((item) => item.kind === kind).length;
+    const done = CHALLENGES.filter(
+      (item) => item.kind === kind && profile.completedChallengeIds.includes(item.id),
+    ).length;
+    return { kind, label: SKILL_KIND_LABELS[kind], done, total };
+  });
 
   return (
     <section className="profile-layout">
@@ -571,7 +657,29 @@ function ProfilePage({
           {authMessage && <p className="auth-message">{authMessage}</p>}
         </article>
       </aside>
-      <article className="surface title-wall profile-main">
+      <div className="profile-main-stack">
+        <article className="surface skill-panel">
+          <div className="section-title section-title-compact">
+            <p className="eyebrow">能力图谱</p>
+            <h2>Git 技能掌握</h2>
+          </div>
+          <div className="skill-strip">
+            {skillStats.map((skill) => {
+              const percent = skill.total === 0 ? 0 : Math.round((skill.done / skill.total) * 100);
+              const mastered = skill.done >= skill.total && skill.total > 0;
+              return (
+                <div className={`skill-row ${mastered ? "mastered" : ""}`} key={skill.kind}>
+                  <span className="skill-row-label">{skill.label}</span>
+                  <div className="progress-track skill-row-track">
+                    <div style={{ width: `${percent}%` }} />
+                  </div>
+                  <span className="skill-row-count">{skill.done}/{skill.total}</span>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+        <article className="surface title-wall profile-main">
         <div className="section-title">
           <p className="eyebrow">个人中心</p>
           <h2>称号墙</h2>
@@ -596,6 +704,7 @@ function ProfilePage({
           })}
         </div>
       </article>
+      </div>
     </section>
   );
 }
@@ -656,26 +765,41 @@ function PlayPage(props: {
   onSubmit: (value?: string) => void;
   terminalLines: TerminalLine[];
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const nextChallenge = CHALLENGES[CHALLENGES.findIndex((item) => item.id === props.challenge.id) + 1];
   const done = props.challenge.commands.every((command) => props.completedCommands.includes(command));
   const firstOpenIndex = props.challenge.commands.findIndex((command) => !props.completedCommands.includes(command));
-  const routePercent = Math.round((props.completedCommands.length / props.challenge.commands.length) * 100);
-  const currentStateIndex = Math.min(props.completedCommands.length, props.challenge.repositoryStates.length - 1);
+  const objectiveDone = props.completedCommands.length;
+  const objectiveTotal = props.challenge.objectives.length;
+  const routePercent = Math.round((objectiveDone / objectiveTotal) * 100);
+  const currentStateIndex = Math.min(objectiveDone, props.challenge.repositoryStates.length - 1);
+  const currentState = props.challenge.repositoryStates[currentStateIndex];
+
+  // 切换关卡后自动聚焦终端输入行
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [props.challenge.id]);
 
   return (
-    <section className="play-layout command-mode">
-      <article className="surface mission-panel command-brief">
+    <section className="play-layout">
+      <article className="surface mission-panel">
         <button className="ghost-link" type="button" onClick={props.onBack}>返回关卡</button>
-        <PageTitle eyebrow={props.challenge.chapter} title={props.challenge.title} copy={props.challenge.summary} />
-        <div className="learning-card">
-          <span>{props.challenge.skill}</span>
-          <p>{props.challenge.concept}</p>
+        <p className="eyebrow">{props.challenge.chapter}</p>
+        <h2 className="mission-title">{props.challenge.title}</h2>
+        <p className="mission-summary">{props.challenge.summary}</p>
+        <p className="mission-skill">{props.challenge.skill}</p>
+        <p className="mission-concept">{props.challenge.concept}</p>
+        <div className="mission-progress">
+          <span>{objectiveDone}/{objectiveTotal} 目标</span>
+          <div className="progress-track">
+            <div style={{ width: `${routePercent}%` }} />
+          </div>
         </div>
-        <div className="brief-meter" aria-label="执行路径进度">
-          <span>{routePercent}%</span>
-          <div className="progress-track"><div style={{ width: `${routePercent}%` }} /></div>
+        <div className="mission-state">
+          <small>当前仓库状态</small>
+          <p>{currentState}</p>
         </div>
-        <ol className="objective-list compact-objectives">
+        <ol className="objective-list">
           {props.challenge.objectives.map((objective, index) => {
             const complete = props.completedCommands.includes(props.challenge.commands[index]);
             const current = index === firstOpenIndex && !done;
@@ -687,55 +811,66 @@ function PlayPage(props: {
             );
           })}
         </ol>
-        <div className="state-rail" aria-label="模拟仓库状态">
-          {props.challenge.repositoryStates.map((state, index) => (
-            <div className={`${index <= currentStateIndex ? "active" : ""} ${index === currentStateIndex ? "current" : ""}`} key={state}>
-              <span>{index + 1}</span>
-              <p>{state}</p>
-            </div>
-          ))}
-        </div>
       </article>
 
       <article className="surface command-console">
-        <div className="console-topline">
-          <div>
-            <p className="eyebrow">命令行 · 校验反馈</p>
-            <h2 className="console-title">输入 Git 命令，观察仓库状态变化</h2>
+        <div className="terminal-shell">
+          <div className="terminal-chrome" aria-hidden="true">
+            <span className="dot red" />
+            <span className="dot yellow" />
+            <span className="dot green" />
+            <span className="terminal-chrome-title">gitgame-terminal</span>
           </div>
-          <div className="step-badge">STEP {String(Math.min(props.completedCommands.length + 1, props.challenge.commands.length)).padStart(2, "0")}</div>
+          <div className="terminal-body">
+            <div className="terminal-window validation-log" aria-live="polite">
+              {props.terminalLines.map((line, index) => (
+                <p
+                  className={`${line.kind}${props.terminalLines.length === 1 && line.kind === "info" ? " terminal-placeholder" : ""}`}
+                  key={`${line.text}-${index}`}
+                >
+                  {line.text}
+                </p>
+              ))}
+            </div>
+            <div className="terminal-prompt-line">
+              <span className="terminal-prompt" aria-hidden="true">$</span>
+              <input
+                ref={inputRef}
+                aria-label="输入 Git 命令"
+                className="terminal-prompt-input"
+                disabled={done}
+                onChange={(event) => props.onInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    props.onSubmit();
+                  }
+                }}
+                placeholder="git ..."
+                value={props.input}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="terminal-form command-input hero-input">
-          <label htmlFor="terminal-input">输入命令</label>
-          <input
-            id="terminal-input"
-            onChange={(event) => props.onInput(event.target.value)}
-            onKeyDown={(event) => event.key === "Enter" && props.onSubmit()}
-            placeholder="git ..."
-            value={props.input}
-          />
-          <button type="button" onClick={() => props.onSubmit()}>执行</button>
-        </div>
-
-        <div className="terminal-window validation-log" aria-live="polite">
-          {props.terminalLines.map((line, index) => <p className={line.kind} key={`${line.text}-${index}`}>{line.text}</p>)}
-        </div>
-
-        <div className="hint-grid" aria-label="分层提示">
-          {props.challenge.hintLevels.map((_hint, index) => (
-            <button key={index} type="button" onClick={() => props.onHint(index)} disabled={done}>
-              提示 {index + 1}
+        <div className="play-toolbar">
+          <div className="play-stats">
+            <span>误操作 {props.mistakeCount}</span>
+            <span>提示 {props.hintCount}</span>
+          </div>
+          <div className="hint-grid" aria-label="分层提示">
+            {props.challenge.hintLevels.map((_hint, index) => (
+              <button key={index} type="button" onClick={() => props.onHint(index)} disabled={done}>
+                提示 {index + 1}
+              </button>
+            ))}
+          </div>
+          <div className="console-actions">
+            <button type="button" onClick={props.onReset}>重练</button>
+            <button className="primary" type="button" onClick={props.onComplete} disabled={!done || props.completionInFlight}>
+              {props.completionInFlight ? "结算中" : "完成挑战"}
             </button>
-          ))}
+          </div>
         </div>
-        <div className="console-actions">
-          <button type="button" onClick={props.onReset}>重练本关</button>
-          <button className="primary" type="button" onClick={props.onComplete} disabled={!done || props.completionInFlight}>
-            {props.completionInFlight ? "结算中" : "完成挑战"}
-          </button>
-        </div>
-        <div className="run-stats"><span>误操作 {props.mistakeCount}</span><span>提示 {props.hintCount}</span><span>{props.inOrder ? "路径稳定" : "路径偏离"}</span></div>
       </article>
 
       {props.notice && <ResultModal notice={props.notice} challenge={props.challenge} nextChallenge={nextChallenge} onNext={props.onNext} />}
@@ -757,10 +892,19 @@ function ResultModal({
   return (
     <div className="modal-backdrop" role="presentation">
       <section className="result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
+        <div className="result-modal-badge" aria-hidden="true"><Medal /></div>
         <p className="eyebrow">境界突破</p>
-        <h2 id="result-title">{challenge.title} 已完成</h2>
-        <div className="result-score">{notice.result.score}</div>
-        <p>获得 XP：{notice.result.baseXp + notice.result.bonusXp}（基础 {notice.result.baseXp} / 精进 {notice.result.bonusXp}）</p>
+        <h2 id="result-title">{challenge.title}</h2>
+        <p className="result-modal-sub">挑战已完成</p>
+        <div className="result-score-wrap">
+          <span className="result-score-label">本关得分</span>
+          <div className="result-score">{notice.result.score}</div>
+        </div>
+        <div className="result-xp-row">
+          <span>获得 XP</span>
+          <strong>{notice.result.baseXp + notice.result.bonusXp}</strong>
+          <small>基础 {notice.result.baseXp} · 精进 {notice.result.bonusXp}</small>
+        </div>
         <p className="result-lesson">本关掌握：{challenge.concept}</p>
         <div className="result-flags">
           <span>{notice.bestScoreUpdated ? "刷新最佳成绩" : "保持当前最佳"}</span>
@@ -769,17 +913,19 @@ function ResultModal({
         </div>
         {notice.unlockedTitles.length > 0 && (
           <div className="new-titles">
+            <p className="new-titles-label">新解锁道号</p>
             {notice.unlockedTitles.map((titleId) => <span key={titleId}>{getTitleById(titleId).name}</span>)}
           </div>
         )}
-        {nextChallenge && <button className="primary" type="button" onClick={() => onNext(nextChallenge.id)}>下一关</button>}
+        {nextChallenge && (
+          <button className="primary result-next" type="button" onClick={() => onNext(nextChallenge.id)}>
+            下一关 · {nextChallenge.title}
+            <ChevronRight aria-hidden="true" />
+          </button>
+        )}
       </section>
     </div>
   );
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return <article className="surface metric-card"><p>{label}</p><strong>{value}</strong></article>;
 }
 
 function PageTitle({ copy, eyebrow, title }: { copy: string; eyebrow: string; title: string }) {
