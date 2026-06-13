@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
 import { BookOpenCheck, GitBranch, Shield, Trophy } from "lucide-vue-next";
 import { RouterLink, RouterView } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 
 const auth = useAuthStore();
-
-onMounted(() => {
-  auth.restoreSession();
-});
 
 /**
  * 获取用户名首字母，用于头像占位。

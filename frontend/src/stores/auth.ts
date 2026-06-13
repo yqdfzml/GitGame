@@ -1,10 +1,22 @@
 import { defineStore } from "pinia";
 import { authApi } from "../api/client";
+import { clearAuthUser, loadAuthUser, saveAuthUser } from "../api/authStorage";
 import type { AuthUser } from "../types";
 
 /**
+ * 将用户写入 store 并同步 localStorage。
+ * 功能：登录态变更时统一持久化。
+ * 参数：user - 用户摘要。
+ * 返回值：无。
+ */
+function applyUser(store: { user: AuthUser | null }, user: AuthUser) {
+  store.user = user;
+  saveAuthUser(user);
+}
+
+/**
  * 认证状态 Store。
- * 功能：管理登录用户信息和登录/登出动作。
+ * 功能：管理登录用户、localStorage 持久化与会话恢复。
  * 参数：通过 actions 传入凭证。
  * 返回值：响应式 user 状态。
  */
@@ -12,8 +24,10 @@ export const useAuthStore = defineStore("auth", {
   state: () => ({
     /** 当前登录用户，null 表示未登录 */
     user: null as AuthUser | null,
-    /** 是否正在加载用户信息 */
+    /** 是否正在恢复会话 */
     loading: false,
+    /** 是否已完成启动时的会话引导 */
+    bootstrapped: false,
   }),
 
   getters: {
@@ -25,69 +39,78 @@ export const useAuthStore = defineStore("auth", {
 
   actions: {
     /**
-     * 尝试从 Cookie 恢复登录态。
-     * 功能：调用 /auth/me 检查 Cookie 是否有效。
+     * 应用启动时恢复登录态。
+     * 功能：先读 localStorage，再校验 /me，失败则尝试 refresh 轮换。
      * 参数：无。
      * 返回值：Promise<void>。
      */
-    restoreSession() {
+    bootstrap() {
+      if (this.bootstrapped) {
+        return Promise.resolve();
+      }
+
       this.loading = true;
+      const cachedUser = loadAuthUser();
+      if (cachedUser) {
+        this.user = cachedUser;
+      }
+
       return authApi
         .me()
         .then((data) => {
-          // me 只返回 sub/role，保留注册或登录时已写入的邮箱和昵称
-          const existing = this.user;
-          this.user = {
-            id: data.user.sub,
-            email: existing?.email ?? "",
-            displayName: existing?.displayName ?? "",
-            role: data.user.role,
-          };
+          applyUser(this, data.user);
         })
         .catch(() => {
-          // 注册/登录可能在 restore 请求发出后才完成，不能冲掉刚写入的用户
-          if (!this.user) {
-            this.user = null;
-          }
+          return authApi.refresh().then((data) => {
+            applyUser(this, data.user);
+          });
+        })
+        .catch(() => {
+          this.user = null;
+          clearAuthUser();
         })
         .finally(() => {
           this.loading = false;
+          this.bootstrapped = true;
         });
     },
 
     /**
      * 用户登录。
-     * 功能：调用登录 API 并保存用户信息。
+     * 功能：调用登录 API 并持久化用户信息。
      * 参数：email、password。
      * 返回值：Promise<void>。
      */
     login(email: string, password: string) {
       return authApi.login({ email, password }).then((data) => {
-        this.user = data.user;
+        applyUser(this, data.user);
+        this.bootstrapped = true;
       });
     },
 
     /**
      * 用户注册。
-     * 功能：注册并自动登录。
+     * 功能：注册并自动登录，写入持久化。
      * 参数：email、password、displayName。
      * 返回值：Promise<void>。
      */
     register(email: string, password: string, displayName: string) {
       return authApi.register({ email, password, displayName }).then((data) => {
-        this.user = data.user;
+        applyUser(this, data.user);
+        this.bootstrapped = true;
       });
     },
 
     /**
      * 用户登出。
-     * 功能：清除 Cookie 和本地状态。
+     * 功能：清除 Cookie 与本地缓存。
      * 参数：无。
      * 返回值：Promise<void>。
      */
     logout() {
       return authApi.logout().finally(() => {
         this.user = null;
+        clearAuthUser();
       });
     },
   },

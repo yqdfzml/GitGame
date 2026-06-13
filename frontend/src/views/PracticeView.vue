@@ -137,6 +137,29 @@ const goReplay = () => {
     </div>
 
     <div v-if="repoState && judge" class="practice-layout">
+      <div class="practice-sidebar">
+        <div class="practice-sidebar-row">
+          <div class="card practice-panel-compact">
+            <p class="panel-title">Commit Graph</p>
+            <CommitGraph :state="repoState" />
+          </div>
+          <div class="card practice-panel-compact">
+            <p class="panel-title">Working Tree</p>
+            <WorkingTreePanel :state="repoState" />
+          </div>
+        </div>
+        <div class="card practice-panel-goal">
+          <p class="panel-title">目标反馈</p>
+          <GoalFeedback
+            :judge="judge"
+            :goal-hints="goalHints"
+            :progress-pct="progressPct"
+            :initial-gap-count="initialGapCount"
+            :initial-satisfied-keys="initialSatisfiedKeys"
+          />
+        </div>
+      </div>
+
       <div class="card terminal-panel">
         <div class="terminal-chrome">
           <span class="terminal-dot red" />
@@ -169,29 +192,6 @@ const goReplay = () => {
             <button class="btn-success" @click="goReplay">查看复盘</button>
             <RouterLink to="/levels" class="btn-ghost">返回关卡</RouterLink>
           </div>
-        </div>
-      </div>
-
-      <div class="practice-sidebar">
-        <div class="practice-sidebar-row">
-          <div class="card practice-panel-compact">
-            <p class="panel-title">Commit Graph</p>
-            <CommitGraph :state="repoState" />
-          </div>
-          <div class="card practice-panel-compact">
-            <p class="panel-title">Working Tree</p>
-            <WorkingTreePanel :state="repoState" />
-          </div>
-        </div>
-        <div class="card practice-panel-goal">
-          <p class="panel-title">目标反馈</p>
-          <GoalFeedback
-            :judge="judge"
-            :goal-hints="goalHints"
-            :progress-pct="progressPct"
-            :initial-gap-count="initialGapCount"
-            :initial-satisfied-keys="initialSatisfiedKeys"
-          />
         </div>
       </div>
     </div>

@@ -1,41 +1,51 @@
 <script setup lang="ts">
-import { ChevronRight } from "lucide-vue-next";
 import type { LevelSummary } from "../types";
-import { difficultyLabel, getLevelPresentation, kindIconMap } from "../utils/levelPresentation";
+import type { LevelPresentation } from "../utils/levelPresentation";
+import { kindIconMap } from "../utils/levelPresentation";
 
 const props = defineProps<{
-  /** 关卡数据 */
-  level: LevelSummary;
-  /** 在章节内的序号，从 1 开始 */
-  index: number;
-  /** 是否已通关 */
-  completed?: boolean;
+  /** 主题展示元数据 */
+  presentation: LevelPresentation;
+  /** 该主题下首关，无则视为未开放 */
+  level?: LevelSummary;
+  /** 主题内已通关数 */
+  completedCount: number;
+  /** 主题内关卡总数 */
+  totalCount: number;
 }>();
 
-/** 当前关卡的展示元数据 */
-const presentation = getLevelPresentation(props.level.chapterId);
 /** 对应技能图标组件 */
-const KindIcon = kindIconMap[presentation.kind];
-/** 卡片状态：open=可挑战，done=已完成 */
-const statusClass = props.completed ? "done" : "open";
-/** 状态徽章文案 */
-const statusLabel = props.completed ? "已完成" : "可挑战";
+const KindIcon = kindIconMap[props.presentation.kind];
+/** 是否已全部通关 */
+const isDone = props.totalCount > 0 && props.completedCount >= props.totalCount;
+/** 进度文案，如 0/1 */
+const progressLabel = `${props.completedCount}/${props.totalCount}`;
+/** 卡片简短说明：开放关卡用主题描述，未开放用轻提示 */
+const cardHint = props.level ? props.presentation.topicDesc : props.presentation.lockedHint;
 </script>
 
 <template>
-  <RouterLink :to="`/practice/${level.id}`" class="challenge-card" :class="statusClass">
-    <span class="challenge-index">{{ String(index).padStart(2, "0") }}</span>
-    <div class="challenge-icon-wrap">
+  <RouterLink
+    v-if="level"
+    :to="`/practice/${level.id}`"
+    class="topic-card"
+    :class="{ done: isDone, open: !isDone }"
+  >
+    <span v-if="isDone" class="topic-status-badge done">已完成</span>
+    <span class="topic-icon-box">
       <KindIcon aria-hidden="true" />
-    </div>
-    <span class="challenge-body">
-      <span class="challenge-head">
-        <strong>{{ level.title }}</strong>
-        <span class="challenge-badge" :class="statusClass">{{ statusLabel }}</span>
-      </span>
-      <small>{{ presentation.skillLabel }}</small>
-      <small>{{ difficultyLabel(level.difficulty) }} · {{ level.description }}</small>
     </span>
-    <ChevronRight class="challenge-arrow" aria-hidden="true" />
+    <span class="topic-label">{{ presentation.topicLabel }}</span>
+    <span class="topic-desc">{{ cardHint }}</span>
+    <span class="topic-progress">{{ progressLabel }}</span>
   </RouterLink>
+  <div v-else class="topic-card locked" aria-disabled="true">
+    <span class="topic-status-badge locked">开发中</span>
+    <span class="topic-icon-box">
+      <KindIcon aria-hidden="true" />
+    </span>
+    <span class="topic-label">{{ presentation.topicLabel }}</span>
+    <span class="topic-desc">{{ cardHint }}</span>
+    <span class="topic-progress">{{ progressLabel }}</span>
+  </div>
 </template>

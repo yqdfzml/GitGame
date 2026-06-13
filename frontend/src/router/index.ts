@@ -52,6 +52,13 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const auth = useAuthStore();
 
+  if (!auth.bootstrapped) {
+    auth.bootstrap().then(() => {
+      router.replace(to.fullPath);
+    });
+    return;
+  }
+
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
     next({ name: "login", query: { redirect: to.fullPath } });
     return;

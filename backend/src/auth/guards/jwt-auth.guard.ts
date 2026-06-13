@@ -13,6 +13,8 @@ export interface JwtPayload {
   sub: string;
   /** 用户角色 */
   role: string;
+  /** 令牌类型，access 用于接口鉴权 */
+  type?: string;
 }
 
 /** 带 user 字段的请求类型 */
@@ -44,6 +46,9 @@ export class JwtAuthGuard implements CanActivate {
     }
     try {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+      if (payload.type && payload.type !== "access") {
+        throw new UnauthorizedException("无效的访问令牌");
+      }
       request.user = payload;
       return true;
     } catch {

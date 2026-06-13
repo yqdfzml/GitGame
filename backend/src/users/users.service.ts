@@ -19,6 +19,11 @@ export class UsersService {
    */
   async getUserStats(userId: bigint) {
     const completedCount = await this.prisma.levelResult.count({ where: { userId } });
+    const allResults = await this.prisma.levelResult.findMany({
+      where: { userId },
+      select: { levelId: true, score: true, completedAt: true },
+      orderBy: { completedAt: "desc" },
+    });
     const results = await this.prisma.levelResult.findMany({
       where: { userId },
       orderBy: { completedAt: "desc" },
@@ -26,11 +31,12 @@ export class UsersService {
       include: { level: { select: { id: true, title: true, courseId: true } } },
     });
 
-    const totalScore = results.reduce((sum, item) => sum + item.score, 0);
+    const totalScore = allResults.reduce((sum, item) => sum + item.score, 0);
 
     return {
       completedLevelCount: completedCount,
       totalScore,
+      completedLevelIds: allResults.map((item) => item.levelId.toString()),
       recentResults: results.map((item) => ({
         levelId: item.levelId.toString(),
         title: item.level.title,

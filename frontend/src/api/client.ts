@@ -1,22 +1,62 @@
 /**
  * API 客户端封装。
- * 功能：统一 fetch 请求，自动携带 Cookie  credentials。
+ * 功能：统一 fetch、Cookie 凭证与 access token 过期自动刷新。
  * 参数：通过各方法传入路径和数据。
  * 返回值：解析后的 JSON 或抛出错误。
  */
 
-/** API 基础路径，开发环境走 Vite 代理 */
+import { clearAuthUser, saveAuthUser } from "./authStorage";
+import type { AuthUser } from "../types";
+
+/** API 基础路径，开发环境走 Vite 同源代理 */
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 /** 请求选项 */
 interface RequestOptions {
   method?: string;
   body?: unknown;
+  /** 为 true 时不触发 refresh 重试 */
+  skipAuthRetry?: boolean;
+}
+
+/** 是否正在刷新 token，避免并发重复请求 */
+let refreshInFlight: Promise<boolean> | null = null;
+
+/**
+ * 尝试用 refresh token 轮换新的 access token。
+ * 功能：401 时由 request 自动调用。
+ * 参数：无。
+ * 返回值：是否刷新成功。
+ */
+function tryRefreshSession(): Promise<boolean> {
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+
+  refreshInFlight = fetch(`${API_BASE}/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  })
+    .then((response) => {
+      if (!response.ok) {
+        return false;
+      }
+      return response.json().then((data: { user: AuthUser }) => {
+        saveAuthUser(data.user);
+        return true;
+      });
+    })
+    .catch(() => false)
+    .finally(() => {
+      refreshInFlight = null;
+    });
+
+  return refreshInFlight;
 }
 
 /**
  * 发送 HTTP 请求。
- * 功能：封装 fetch，处理 JSON 和错误响应。
+ * 功能：封装 fetch，401 时自动 refresh 并重试一次。
  * 参数：path - API 路径；options - 请求选项。
  * 返回值：响应 JSON。
  */
@@ -29,12 +69,15 @@ const request = <T>(path: string, options: RequestOptions = {}): Promise<T> => {
     body = JSON.stringify(options.body);
   }
 
-  return fetch(`${API_BASE}${path}`, {
-    method: options.method ?? "GET",
-    headers,
-    body,
-    credentials: "include",
-  }).then((response) => {
+  const doFetch = () =>
+    fetch(`${API_BASE}${path}`, {
+      method: options.method ?? "GET",
+      headers,
+      body,
+      credentials: "include",
+    });
+
+  const parseResponse = (response: Response): Promise<T> => {
     if (!response.ok) {
       return response.json().then((data: { message?: string | string[] }) => {
         const msg = Array.isArray(data.message) ? data.message.join(", ") : data.message;
@@ -42,23 +85,31 @@ const request = <T>(path: string, options: RequestOptions = {}): Promise<T> => {
       });
     }
     return response.json() as Promise<T>;
+  };
+
+  return doFetch().then((response) => {
+    if (response.status === 401 && !options.skipAuthRetry && !path.startsWith("/auth/refresh")) {
+      return tryRefreshSession().then((refreshed) => {
+        if (!refreshed) {
+          clearAuthUser();
+          throw new Error("登录已过期，请重新登录");
+        }
+        return doFetch().then(parseResponse);
+      });
+    }
+    return parseResponse(response);
   });
 };
 
 /** 认证 API */
 export const authApi = {
   register: (data: { email: string; password: string; displayName: string }) =>
-    request<{ user: { id: string; email: string; displayName: string; role: string } }>(
-      "/auth/register",
-      { method: "POST", body: data },
-    ),
+    request<{ user: AuthUser }>("/auth/register", { method: "POST", body: data, skipAuthRetry: true }),
   login: (data: { email: string; password: string }) =>
-    request<{ user: { id: string; email: string; displayName: string; role: string } }>(
-      "/auth/login",
-      { method: "POST", body: data },
-    ),
-  logout: () => request<{ message: string }>("/auth/logout", { method: "POST" }),
-  me: () => request<{ user: { sub: string; role: string } }>("/auth/me", { method: "POST" }),
+    request<{ user: AuthUser }>("/auth/login", { method: "POST", body: data, skipAuthRetry: true }),
+  refresh: () => request<{ user: AuthUser }>("/auth/refresh", { method: "POST", skipAuthRetry: true }),
+  logout: () => request<{ message: string }>("/auth/logout", { method: "POST", skipAuthRetry: true }),
+  me: () => request<{ user: AuthUser }>("/auth/me", { method: "POST" }),
 };
 
 /** 关卡 API */
@@ -102,7 +153,11 @@ export const leaderboardApi = {
 /** 用户 API */
 export const usersApi = {
   stats: () =>
-    request<{ completedLevelCount: number; totalScore: number }>("/users/me/stats"),
+    request<{
+      completedLevelCount: number;
+      totalScore: number;
+      completedLevelIds: string[];
+    }>("/users/me/stats"),
 };
 
 /** 管理 API */
