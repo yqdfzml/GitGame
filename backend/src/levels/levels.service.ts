@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import type { RepoState } from "../git-engine/repo-state.types";
+import { fromPrismaJson } from "../common/json.util";
 
 /**
  * 关卡服务。
@@ -60,8 +61,8 @@ export class LevelsService {
       throw new NotFoundException("关卡不存在或未发布");
     }
 
-    const initialState = level.initialState as RepoState;
-    const goal = level.goal as Record<string, unknown>;
+    const initialState = fromPrismaJson<RepoState>(level.initialState);
+    const goal = fromPrismaJson<Record<string, unknown>>(level.goal);
 
     return {
       id: level.id.toString(),

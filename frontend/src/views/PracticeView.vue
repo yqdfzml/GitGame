@@ -6,6 +6,7 @@ import CommitGraph from "../components/CommitGraph.vue";
 import GoalFeedback from "../components/GoalFeedback.vue";
 import WorkingTreePanel from "../components/WorkingTreePanel.vue";
 import type { AttemptDetail, RepoState } from "../types";
+import { calcChallengeProgress } from "../utils/challengeProgress";
 
 const route = useRoute();
 const router = useRouter();
@@ -21,6 +22,10 @@ const attemptId = ref("");
 const repoState = ref<RepoState | null>(null);
 /** 判题结果 */
 const judge = ref<AttemptDetail["judge"] | null>(null);
+/** 开局时的差距项数量，用于计算从 0% 开始的进度 */
+const initialGapCount = ref(0);
+/** 开局时已满足的条件 key */
+const initialSatisfiedKeys = ref<string[]>([]);
 /** 终端历史 */
 const terminalLines = ref<Array<{ text: string; type: string }>>([]);
 /** 命令输入 */
@@ -34,12 +39,10 @@ const stepCount = ref(0);
 /** 错误信息 */
 const error = ref("");
 
-/** 目标完成百分比，供进度环使用 */
+/** 目标完成百分比，以开局差距为基准从 0% 起算 */
 const progressPct = computed(() => {
   if (!judge.value) return 0;
-  const total = judge.value.satisfied.length + judge.value.gaps.length;
-  if (total === 0) return judge.value.passed ? 100 : 0;
-  return Math.round((judge.value.satisfied.length / total) * 100);
+  return calcChallengeProgress(judge.value, initialGapCount.value);
 });
 
 onMounted(() => {
@@ -52,6 +55,8 @@ onMounted(() => {
     attemptId.value = attempt.id;
     repoState.value = attempt.state;
     judge.value = attempt.judge;
+    initialGapCount.value = attempt.judge.gaps.length;
+    initialSatisfiedKeys.value = [...attempt.judge.satisfied];
     stepCount.value = attempt.stepCount;
     terminalLines.value.push({ text: "练习已开始。输入 git 命令并按 Enter 执行。", type: "success" });
   }).catch((err: Error) => {
@@ -110,11 +115,11 @@ const goReplay = () => {
 </script>
 
 <template>
-  <div>
+  <div class="practice-page">
     <header class="practice-header">
-      <div class="page-header" style="margin-bottom:0">
+      <div class="practice-header-main">
         <span class="page-eyebrow">Practice</span>
-        <h1 class="page-title">{{ levelTitle || '练习' }}</h1>
+        <h1 class="practice-title">{{ levelTitle || '练习' }}</h1>
       </div>
       <div v-if="judge" class="practice-meta">
         <span class="meta-chip">步骤 {{ stepCount }}</span>
@@ -124,9 +129,9 @@ const goReplay = () => {
       </div>
     </header>
 
-    <p v-if="error" class="error-msg">{{ error }}</p>
+    <p v-if="error" class="error-msg practice-error">{{ error }}</p>
 
-    <div v-if="completed && judge" class="success-banner">
+    <div v-if="completed && judge" class="success-banner practice-success-banner">
       <span class="success-banner-icon">✓</span>
       恭喜通关！得分 {{ judge.score }} 分
     </div>
@@ -168,17 +173,25 @@ const goReplay = () => {
       </div>
 
       <div class="practice-sidebar">
-        <div class="card">
-          <p class="panel-title">Commit Graph</p>
-          <CommitGraph :state="repoState" />
+        <div class="practice-sidebar-row">
+          <div class="card practice-panel-compact">
+            <p class="panel-title">Commit Graph</p>
+            <CommitGraph :state="repoState" />
+          </div>
+          <div class="card practice-panel-compact">
+            <p class="panel-title">Working Tree</p>
+            <WorkingTreePanel :state="repoState" />
+          </div>
         </div>
-        <div class="card">
-          <p class="panel-title">Working Tree</p>
-          <WorkingTreePanel :state="repoState" />
-        </div>
-        <div class="card">
+        <div class="card practice-panel-goal">
           <p class="panel-title">目标反馈</p>
-          <GoalFeedback :judge="judge" :goal-hints="goalHints" :progress-pct="progressPct" />
+          <GoalFeedback
+            :judge="judge"
+            :goal-hints="goalHints"
+            :progress-pct="progressPct"
+            :initial-gap-count="initialGapCount"
+            :initial-satisfied-keys="initialSatisfiedKeys"
+          />
         </div>
       </div>
     </div>

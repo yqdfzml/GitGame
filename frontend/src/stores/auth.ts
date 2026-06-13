@@ -35,15 +35,20 @@ export const useAuthStore = defineStore("auth", {
       return authApi
         .me()
         .then((data) => {
+          // me 只返回 sub/role，保留注册或登录时已写入的邮箱和昵称
+          const existing = this.user;
           this.user = {
             id: data.user.sub,
-            email: "",
-            displayName: "",
+            email: existing?.email ?? "",
+            displayName: existing?.displayName ?? "",
             role: data.user.role,
           };
         })
         .catch(() => {
-          this.user = null;
+          // 注册/登录可能在 restore 请求发出后才完成，不能冲掉刚写入的用户
+          if (!this.user) {
+            this.user = null;
+          }
         })
         .finally(() => {
           this.loading = false;

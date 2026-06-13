@@ -1,6 +1,7 @@
 import { PrismaClient, Difficulty } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import type { RepoState } from "../src/git-engine/repo-state.types";
+import { toPrismaJson } from "../src/common/json.util";
 
 const prisma = new PrismaClient();
 
@@ -181,27 +182,98 @@ async function main() {
     const existing = await prisma.level.findFirst({
       where: { courseId: level.courseId, title: level.title },
     });
+    const levelData = {
+      courseId: level.courseId,
+      chapterId: level.chapterId,
+      title: level.title,
+      description: level.description,
+      difficulty: level.difficulty,
+      sortOrder: level.sortOrder,
+      initialState: toPrismaJson(level.initialState),
+      goal: toPrismaJson(level.goal),
+      constraints: toPrismaJson(level.constraints),
+      status: "PUBLISHED" as const,
+      publishedAt: new Date(),
+    };
     if (existing) {
       await prisma.level.update({
         where: { id: existing.id },
-        data: {
-          ...level,
-          status: "PUBLISHED",
-          publishedAt: new Date(),
-        },
+        data: levelData,
       });
     } else {
       await prisma.level.create({
+        data: levelData,
+      });
+    }
+  }
+
+  const demoUser = await prisma.user.findUnique({ where: { email: "demo@gitgame.local" } });
+  const firstLevel = await prisma.level.findFirst({ where: { sortOrder: 1 } });
+  const firstLevelSeed = levels.find((level) => level.sortOrder === 1);
+
+  if (demoUser && firstLevel && firstLevelSeed) {
+    const existingResult = await prisma.levelResult.findUnique({
+      where: { userId_levelId: { userId: demoUser.id, levelId: firstLevel.id } },
+    });
+
+    if (!existingResult) {
+      const demoAttempt = await prisma.attempt.create({
         data: {
-          ...level,
-          status: "PUBLISHED",
-          publishedAt: new Date(),
+          userId: demoUser.id,
+          levelId: firstLevel.id,
+          status: "COMPLETED",
+          currentState: toPrismaJson(firstLevelSeed.initialState),
+          stepCount: 2,
+          completedAt: new Date(),
+        },
+      });
+
+      await prisma.levelResult.create({
+        data: {
+          userId: demoUser.id,
+          levelId: firstLevel.id,
+          attemptId: demoAttempt.id,
+          score: 96,
+          durationSeconds: 38,
+          commandCount: 2,
+        },
+      });
+
+      await prisma.leaderboardEntry.create({
+        data: {
+          userId: demoUser.id,
+          levelId: firstLevel.id,
+          score: 96,
+          durationSeconds: 38,
+          displayName: demoUser.displayName,
         },
       });
     }
   }
 
-  console.log("种子数据写入完成：2 用户 + 5 关卡");
+  // 将已有通关记录同步到排行榜表，修复历史数据不一致
+  const completedResults = await prisma.levelResult.findMany({
+    include: { user: { select: { displayName: true } } },
+  });
+  for (const result of completedResults) {
+    await prisma.leaderboardEntry.upsert({
+      where: { userId_levelId: { userId: result.userId, levelId: result.levelId } },
+      create: {
+        userId: result.userId,
+        levelId: result.levelId,
+        score: result.score,
+        durationSeconds: result.durationSeconds,
+        displayName: result.user.displayName,
+      },
+      update: {
+        score: result.score,
+        durationSeconds: result.durationSeconds,
+        displayName: result.user.displayName,
+      },
+    });
+  }
+
+  console.log("种子数据写入完成：2 用户 + 5 关卡 + 演示排行榜");
 }
 
 main()

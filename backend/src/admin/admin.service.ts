@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { validateLevelConfig } from "../levels/level-schema.validator";
+import { toPrismaJson } from "../common/json.util";
 import { CreateLevelDto, UpdateLevelDto } from "./dto/admin-level.dto";
 
 /**
@@ -37,9 +38,9 @@ export class AdminService {
         description: dto.description,
         difficulty: dto.difficulty,
         sortOrder: dto.sortOrder ?? 0,
-        initialState: dto.initialState,
-        goal: dto.goal,
-        constraints: dto.constraints,
+        initialState: toPrismaJson(dto.initialState),
+        goal: toPrismaJson(dto.goal),
+        constraints: toPrismaJson(dto.constraints),
         status: "DRAFT",
       },
     });
@@ -76,9 +77,9 @@ export class AdminService {
         description: dto.description,
         difficulty: dto.difficulty,
         sortOrder: dto.sortOrder,
-        initialState: dto.initialState,
-        goal: dto.goal,
-        constraints: dto.constraints,
+        initialState: dto.initialState ? toPrismaJson(dto.initialState) : undefined,
+        goal: dto.goal ? toPrismaJson(dto.goal) : undefined,
+        constraints: dto.constraints ? toPrismaJson(dto.constraints) : undefined,
       },
     });
 

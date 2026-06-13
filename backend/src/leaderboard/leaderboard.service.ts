@@ -22,25 +22,28 @@ export class LeaderboardService {
 
   /**
    * 获取排行榜列表。
-   * 功能：按 score 降序、duration 升序排列。
+   * 功能：从通关记录表查询，按 score 降序、duration 升序排列。
    * 参数：levelId - 可选关卡过滤；limit - 条数。
    * 返回值：排行榜条目。
    */
   async getLeaderboard(levelId?: bigint, limit = 20) {
-    const entries = await this.prisma.leaderboardEntry.findMany({
+    const results = await this.prisma.levelResult.findMany({
       where: levelId ? { levelId } : undefined,
       orderBy: [{ score: "desc" }, { durationSeconds: "asc" }],
       take: limit,
+      include: {
+        user: { select: { displayName: true } },
+      },
     });
 
-    return entries.map((entry, index) => ({
+    return results.map((entry, index) => ({
       rank: index + 1,
       userId: entry.userId.toString(),
       levelId: entry.levelId.toString(),
-      displayName: entry.displayName,
+      displayName: entry.user.displayName,
       score: entry.score,
       durationSeconds: entry.durationSeconds,
-      updatedAt: entry.updatedAt,
+      updatedAt: entry.completedAt,
     }));
   }
 

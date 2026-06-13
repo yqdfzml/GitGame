@@ -10,6 +10,7 @@
     "build": "pnpm -r build",
     "test": "pnpm --filter gitgame-backend test",
     "db:migrate": "pnpm --filter gitgame-backend prisma:migrate",
+    "db:reset": "pnpm --filter gitgame-backend prisma:reset",
     "db:seed": "pnpm --filter gitgame-backend prisma:seed",
     "db:generate": "pnpm --filter gitgame-backend prisma:generate"
   }

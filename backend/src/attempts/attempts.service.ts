@@ -8,13 +8,13 @@ import { PrismaService } from "../prisma/prisma.service";
 import { GitEngineService } from "../git-engine/git-engine.service";
 import { JudgeService } from "../judge/judge.service";
 import { LevelsService } from "../levels/levels.service";
-import { LeaderboardService } from "../leaderboard/leaderboard.service";
 import type {
   LevelConstraints,
   LevelGoal,
   RepoState,
 } from "../git-engine/repo-state.types";
 import { cloneRepoState } from "../git-engine/git-engine.utils";
+import { fromPrismaJson, toPrismaJson } from "../common/json.util";
 
 /** 单次命令提交的最大步数上限 */
 const MAX_ATTEMPT_STEPS = 200;
@@ -32,7 +32,6 @@ export class AttemptsService {
     private readonly gitEngine: GitEngineService,
     private readonly judge: JudgeService,
     private readonly levelsService: LevelsService,
-    private readonly leaderboardService: LeaderboardService,
   ) {}
 
   /**
@@ -47,12 +46,12 @@ export class AttemptsService {
       throw new NotFoundException("关卡不存在或未发布");
     }
 
-    const initialState = cloneRepoState(level.initialState as RepoState);
+    const initialState = cloneRepoState(fromPrismaJson<RepoState>(level.initialState));
     const attempt = await this.prisma.attempt.create({
       data: {
         userId,
         levelId,
-        currentState: initialState,
+        currentState: toPrismaJson(initialState),
         stepCount: 0,
       },
     });
@@ -61,12 +60,12 @@ export class AttemptsService {
       data: {
         attemptId: attempt.id,
         stepIndex: 0,
-        state: initialState,
+        state: toPrismaJson(initialState),
       },
     });
 
-    const goal = level.goal as LevelGoal;
-    const constraints = level.constraints as LevelConstraints;
+    const goal = fromPrismaJson<LevelGoal>(level.goal);
+    const constraints = fromPrismaJson<LevelConstraints>(level.constraints);
     const judgeResult = this.judge.evaluate(initialState, goal, constraints, 0);
 
     return {
@@ -93,9 +92,9 @@ export class AttemptsService {
       throw new NotFoundException("关卡不存在");
     }
 
-    const state = attempt.currentState as RepoState;
-    const goal = level.goal as LevelGoal;
-    const constraints = level.constraints as LevelConstraints;
+    const state = fromPrismaJson<RepoState>(attempt.currentState);
+    const goal = fromPrismaJson<LevelGoal>(level.goal);
+    const constraints = fromPrismaJson<LevelConstraints>(level.constraints);
     const judgeResult = this.judge.evaluate(state, goal, constraints, attempt.stepCount);
 
     const commands = await this.prisma.attemptCommand.findMany({
@@ -142,12 +141,12 @@ export class AttemptsService {
       throw new NotFoundException("关卡不存在");
     }
 
-    const currentState = attempt.currentState as RepoState;
+    const currentState = fromPrismaJson<RepoState>(attempt.currentState);
     const result = this.gitEngine.executeCommand(command, currentState);
 
     const newStepCount = attempt.stepCount + 1;
-    const goal = level.goal as LevelGoal;
-    const constraints = level.constraints as LevelConstraints;
+    const goal = fromPrismaJson<LevelGoal>(level.goal);
+    const constraints = fromPrismaJson<LevelConstraints>(level.constraints);
     const judgeResult = this.judge.evaluate(result.state, goal, constraints, newStepCount);
 
     // 只有命令成功或只读命令（status/log）才更新状态
@@ -171,7 +170,7 @@ export class AttemptsService {
           data: {
             attemptId,
             stepIndex: newStepCount,
-            state: result.state,
+            state: toPrismaJson(result.state),
           },
         });
       }
@@ -179,7 +178,7 @@ export class AttemptsService {
       await tx.attempt.update({
         where: { id: attemptId },
         data: {
-          currentState: nextState,
+          currentState: toPrismaJson(nextState),
           stepCount: newStepCount,
           status: newStatus,
           completedAt: judgeResult.passed ? new Date() : null,
@@ -209,21 +208,38 @@ export class AttemptsService {
             completedAt: new Date(),
           },
         });
+
+        const user = await tx.user.findUnique({ where: { id: userId } });
+        if (user) {
+          const existingEntry = await tx.leaderboardEntry.findUnique({
+            where: { userId_levelId: { userId, levelId: attempt.levelId } },
+          });
+          const shouldUpdateLeaderboard =
+            !existingEntry ||
+            judgeResult.score > existingEntry.score ||
+            (judgeResult.score === existingEntry.score &&
+              durationSeconds < existingEntry.durationSeconds);
+
+          if (shouldUpdateLeaderboard) {
+            await tx.leaderboardEntry.upsert({
+              where: { userId_levelId: { userId, levelId: attempt.levelId } },
+              create: {
+                userId,
+                levelId: attempt.levelId,
+                score: judgeResult.score,
+                durationSeconds,
+                displayName: user.displayName,
+              },
+              update: {
+                score: judgeResult.score,
+                durationSeconds,
+                displayName: user.displayName,
+              },
+            });
+          }
+        }
       }
     });
-
-    if (judgeResult.passed) {
-      const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (user) {
-        await this.leaderboardService.upsertEntry({
-          userId,
-          levelId: attempt.levelId,
-          score: judgeResult.score,
-          durationSeconds: Math.floor((Date.now() - attempt.startedAt.getTime()) / 1000),
-          displayName: user.displayName,
-        });
-      }
-    }
 
     return {
       success: result.success,
