@@ -352,17 +352,19 @@ function HomePage({
   const levelInfo = getLevelInfo(profile.level);
   return (
     <section className="home-layout">
-      <article className="hero-panel split-hero">
-        <div>
-          <p className="eyebrow">Git 等级挑战</p>
-          <h1>GitGame</h1>
-          <p className="hero-copy">关卡负责训练 Git 能力，个人中心负责记录你的工程师段位与修仙称号。</p>
-          <div className="hero-actions">
-            <button className="primary cta" type="button" onClick={onStart}>继续修炼</button>
-            <button className="secondary cta" type="button" onClick={onViewLevels}>查看关卡</button>
+      <article className="surface hero-card">
+        <div className="hero-grid">
+          <div className="hero-copy-block">
+            <p className="eyebrow">Git 等级挑战</p>
+            <h1 className="hero-title">GitGame</h1>
+            <p className="hero-copy">在命令行里修炼 Git，从第一枚 commit 到冲突化解，逐关突破工程师段位。</p>
+            <div className="hero-actions">
+              <button className="primary cta" type="button" onClick={onStart}>继续修炼</button>
+              <button className="secondary cta" type="button" onClick={onViewLevels}>查看关卡</button>
+            </div>
           </div>
+          <PlayerSummary profile={profile} compact />
         </div>
-        <PlayerSummary profile={profile} />
       </article>
       <section className="insight-grid">
         <MetricCard label="当前段位" value={`Lv.${levelInfo.level} ${levelInfo.name}`} />
@@ -388,7 +390,10 @@ function LevelsPage({
       <div className="chapter-grid">
         {Object.entries(groupedChallenges).map(([chapter, challenges]) => (
           <article className="surface challenge-map" key={chapter}>
-            <h2>{chapter}</h2>
+            <header className="chapter-header">
+              <h2>{chapter}</h2>
+              <span>{challenges.length} 关</span>
+            </header>
             <div className="challenge-list">
               {challenges.map((challenge) => (
                 <ChallengeCard challenge={challenge} key={challenge.id} onStart={onStart} profile={profile} />
@@ -414,18 +419,25 @@ function ChallengeCard({
   const locked = getLocked(challenge, profile);
   const completed = profile.completedChallengeIds.includes(challenge.id);
   const bestScore = profile.bestScores[challenge.id] ?? 0;
+  const statusLabel = locked ? "锁定" : completed ? "已完成" : "可挑战";
+  const statusClass = locked ? "locked" : completed ? "done" : "open";
   return (
-    <button className="challenge-card" disabled={locked} onClick={() => onStart(challenge.id)} type="button">
-      <Icon aria-hidden="true" />
-      <span>
-        <strong>{challenge.title}</strong>
+    <button className={`challenge-card ${statusClass}`} disabled={locked} onClick={() => onStart(challenge.id)} type="button">
+      <div className="challenge-icon-wrap">
+        <Icon aria-hidden="true" />
+      </div>
+      <span className="challenge-body">
+        <span className="challenge-head">
+          <strong>{challenge.title}</strong>
+          <span className={`challenge-badge ${statusClass}`}>{statusLabel}</span>
+        </span>
         <small>{challenge.skill}</small>
         <small>
           {locked
             ? "完成上一关后解锁"
             : completed
-              ? `已完成 · 最高分 ${bestScore} · 再修炼可刷新成绩`
-              : `${challenge.difficulty} · 基础 ${challenge.baseXp} XP · 开始挑战`}
+              ? `最高分 ${bestScore} · 可再修炼刷新成绩`
+              : `${challenge.difficulty} · 基础 ${challenge.baseXp} XP`}
         </small>
       </span>
       <ChevronRight aria-hidden="true" />
@@ -472,90 +484,99 @@ function ProfilePage({
 
   return (
     <section className="profile-layout">
-      <PlayerSummary profile={profile} onReset={onReset} />
-      <article className="surface auth-panel">
-        <PageTitle
-          eyebrow="云存档"
-          title={authUser ? "账号已连接" : "登录后同步进度"}
-          copy={
-            apiEnabled
-              ? "本地优先游玩，登录后在通关时自动同步 XP、关卡进度和称号。"
-              : "当前未配置 VITE_API_BASE_URL，云同步功能处于关闭状态。"
-          }
-        />
-        {authUser ? (
-          <div className="auth-session">
+      <aside className="profile-sidebar">
+        <PlayerSummary profile={profile} onReset={onReset} />
+        <article className="surface auth-panel">
+          <div className="section-title">
+            <p className="eyebrow">云存档</p>
+            <h2>{authUser ? "账号已连接" : "登录后同步进度"}</h2>
             <p>
-              <strong>{authUser.displayName}</strong>
-              <span className="muted"> · {authUser.email}</span>
+              {apiEnabled
+                ? "本地优先游玩，登录后在通关时自动同步 XP、关卡进度和称号。"
+                : "当前未配置 VITE_API_BASE_URL，云同步功能处于关闭状态。"}
             </p>
-            <button type="button" onClick={onLogout}>退出登录</button>
           </div>
-        ) : (
-          <form
-            className="auth-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              onSubmitAuth();
-            }}
-          >
-            <div className="auth-tabs">
-              <button
-                className={authMode === "login" ? "active" : ""}
-                type="button"
-                onClick={() => onAuthModeChange("login")}
-              >
-                登录
-              </button>
-              <button
-                className={authMode === "register" ? "active" : ""}
-                type="button"
-                onClick={() => onAuthModeChange("register")}
-              >
-                注册
-              </button>
+          {authUser ? (
+            <div className="auth-session">
+              <div className="auth-user-card">
+                <div className="auth-avatar" aria-hidden="true">{authUser.displayName.slice(0, 1)}</div>
+                <div>
+                  <strong>{authUser.displayName}</strong>
+                  <p className="muted">{authUser.email}</p>
+                </div>
+              </div>
+              <button type="button" onClick={onLogout}>退出登录</button>
             </div>
-            {authMode === "register" && (
+          ) : (
+            <form
+              className="auth-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                onSubmitAuth();
+              }}
+            >
+              <div className="auth-tabs">
+                <button
+                  className={authMode === "login" ? "active" : ""}
+                  type="button"
+                  onClick={() => onAuthModeChange("login")}
+                >
+                  登录
+                </button>
+                <button
+                  className={authMode === "register" ? "active" : ""}
+                  type="button"
+                  onClick={() => onAuthModeChange("register")}
+                >
+                  注册
+                </button>
+              </div>
+              {authMode === "register" && (
+                <label>
+                  昵称
+                  <input
+                    value={authDisplayName}
+                    onChange={(event) => onAuthDisplayNameChange(event.target.value)}
+                    placeholder="Git 少侠"
+                    required
+                  />
+                </label>
+              )}
               <label>
-                昵称
+                邮箱
                 <input
-                  value={authDisplayName}
-                  onChange={(event) => onAuthDisplayNameChange(event.target.value)}
-                  placeholder="Git 少侠"
+                  type="email"
+                  value={authEmail}
+                  onChange={(event) => onAuthEmailChange(event.target.value)}
+                  placeholder="player@example.com"
                   required
                 />
               </label>
-            )}
-            <label>
-              邮箱
-              <input
-                type="email"
-                value={authEmail}
-                onChange={(event) => onAuthEmailChange(event.target.value)}
-                placeholder="player@example.com"
-                required
-              />
-            </label>
-            <label>
-              密码
-              <input
-                type="password"
-                value={authPassword}
-                onChange={(event) => onAuthPasswordChange(event.target.value)}
-                placeholder="至少 6 位"
-                minLength={6}
-                required
-              />
-            </label>
-            <button className="primary" type="submit" disabled={authBusy || !apiEnabled}>
-              {authBusy ? "处理中…" : authMode === "register" ? "注册并登录" : "登录"}
-            </button>
-          </form>
-        )}
-        {authMessage && <p className="auth-message">{authMessage}</p>}
-      </article>
-      <article className="surface title-wall">
-        <PageTitle eyebrow="个人中心" title="称号墙" copy="已解锁称号可以设为当前展示称号，未解锁称号保留神秘感。" />
+              <label>
+                密码
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={(event) => onAuthPasswordChange(event.target.value)}
+                  placeholder="至少 6 位"
+                  minLength={6}
+                  required
+                />
+              </label>
+              <button className="primary auth-submit" type="submit" disabled={authBusy || !apiEnabled}>
+                {authBusy ? "处理中…" : authMode === "register" ? "注册并登录" : "登录"}
+              </button>
+            </form>
+          )}
+          {authMessage && <p className="auth-message">{authMessage}</p>}
+        </article>
+      </aside>
+      <article className="surface title-wall profile-main">
+        <div className="section-title">
+          <p className="eyebrow">个人中心</p>
+          <h2>称号墙</h2>
+          <p>已解锁称号可以设为当前展示称号，未解锁称号保留神秘感。</p>
+        </div>
         <div className="titles-grid">
           {TITLE_RULES.map((title) => {
             const unlocked = profile.unlockedTitleIds.includes(title.id);
@@ -579,21 +600,33 @@ function ProfilePage({
   );
 }
 
-function PlayerSummary({ onReset, profile }: { onReset?: () => void; profile: PlayerProfile }) {
+function PlayerSummary({
+  compact = false,
+  onReset,
+  profile,
+}: {
+  compact?: boolean;
+  onReset?: () => void;
+  profile: PlayerProfile;
+}) {
   const activeTitle = getTitleById(profile.activeTitleId);
   const levelInfo = getLevelInfo(profile.level);
   const progress = getLevelProgress(profile.xp);
   return (
-    <article className="player-card surface">
+    <article className={`player-card surface ${compact ? "player-card-compact" : ""}`}>
       <div className="player-heading">
         <div className="avatar" aria-hidden="true"><Sparkles /></div>
-        <div>
+        <div className="player-meta">
           <p className="muted">当前段位</p>
           <h2>Lv.{levelInfo.level} {levelInfo.name}</h2>
-          <p className="title-line">{activeTitle.name} · {activeTitle.flavorText}</p>
+          <p className="title-line">{activeTitle.name}</p>
         </div>
-        <strong>{profile.totalScore}</strong>
+        <div className="score-badge" aria-label={`总积分 ${profile.totalScore}`}>
+          <small>积分</small>
+          <strong>{profile.totalScore}</strong>
+        </div>
       </div>
+      {!compact && <p className="title-flavor">{activeTitle.flavorText}</p>}
       <div className="xp-row"><span>总 XP {profile.xp}</span><span>{progress.percent}%</span></div>
       <div className="progress-track" aria-label="等级经验进度"><div style={{ width: `${progress.percent}%` }} /></div>
       <div className="stat-strip">
@@ -668,7 +701,7 @@ function PlayPage(props: {
         <div className="console-topline">
           <div>
             <p className="eyebrow">命令行 · 校验反馈</p>
-            <h2>直接输入 Git 命令，系统只反馈状态变化。</h2>
+            <h2 className="console-title">输入 Git 命令，观察仓库状态变化</h2>
           </div>
           <div className="step-badge">STEP {String(Math.min(props.completedCommands.length + 1, props.challenge.commands.length)).padStart(2, "0")}</div>
         </div>
@@ -750,7 +783,13 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 }
 
 function PageTitle({ copy, eyebrow, title }: { copy: string; eyebrow: string; title: string }) {
-  return <div className="page-title"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{copy}</p></div>;
+  return (
+    <div className="section-title page-intro">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2>{title}</h2>
+      <p>{copy}</p>
+    </div>
+  );
 }
 
 export default App;
