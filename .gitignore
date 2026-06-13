@@ -4,3 +4,6 @@ dist/
 .codegraph/
 .playwright-mcp/
 .reasonix/
+.claude/
+.pnpm-store/
+.playwright-mcp/
