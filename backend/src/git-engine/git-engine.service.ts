@@ -1,0 +1,409 @@
+import { Injectable } from "@nestjs/common";
+import type { CommandResult, RepoState } from "./repo-state.types";
+import {
+  checkoutRef,
+  cloneRepoState,
+  createCommit,
+  formatLog,
+  formatStatus,
+  getHeadCommitId,
+  getHeadFiles,
+  isAncestor,
+  refreshWorkingTreeStatus,
+  resolveRef,
+  validateCommandInput,
+} from "./git-engine.utils";
+
+/**
+ * Git 虚拟状态机服务。
+ * 功能：解析白名单 Git 命令并推进虚拟仓库状态，不执行真实 shell。
+ * 参数：通过 executeCommand 传入命令和当前状态。
+ * 返回值：CommandResult，含输出、反馈和新状态。
+ */
+@Injectable()
+export class GitEngineService {
+  /**
+   * 执行一条 Git 命令。
+   * 功能：校验白名单后分派到具体子命令处理器。
+   * 参数：rawCommand - 用户输入；currentState - 当前仓库快照。
+   * 返回值：CommandResult。
+   */
+  executeCommand(rawCommand: string, currentState: RepoState): CommandResult {
+    const validation = validateCommandInput(rawCommand);
+    if (!validation.valid || !validation.tokens) {
+      return {
+        success: false,
+        output: validation.reason ?? "非法命令",
+        feedback: validation.reason ?? "非法命令",
+        state: currentState,
+      };
+    }
+
+    const tokens = validation.tokens;
+    const subCommand = tokens[1];
+    const state = cloneRepoState(currentState);
+
+    try {
+      switch (subCommand) {
+        case "status":
+          return this.handleStatus(state);
+        case "add":
+          return this.handleAdd(state, tokens.slice(2));
+        case "commit":
+          return this.handleCommit(state, tokens.slice(2));
+        case "branch":
+          return this.handleBranch(state, tokens.slice(2));
+        case "checkout":
+          return this.handleCheckout(state, tokens.slice(2));
+        case "switch":
+          return this.handleSwitch(state, tokens.slice(2));
+        case "log":
+          return this.handleLog(state);
+        case "merge":
+          return this.handleMerge(state, tokens.slice(2));
+        case "reset":
+          return this.handleReset(state, tokens.slice(2));
+        case "revert":
+          return this.handleRevert(state, tokens.slice(2));
+        case "restore":
+          return this.handleRestore(state, tokens.slice(2));
+        default:
+          return {
+            success: false,
+            output: `不支持: git ${subCommand}`,
+            feedback: `不支持: git ${subCommand}`,
+            state: currentState,
+          };
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "命令执行失败";
+      return {
+        success: false,
+        output: message,
+        feedback: message,
+        state: currentState,
+      };
+    }
+  }
+
+  /** 处理 git status，只读返回格式化文本 */
+  private handleStatus(state: RepoState): CommandResult {
+    const output = formatStatus(state);
+    return { success: true, output, feedback: "已显示当前仓库状态", state };
+  }
+
+  /** 处理 git add，将工作区变更加入暂存区 */
+  private handleAdd(state: RepoState, args: string[]): CommandResult {
+    refreshWorkingTreeStatus(state);
+    const paths: string[] = [];
+
+    if (args.length === 0 || args.includes(".")) {
+      for (const [path, file] of Object.entries(state.workingTree)) {
+        if (file.status !== "unchanged") {
+          paths.push(path);
+        }
+      }
+    } else {
+      paths.push(...args.filter((a) => !a.startsWith("-")));
+    }
+
+    if (paths.length === 0) {
+      return { success: false, output: "没有可暂存的变更", feedback: "没有可暂存的变更", state };
+    }
+
+    for (const path of paths) {
+      const file = state.workingTree[path];
+      if (!file) {
+        return { success: false, output: `路径 '${path}' 不存在`, feedback: `路径 '${path}' 不存在`, state };
+      }
+      if (file.status === "deleted") {
+        delete state.index[path];
+      } else {
+        state.index[path] = file.content;
+      }
+    }
+
+    return { success: true, output: "", feedback: `已暂存 ${paths.length} 个文件`, state };
+  }
+
+  /** 处理 git commit，用暂存区创建新提交 */
+  private handleCommit(state: RepoState, args: string[]): CommandResult {
+    const messageIndex = args.indexOf("-m");
+    const message = messageIndex >= 0 ? args[messageIndex + 1] : undefined;
+    if (!message) {
+      return { success: false, output: "请使用 -m 提供提交说明", feedback: "请使用 -m 提供提交说明", state };
+    }
+    if (Object.keys(state.index).length === 0) {
+      return { success: false, output: "没有暂存的变更可提交", feedback: "请先 git add 再 commit", state };
+    }
+
+    const parentId = getHeadCommitId(state);
+    const parents = parentId ? [parentId] : [];
+    const commitId = createCommit(state, message, parents);
+
+    return {
+      success: true,
+      output: `[${state.head.type === "branch" ? state.head.ref : "detached HEAD"} ${commitId}] ${message}`,
+      feedback: "提交成功",
+      state,
+    };
+  }
+
+  /** 处理 git branch，列出或创建分支 */
+  private handleBranch(state: RepoState, args: string[]): CommandResult {
+    if (args.length === 0) {
+      const currentBranch = state.head.type === "branch" ? state.head.ref : null;
+      const lines = Object.keys(state.branches).map((name) => {
+        const marker = name === currentBranch ? "* " : "  ";
+        return `${marker}${name}`;
+      });
+      return { success: true, output: lines.join("\n"), feedback: "已列出分支", state };
+    }
+
+    const branchName = args[args.length - 1];
+    if (state.branches[branchName]) {
+      return { success: false, output: `分支 '${branchName}' 已存在`, feedback: `分支 '${branchName}' 已存在`, state };
+    }
+
+    const headId = getHeadCommitId(state);
+    if (!headId) {
+      return { success: false, output: "无法创建分支：HEAD 无效", feedback: "无法创建分支", state };
+    }
+    state.branches[branchName] = headId;
+    return { success: true, output: "", feedback: `已创建分支 '${branchName}'`, state };
+  }
+
+  /** 处理 git checkout，切换或 -b 创建分支 */
+  private handleCheckout(state: RepoState, args: string[]): CommandResult {
+    const createIndex = args.indexOf("-b");
+    if (createIndex >= 0) {
+      const branchName = args[createIndex + 1];
+      if (!branchName) {
+        return { success: false, output: "请指定新分支名", feedback: "请指定新分支名", state };
+      }
+      if (state.branches[branchName]) {
+        return { success: false, output: `分支 '${branchName}' 已存在`, feedback: `分支 '${branchName}' 已存在`, state };
+      }
+      const headId = getHeadCommitId(state);
+      if (!headId) {
+        return { success: false, output: "HEAD 无效", feedback: "HEAD 无效", state };
+      }
+      state.branches[branchName] = headId;
+      const msg = checkoutRef(state, branchName);
+      return { success: true, output: msg, feedback: `已创建并切换到 '${branchName}'`, state };
+    }
+
+    const target = args.find((a) => !a.startsWith("-"));
+    if (!target) {
+      return { success: false, output: "请指定分支或 commit", feedback: "请指定分支或 commit", state };
+    }
+    const msg = checkoutRef(state, target);
+    return { success: true, output: msg, feedback: `已切换到 '${target}'`, state };
+  }
+
+  /** 处理 git switch，切换或 -c 创建分支 */
+  private handleSwitch(state: RepoState, args: string[]): CommandResult {
+    const createIndex = args.indexOf("-c");
+    if (createIndex >= 0) {
+      const branchName = args[createIndex + 1];
+      if (!branchName) {
+        return { success: false, output: "请指定新分支名", feedback: "请指定新分支名", state };
+      }
+      return this.handleCheckout(state, ["-b", branchName]);
+    }
+
+    const target = args.find((a) => !a.startsWith("-"));
+    if (!target) {
+      return { success: false, output: "请指定分支", feedback: "请指定分支", state };
+    }
+    const msg = checkoutRef(state, target);
+    return { success: true, output: msg, feedback: `已切换到 '${target}'`, state };
+  }
+
+  /** 处理 git log */
+  private handleLog(state: RepoState): CommandResult {
+    const output = formatLog(state);
+    return { success: true, output, feedback: "已显示提交历史", state };
+  }
+
+  /** 处理 git merge，支持快进和冲突标记 */
+  private handleMerge(state: RepoState, args: string[]): CommandResult {
+    const branchName = args.find((a) => !a.startsWith("-"));
+    if (!branchName) {
+      return { success: false, output: "请指定要合并的分支", feedback: "请指定要合并的分支", state };
+    }
+    if (!state.branches[branchName]) {
+      return { success: false, output: `分支 '${branchName}' 不存在`, feedback: `分支 '${branchName}' 不存在`, state };
+    }
+
+    const currentId = getHeadCommitId(state);
+    const targetId = state.branches[branchName];
+    if (!currentId || !targetId) {
+      return { success: false, output: "HEAD 或目标分支无效", feedback: "合并失败", state };
+    }
+
+    if (currentId === targetId) {
+      return { success: true, output: "Already up to date.", feedback: "已经是最新", state };
+    }
+
+    if (isAncestor(state, currentId, targetId)) {
+      if (state.head.type === "branch") {
+        state.branches[state.head.ref] = targetId;
+      }
+      const files = state.commits[targetId].files;
+      state.workingTree = {};
+      for (const [path, content] of Object.entries(files)) {
+        state.workingTree[path] = { content, status: "unchanged" };
+      }
+      state.index = {};
+      return { success: true, output: "Fast-forward", feedback: `已快进合并 '${branchName}'`, state };
+    }
+
+    if (isAncestor(state, targetId, currentId)) {
+      return { success: true, output: "Already up to date.", feedback: "已经是最新", state };
+    }
+
+    const ours = state.commits[currentId].files;
+    const theirs = state.commits[targetId].files;
+    const allPaths = new Set([...Object.keys(ours), ...Object.keys(theirs)]);
+    state.conflicts = {};
+    const mergedFiles: Record<string, string> = { ...ours };
+
+    for (const path of allPaths) {
+      const ourContent = ours[path];
+      const theirContent = theirs[path];
+      if (ourContent === theirContent) {
+        if (ourContent !== undefined) {
+          mergedFiles[path] = ourContent;
+        }
+        continue;
+      }
+      if (ourContent !== undefined && theirContent !== undefined && ourContent !== theirContent) {
+        state.conflicts[path] = { base: ourContent, ours: ourContent, theirs: theirContent };
+        mergedFiles[path] = `<<<<<<< HEAD\n${ourContent}\n=======\n${theirContent}\n>>>>>>> ${branchName}`;
+      } else if (theirContent !== undefined) {
+        mergedFiles[path] = theirContent;
+      }
+    }
+
+    if (Object.keys(state.conflicts).length > 0) {
+      state.index = { ...mergedFiles };
+      state.workingTree = {};
+      for (const [path, content] of Object.entries(mergedFiles)) {
+        state.workingTree[path] = { content, status: "modified" };
+      }
+      return {
+        success: false,
+        output: "Automatic merge failed; fix conflicts and then commit the result.",
+        feedback: "合并产生冲突，请解决后提交",
+        state,
+      };
+    }
+
+    createCommit(state, `Merge branch '${branchName}'`, [currentId, targetId]);
+    return { success: true, output: "Merge made by the 'recursive' strategy.", feedback: `已合并 '${branchName}'`, state };
+  }
+
+  /** 处理 git reset，支持 soft/mixed/hard */
+  private handleReset(state: RepoState, args: string[]): CommandResult {
+    let mode: "soft" | "mixed" | "hard" = "mixed";
+    const filtered: string[] = [];
+    for (const arg of args) {
+      if (arg === "--soft") {
+        mode = "soft";
+      } else if (arg === "--hard") {
+        mode = "hard";
+      } else if (arg === "--mixed") {
+        mode = "mixed";
+      } else if (!arg.startsWith("-")) {
+        filtered.push(arg);
+      }
+    }
+
+    const ref = filtered[0] ?? "HEAD";
+    const commitId = resolveRef(state, ref);
+    if (!commitId) {
+      return { success: false, output: `无法解析 ref '${ref}'`, feedback: `无法解析 ref '${ref}'`, state };
+    }
+
+    if (state.head.type === "branch") {
+      state.branches[state.head.ref] = commitId;
+    } else {
+      state.head.ref = commitId;
+    }
+
+    if (mode === "soft") {
+      return { success: true, output: "", feedback: "已 soft reset", state };
+    }
+
+    state.index = {};
+    if (mode === "hard") {
+      const files = state.commits[commitId].files;
+      state.workingTree = {};
+      for (const [path, content] of Object.entries(files)) {
+        state.workingTree[path] = { content, status: "unchanged" };
+      }
+      state.conflicts = {};
+    }
+
+    return { success: true, output: "", feedback: `已 ${mode} reset 到 ${commitId}`, state };
+  }
+
+  /** 处理 git revert，创建反向提交 */
+  private handleRevert(state: RepoState, args: string[]): CommandResult {
+    const ref = args.find((a) => !a.startsWith("-"));
+    if (!ref) {
+      return { success: false, output: "请指定要 revert 的 commit", feedback: "请指定 commit", state };
+    }
+    const commitId = resolveRef(state, ref);
+    if (!commitId) {
+      return { success: false, output: `无法解析 commit '${ref}'`, feedback: "commit 不存在", state };
+    }
+
+    const targetCommit = state.commits[commitId];
+    const headFiles = getHeadFiles(state);
+    state.index = {};
+
+    for (const [path, content] of Object.entries(targetCommit.files)) {
+      if (headFiles[path] !== undefined && headFiles[path] !== content) {
+        state.index[path] = headFiles[path];
+      }
+    }
+
+    for (const [path] of Object.entries(headFiles)) {
+      if (targetCommit.files[path] === undefined) {
+        state.index[path] = headFiles[path];
+      }
+    }
+
+    const parentId = getHeadCommitId(state);
+    createCommit(state, `Revert "${targetCommit.message}"`, parentId ? [parentId] : []);
+    return { success: true, output: `Revert "${targetCommit.message}"`, feedback: "已 revert 指定提交", state };
+  }
+
+  /** 处理 git restore，恢复工作区或暂存区 */
+  private handleRestore(state: RepoState, args: string[]): CommandResult {
+    const fromIndex = args.includes("--staged");
+    const paths = args.filter((a) => !a.startsWith("-") && a !== "--staged" && a !== "--worktree");
+
+    if (paths.length === 0) {
+      return { success: false, output: "请指定文件路径", feedback: "请指定文件路径", state };
+    }
+
+    const headFiles = getHeadFiles(state);
+    for (const path of paths) {
+      if (fromIndex) {
+        delete state.index[path];
+      } else {
+        const headContent = headFiles[path];
+        if (headContent !== undefined) {
+          state.workingTree[path] = { content: headContent, status: "unchanged" };
+        } else {
+          delete state.workingTree[path];
+        }
+      }
+    }
+
+    return { success: true, output: "", feedback: "已恢复文件", state };
+  }
+}

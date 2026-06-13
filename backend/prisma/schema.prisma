@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum LevelStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model User {
+  id           BigInt     @id @default(autoincrement())
+  email        String     @unique @db.VarChar(255)
+  passwordHash String     @map("password_hash") @db.VarChar(255)
+  displayName  String     @map("display_name") @db.VarChar(64)
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?  @map("last_login_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  attempts           Attempt[]
+  levelResults       LevelResult[]
+  leaderboardEntries LeaderboardEntry[]
+
+  @@index([status])
+  @@map("users")
+}
+
+model Level {
+  id           BigInt      @id @default(autoincrement())
+  courseId     String      @map("course_id") @db.VarChar(64)
+  chapterId    String?     @map("chapter_id") @db.VarChar(64)
+  title        String      @db.VarChar(128)
+  description  String      @db.Text
+  difficulty   Difficulty  @default(BEGINNER)
+  sortOrder    Int         @default(0) @map("sort_order")
+  status       LevelStatus @default(DRAFT)
+  initialState Json        @map("initial_state")
+  goal         Json
+  constraints  Json
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  publishedAt  DateTime?   @map("published_at")
+
+  attempts     Attempt[]
+  levelResults LevelResult[]
+
+  @@index([courseId])
+  @@index([difficulty])
+  @@index([status])
+  @@index([sortOrder])
+  @@map("levels")
+}
+
+model Attempt {
+  id           BigInt        @id @default(autoincrement())
+  userId       BigInt        @map("user_id")
+  levelId      BigInt        @map("level_id")
+  status       AttemptStatus @default(IN_PROGRESS)
+  currentState Json          @map("current_state")
+  stepCount    Int           @default(0) @map("step_count")
+  startedAt    DateTime      @default(now()) @map("started_at")
+  completedAt  DateTime?     @map("completed_at")
+
+  user      User              @relation(fields: [userId], references: [id])
+  level     Level             @relation(fields: [levelId], references: [id])
+  commands  AttemptCommand[]
+  snapshots AttemptSnapshot[]
+
+  @@index([userId])
+  @@index([levelId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("attempts")
+}
+
+model AttemptCommand {
+  id        BigInt   @id @default(autoincrement())
+  attemptId BigInt   @map("attempt_id")
+  stepIndex Int      @map("step_index")
+  command   String   @db.VarChar(512)
+  feedback  String?  @db.Text
+  success   Boolean  @default(false)
+  output    String?  @db.MediumText
+  createdAt DateTime @default(now()) @map("created_at")
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@map("attempt_commands")
+}
+
+model AttemptSnapshot {
+  id        BigInt   @id @default(autoincrement())
+  attemptId BigInt   @map("attempt_id")
+  stepIndex Int      @map("step_index")
+  state     Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@map("attempt_snapshots")
+}
+
+model LevelResult {
+  id              BigInt   @id @default(autoincrement())
+  userId          BigInt   @map("user_id")
+  levelId         BigInt   @map("level_id")
+  attemptId       BigInt   @map("attempt_id")
+  score           Int      @default(0)
+  durationSeconds Int      @map("duration_seconds")
+  commandCount    Int      @map("command_count")
+  completedAt     DateTime @default(now()) @map("completed_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  level Level @relation(fields: [levelId], references: [id])
+
+  @@unique([userId, levelId])
+  @@index([levelId, score])
+  @@map("level_results")
+}
+
+model LeaderboardEntry {
+  id              BigInt   @id @default(autoincrement())
+  userId          BigInt   @map("user_id")
+  levelId         BigInt   @map("level_id")
+  score           Int
+  durationSeconds Int      @map("duration_seconds")
+  displayName     String   @map("display_name") @db.VarChar(64)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, levelId])
+  @@index([levelId, score, durationSeconds])
+  @@map("leaderboard_entries")
+}
