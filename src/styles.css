@@ -874,6 +874,65 @@ h3 {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.auth-panel,
+.title-wall {
+  padding: 24px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.auth-tabs button {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #f7efe3;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.auth-tabs button.active {
+  border-color: rgba(242, 189, 75, 0.48);
+  background: rgba(242, 189, 75, 0.12);
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 6px;
+  color: #d8cdbd;
+}
+
+.auth-form input {
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #f7efe3;
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.auth-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.auth-message {
+  margin-top: 12px;
+  color: #f6d88b;
+  line-height: 1.5;
+}
+
 .title-card span,
 .challenge-card strong {
   display: block;

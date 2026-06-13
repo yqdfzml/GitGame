@@ -3,6 +3,22 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "/healthz": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "/readyz": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,

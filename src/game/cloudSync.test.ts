@@ -31,7 +31,7 @@ describe("cloud sync", () => {
 
   it("does not call the network when API is not configured", async () => {
     const fetcher = vi.fn();
-    const status = await syncChallengeAttempt({ result, commandLog: [], apiBaseUrl: "", fetcher });
+    const status = await syncChallengeAttempt({ result, commandLog: [], apiBaseUrl: null, fetcher });
 
     expect(status.status).toBe("disabled");
     expect(fetcher).not.toHaveBeenCalled();

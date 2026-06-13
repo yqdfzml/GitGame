@@ -1,20 +1,23 @@
+import { getApiBaseUrl, submitChallengeAttempt as postChallengeAttempt } from "./apiClient";
+import { loadAccessToken } from "./authStorage";
 import type { ChallengeAttemptPayload, ChallengeResult, ChallengeSyncStatus } from "./types";
 
 type SyncChallengeAttemptInput = {
   result: ChallengeResult;
   commandLog: string[];
   accessToken?: string | null;
-  apiBaseUrl?: string;
+  apiBaseUrl?: string | null;
   challengeVersion?: number;
   durationSeconds?: number;
   fetcher?: typeof fetch;
 };
 
-const getConfiguredBaseUrl = () => {
-  const meta = import.meta as ImportMeta & { env?: Record<string, string | undefined> };
-  return meta.env?.VITE_API_BASE_URL;
-};
-
+/**
+ * 构造后端兼容的通关提交体。
+ * 功能：把前端 ChallengeResult 转成 POST /api/player/challenge-attempts 所需字段。
+ * 参数：result/commandLog 等通关上下文。
+ * 返回值：ChallengeAttemptPayload。
+ */
 export const createChallengeAttemptPayload = ({
   challengeVersion = 1,
   commandLog,
@@ -32,51 +35,43 @@ export const createChallengeAttemptPayload = ({
   commandLog,
 });
 
-export const syncChallengeAttempt = async ({
-  accessToken,
-  apiBaseUrl = getConfiguredBaseUrl(),
+/**
+ * 同步通关结果到云端。
+ * 功能：登录且配置 API 时调用后端结算；否则仅保留本地进度。
+ * 参数：input - 通关结果、命令日志、token 等。
+ * 返回值：同步状态。
+ */
+export const syncChallengeAttempt = ({
+  accessToken = loadAccessToken(),
+  apiBaseUrl,
   challengeVersion = 1,
   commandLog,
   durationSeconds,
   fetcher = fetch,
   result,
 }: SyncChallengeAttemptInput): Promise<ChallengeSyncStatus> => {
-  if (!apiBaseUrl) {
-    return { status: "disabled", message: "未配置后端 API，进度已保存在本地。" };
+  const resolvedBaseUrl = apiBaseUrl !== undefined ? apiBaseUrl : getApiBaseUrl();
+
+  if (resolvedBaseUrl === null) {
+    return Promise.resolve({ status: "disabled", message: "未配置后端 API，进度已保存在本地。" });
   }
 
   if (!accessToken) {
-    return { status: "disabled", message: "尚未登录，通关结果暂存本地。" };
+    return Promise.resolve({ status: "disabled", message: "尚未登录，通关结果暂存本地。" });
   }
 
   const payload = createChallengeAttemptPayload({ challengeVersion, commandLog, durationSeconds, result });
 
-  try {
-    const response = await fetcher(`${apiBaseUrl.replace(/\/$/, "")}/api/player/challenge-attempts`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      return { status: "failed", message: "云端同步失败，本地进度不受影响。" };
-    }
-
-    const body = (await response.json()) as {
-      data?: { earnedXp?: number; bestScoreUpdated?: boolean; unlockedTitles?: { key: string }[] };
-    };
-
-    return {
-      status: "synced",
-      earnedXp: body.data?.earnedXp ?? result.baseXp + result.bonusXp,
-      bestScoreUpdated: body.data?.bestScoreUpdated ?? false,
-      unlockedTitles: body.data?.unlockedTitles?.map((title) => title.key) ?? [],
+  return postChallengeAttempt(accessToken, payload, fetcher, resolvedBaseUrl)
+    .then((body) => ({
+      status: "synced" as const,
+      earnedXp: body.earnedXp ?? result.baseXp + result.bonusXp,
+      bestScoreUpdated: body.bestScoreUpdated ?? false,
+      unlockedTitles: body.unlockedTitles?.map((title) => title.key) ?? [],
       message: "通关结果已同步到云端。",
-    };
-  } catch {
-    return { status: "failed", message: "暂时无法连接后端，本地进度已保留。" };
-  }
+    }))
+    .catch(() => ({
+      status: "failed" as const,
+      message: "暂时无法连接后端，本地进度已保留。",
+    }));
 };

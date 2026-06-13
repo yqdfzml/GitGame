@@ -20,6 +20,14 @@ import { useEffect, useMemo, useState } from "react";
 import { CHALLENGES } from "./game/challenges";
 import { evaluateCommand, getLayeredHint } from "./game/commandEngine";
 import { syncChallengeAttempt } from "./game/cloudSync";
+import { isApiEnabled, loginAccount, registerAccount, updateCurrentTitle } from "./game/apiClient";
+import {
+  clearAuthSession,
+  loadAuthSession,
+  loadAuthUser,
+  saveAuthSession,
+} from "./game/authStorage";
+import { mergeProfilesPreferHigher, pullCloudProfile } from "./game/profileSync";
 import {
   applyChallengeResult,
   createChallengeResult,
@@ -29,7 +37,7 @@ import {
 } from "./game/growth";
 import { clearProfile, loadProfile, saveProfile } from "./game/storage";
 import { getTitleById, TITLE_RULES } from "./game/titles";
-import type { Challenge, ChallengeResult, ChallengeSyncStatus, PlayerProfile } from "./game/types";
+import type { AuthUser, Challenge, ChallengeResult, ChallengeSyncStatus, PlayerProfile } from "./game/types";
 
 type Page = "home" | "levels" | "play" | "profile";
 type TerminalLine = { kind: "input" | "success" | "warn" | "info"; text: string };
@@ -39,8 +47,6 @@ type CompletionNotice = {
   bestScoreUpdated: boolean;
   syncStatus: ChallengeSyncStatus;
 };
-
-const ACCESS_TOKEN_KEY = "gitgame.access-token.v1";
 
 const kindIcon = {
   commit: GitCommitHorizontal,
@@ -65,6 +71,13 @@ const getLocked = (challenge: Challenge, profile: PlayerProfile) => {
 function App() {
   const [page, setPage] = useState<Page>("home");
   const [profile, setProfile] = useState<PlayerProfile>(() => loadProfile());
+  const [authUser, setAuthUser] = useState<AuthUser | null>(() => loadAuthUser());
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authDisplayName, setAuthDisplayName] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
   const [activeChallengeId, setActiveChallengeId] = useState(CHALLENGES[0].id);
   const [completedCommands, setCompletedCommands] = useState<string[]>([]);
   const [commandLog, setCommandLog] = useState<string[]>([]);
@@ -148,7 +161,7 @@ function App() {
     });
     const bestScoreUpdated = result.score > (profile.bestScores[activeChallenge.id] ?? 0);
     const applied = applyChallengeResult(profile, result);
-    const accessToken = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+    const accessToken = loadAuthSession()?.accessToken ?? null;
     const syncStatus = await syncChallengeAttempt({
       result,
       commandLog,
@@ -161,9 +174,80 @@ function App() {
   };
 
   const chooseTitle = (titleId: string) => {
-    if (profile.unlockedTitleIds.includes(titleId)) {
-      setProfile((current) => ({ ...current, activeTitleId: titleId }));
+    if (!profile.unlockedTitleIds.includes(titleId)) return;
+
+    setProfile((current) => ({ ...current, activeTitleId: titleId }));
+
+    const session = loadAuthSession();
+    if (session && isApiEnabled()) {
+      updateCurrentTitle(session.accessToken, titleId).catch(() => {
+        setAuthMessage("称号已本地更新，但云端同步失败。");
+      });
     }
+  };
+
+  /**
+   * 登录或注册成功后恢复云端档案。
+   * 功能：写入 token，拉取 profile/progress/titles 并与本地合并。
+   * 参数：session - 后端返回的登录会话。
+   * 返回值：Promise。
+   */
+  const handleAuthSuccess = (session: { accessToken: string; user: AuthUser }) => {
+    saveAuthSession(session);
+    setAuthUser(session.user);
+    setAuthMessage("登录成功，正在恢复云端进度…");
+
+    if (!isApiEnabled()) {
+      setAuthMessage("登录成功。当前未启用 API 同步，进度仍保存在本地。");
+      return Promise.resolve();
+    }
+
+    return pullCloudProfile({ accessToken: session.accessToken })
+      .then((cloudProfile) => {
+        setProfile((current) => mergeProfilesPreferHigher(current, cloudProfile));
+        setAuthMessage("云端进度已恢复。");
+      })
+      .catch(() => {
+        setAuthMessage("登录成功，但暂时无法拉取云端进度。");
+      });
+  };
+
+  /**
+   * 提交登录或注册表单。
+   * 功能：调用后端认证接口。
+   * 参数：无。
+   * 返回值：Promise。
+   */
+  const submitAuthForm = () => {
+    if (authBusy) return Promise.resolve();
+    setAuthBusy(true);
+    setAuthMessage("");
+
+    const task =
+      authMode === "register"
+        ? registerAccount(authEmail, authPassword, authDisplayName)
+        : loginAccount(authEmail, authPassword);
+
+    return task
+      .then((session) => handleAuthSuccess(session))
+      .catch((error: Error) => {
+        setAuthMessage(error.message || "认证失败，请稍后重试。");
+      })
+      .finally(() => {
+        setAuthBusy(false);
+      });
+  };
+
+  /**
+   * 退出登录并清除本地 token。
+   * 功能：保留本地游戏进度，只移除云同步身份。
+   * 参数：无。
+   * 返回值：无。
+   */
+  const logoutAccount = () => {
+    clearAuthSession();
+    setAuthUser(null);
+    setAuthMessage("已退出登录，本地进度仍保留在当前设备。");
   };
 
   const resetProfile = () => {
@@ -187,7 +271,26 @@ function App() {
       {page === "levels" && (
         <LevelsPage groupedChallenges={groupedChallenges} profile={profile} onStart={startChallenge} />
       )}
-      {page === "profile" && <ProfilePage profile={profile} onChooseTitle={chooseTitle} onReset={resetProfile} />}
+      {page === "profile" && (
+        <ProfilePage
+          authBusy={authBusy}
+          authDisplayName={authDisplayName}
+          authEmail={authEmail}
+          authMessage={authMessage}
+          authMode={authMode}
+          authPassword={authPassword}
+          authUser={authUser}
+          onAuthDisplayNameChange={setAuthDisplayName}
+          onAuthEmailChange={setAuthEmail}
+          onAuthModeChange={setAuthMode}
+          onAuthPasswordChange={setAuthPassword}
+          onChooseTitle={chooseTitle}
+          onLogout={logoutAccount}
+          onReset={resetProfile}
+          onSubmitAuth={submitAuthForm}
+          profile={profile}
+        />
+      )}
       {page === "play" && (
         <PlayPage
           challenge={activeChallenge}
@@ -331,17 +434,126 @@ function ChallengeCard({
 }
 
 function ProfilePage({
+  authBusy,
+  authDisplayName,
+  authEmail,
+  authMessage,
+  authMode,
+  authPassword,
+  authUser,
+  onAuthDisplayNameChange,
+  onAuthEmailChange,
+  onAuthModeChange,
+  onAuthPasswordChange,
   onChooseTitle,
+  onLogout,
   onReset,
+  onSubmitAuth,
   profile,
 }: {
+  authBusy: boolean;
+  authDisplayName: string;
+  authEmail: string;
+  authMessage: string;
+  authMode: "login" | "register";
+  authPassword: string;
+  authUser: AuthUser | null;
+  onAuthDisplayNameChange: (value: string) => void;
+  onAuthEmailChange: (value: string) => void;
+  onAuthModeChange: (mode: "login" | "register") => void;
+  onAuthPasswordChange: (value: string) => void;
   onChooseTitle: (titleId: string) => void;
+  onLogout: () => void;
   onReset: () => void;
+  onSubmitAuth: () => void;
   profile: PlayerProfile;
 }) {
+  const apiEnabled = isApiEnabled();
+
   return (
     <section className="profile-layout">
       <PlayerSummary profile={profile} onReset={onReset} />
+      <article className="surface auth-panel">
+        <PageTitle
+          eyebrow="云存档"
+          title={authUser ? "账号已连接" : "登录后同步进度"}
+          copy={
+            apiEnabled
+              ? "本地优先游玩，登录后在通关时自动同步 XP、关卡进度和称号。"
+              : "当前未配置 VITE_API_BASE_URL，云同步功能处于关闭状态。"
+          }
+        />
+        {authUser ? (
+          <div className="auth-session">
+            <p>
+              <strong>{authUser.displayName}</strong>
+              <span className="muted"> · {authUser.email}</span>
+            </p>
+            <button type="button" onClick={onLogout}>退出登录</button>
+          </div>
+        ) : (
+          <form
+            className="auth-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSubmitAuth();
+            }}
+          >
+            <div className="auth-tabs">
+              <button
+                className={authMode === "login" ? "active" : ""}
+                type="button"
+                onClick={() => onAuthModeChange("login")}
+              >
+                登录
+              </button>
+              <button
+                className={authMode === "register" ? "active" : ""}
+                type="button"
+                onClick={() => onAuthModeChange("register")}
+              >
+                注册
+              </button>
+            </div>
+            {authMode === "register" && (
+              <label>
+                昵称
+                <input
+                  value={authDisplayName}
+                  onChange={(event) => onAuthDisplayNameChange(event.target.value)}
+                  placeholder="Git 少侠"
+                  required
+                />
+              </label>
+            )}
+            <label>
+              邮箱
+              <input
+                type="email"
+                value={authEmail}
+                onChange={(event) => onAuthEmailChange(event.target.value)}
+                placeholder="player@example.com"
+                required
+              />
+            </label>
+            <label>
+              密码
+              <input
+                type="password"
+                value={authPassword}
+                onChange={(event) => onAuthPasswordChange(event.target.value)}
+                placeholder="至少 6 位"
+                minLength={6}
+                required
+              />
+            </label>
+            <button className="primary" type="submit" disabled={authBusy || !apiEnabled}>
+              {authBusy ? "处理中…" : authMode === "register" ? "注册并登录" : "登录"}
+            </button>
+          </form>
+        )}
+        {authMessage && <p className="auth-message">{authMessage}</p>}
+      </article>
       <article className="surface title-wall">
         <PageTitle eyebrow="个人中心" title="称号墙" copy="已解锁称号可以设为当前展示称号，未解锁称号保留神秘感。" />
         <div className="titles-grid">

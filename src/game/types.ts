@@ -94,3 +94,58 @@ export type ChallengeSyncStatus =
   | { status: "disabled"; message: string }
   | { status: "synced"; earnedXp: number; bestScoreUpdated: boolean; unlockedTitles: string[]; message: string }
   | { status: "failed"; message: string };
+
+export type AuthUser = {
+  id: string;
+  email: string;
+  displayName: string;
+};
+
+export type AuthSession = {
+  accessToken: string;
+  user: AuthUser;
+};
+
+export type BackendPlayerProfile = {
+  level: number;
+  totalXp: number;
+  currentTitle: { key: string; name: string };
+  completedChallengeCount: number;
+  perfectChallengeCount: number;
+};
+
+export type BackendChallengeProgress = {
+  challengeKey: string;
+  challengeVersion: number;
+  status: "started" | "completed";
+  bestScore: number;
+  bestMistakeCount: number;
+  bestHintCount: number;
+  inOrder: boolean;
+  completedCount: number;
+  firstCompletedAt: string | null;
+  lastCompletedAt: string | null;
+};
+
+export type BackendTitle = {
+  key: string;
+  name: string;
+  unlockedAt: string;
+};
+
+export type ChallengeAttemptResult = {
+  earnedXp: number;
+  levelBefore: number;
+  levelAfter: number;
+  bestScoreUpdated: boolean;
+  unlockedTitles: { key: string; name: string }[];
+};
+
+export type ApiErrorResponse = {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+  requestId: string;
+};
