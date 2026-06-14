@@ -11,6 +11,8 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
+import { AdminGuard } from "../auth/guards/admin.guard";
+import { AuthRequest, JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminUsersService } from "./admin-users.service";
 import {
   AdminUserListQueryDto,
