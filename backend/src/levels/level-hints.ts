@@ -97,7 +97,7 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
   15: {
     concepts: ["不同分支可以各自提交，形成并行开发的历史。"],
     directions: ["先在 main 提交 main.txt，再切到 feature 新建并提交 feature.txt。"],
-    keyPoints: ["main 上 commit 后，switch feature，创建 feature.txt 并 add → commit。"],
+    keyPoints: ["main 上 commit 后，switch feature，touch/echo 创建 feature.txt → git add → commit。"],
   },
   16: {
     concepts: ["快进合并（fast-forward）发生在 main 无新提交、feature 领先时，main 直接移到 feature。"],

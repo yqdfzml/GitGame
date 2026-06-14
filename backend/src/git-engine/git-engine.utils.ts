@@ -660,6 +660,219 @@ export const parseCommandTokens = (raw: string): string[] => {
   return tokens;
 };
 
+/**
+ * 查找 echo 命令中用于重定向的 > 位置（忽略引号内字符）。
+ * 功能：定位 echo content > path 的分隔符，避免把引号里的 > 误判为重定向。
+ * 参数：raw - 原始命令字符串。
+ * 返回值：> 的索引；未找到或遇到 >> 时返回 -1。
+ */
+const findEchoRedirectIndex = (raw: string): number => {
+  let inDoubleQuote = false;
+  let inSingleQuote = false;
+
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (ch === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+    if (ch === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+    if (ch === ">" && !inDoubleQuote && !inSingleQuote) {
+      if (raw[i + 1] === ">") {
+        return -1;
+      }
+      return i;
+    }
+  }
+
+  return -1;
+};
+
+/**
+ * 解析 echo 命令的内容参数。
+ * 功能：支持带引号与不带引号的 echo 文本。
+ * 参数：contentRaw - echo 与 > 之间的文本。
+ * 返回值：解析后的文件内容；格式非法时返回 null。
+ */
+const parseEchoContent = (contentRaw: string): string | null => {
+  if (contentRaw.length === 0) {
+    return "";
+  }
+
+  const firstChar = contentRaw[0];
+  if (firstChar === '"') {
+    const closingQuoteIndex = contentRaw.indexOf('"', 1);
+    if (closingQuoteIndex < 0) {
+      return null;
+    }
+    if (contentRaw.slice(closingQuoteIndex + 1).trim().length > 0) {
+      return null;
+    }
+    return contentRaw.slice(1, closingQuoteIndex);
+  }
+
+  if (firstChar === "'") {
+    const closingQuoteIndex = contentRaw.indexOf("'", 1);
+    if (closingQuoteIndex < 0) {
+      return null;
+    }
+    if (contentRaw.slice(closingQuoteIndex + 1).trim().length > 0) {
+      return null;
+    }
+    return contentRaw.slice(1, closingQuoteIndex);
+  }
+
+  return contentRaw;
+};
+
+/**
+ * 校验练习终端允许写入的工作区文件路径。
+ * 功能：阻止路径穿越与绝对路径，避免借 echo 越权写文件。
+ * 参数：path - 目标文件路径。
+ * 返回值：非法时返回错误文案；合法时返回 null。
+ */
+export const validateWorkspaceFilePath = (path: string): string | null => {
+  if (path.length === 0) {
+    return "缺少目标文件路径";
+  }
+  if (path.length > 120) {
+    return "文件路径过长";
+  }
+  if (path.startsWith("/") || path.startsWith("\\") || /^[a-zA-Z]:/.test(path)) {
+    return "不支持绝对路径";
+  }
+  if (path.includes("..")) {
+    return "不允许路径穿越";
+  }
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(path)) {
+    return "文件路径包含非法字符";
+  }
+  return null;
+};
+
+/**
+ * 解析 echo 重定向写文件命令（练习专用）。
+ * 功能：识别 echo "content" > path，供虚拟终端新建或覆盖工作区文件。
+ * 参数：raw - 用户输入的原始命令。
+ * 返回值：解析成功返回内容与路径；非 echo 命令返回 null；格式非法返回 error。
+ */
+export const parseEchoWriteCommand = (
+  raw: string,
+): { content: string; path: string } | { error: string } | null => {
+  const trimmed = raw.trim();
+  if (!/^echo\s+/i.test(trimmed)) {
+    return null;
+  }
+
+  const redirectIndex = findEchoRedirectIndex(trimmed);
+  if (redirectIndex < 0) {
+    return { error: "echo 命令需使用 > 重定向到文件路径" };
+  }
+
+  const leftPart = trimmed.slice(0, redirectIndex).trim();
+  const pathPart = trimmed.slice(redirectIndex + 1).trim();
+  const pathError = validateWorkspaceFilePath(pathPart);
+  if (pathError) {
+    return { error: pathError };
+  }
+
+  const contentMatch = leftPart.match(/^echo\s+([\s\S]*)$/i);
+  if (!contentMatch) {
+    return { error: "echo 命令格式不正确" };
+  }
+
+  const content = parseEchoContent(contentMatch[1].trim());
+  if (content === null) {
+    return { error: "无法解析 echo 内容，请检查引号是否成对" };
+  }
+
+  return { content, path: pathPart };
+};
+
+/**
+ * 向虚拟工作区写入文件内容。
+ * 功能：新建未跟踪文件或覆盖已跟踪文件，供 echo 重定向使用。
+ * 参数：state - 仓库状态；path - 文件路径；content - 文件内容。
+ * 返回值：无。
+ */
+export const writeWorkingTreeFile = (state: RepoState, path: string, content: string): void => {
+  const headFiles = getHeadFiles(state);
+  const inHead = headFiles[path] !== undefined;
+  state.workingTree[path] = {
+    content,
+    status: inHead ? "modified" : "untracked",
+  };
+  refreshWorkingTreeStatus(state);
+};
+
+/**
+ * touch 工作区文件（练习专用）。
+ * 功能：新建空文件；已存在且未删除的文件保持原内容不变。
+ * 参数：state - 仓库状态；path - 目标文件路径。
+ * 返回值：无。
+ */
+export const touchWorkingTreeFile = (state: RepoState, path: string): void => {
+  refreshWorkingTreeStatus(state);
+  const headFiles = getHeadFiles(state);
+  const headContent = headFiles[path];
+  const existing = state.workingTree[path];
+
+  if (existing && existing.status !== "deleted") {
+    refreshWorkingTreeStatus(state);
+    return;
+  }
+
+  if (headContent !== undefined) {
+    state.workingTree[path] = { content: "", status: "modified" };
+    refreshWorkingTreeStatus(state);
+    return;
+  }
+
+  state.workingTree[path] = { content: "", status: "untracked" };
+  refreshWorkingTreeStatus(state);
+};
+
+/**
+ * 解析 touch 新建文件命令（练习专用）。
+ * 功能：识别 touch path [path...]，供 macOS/Linux 用户创建空文件。
+ * 参数：raw - 用户输入的原始命令。
+ * 返回值：解析成功返回路径列表；非 touch 命令返回 null；格式非法返回 error。
+ */
+export const parseTouchCommand = (
+  raw: string,
+): { paths: string[] } | { error: string } | null => {
+  const trimmed = raw.trim();
+  if (!/^touch(\s|$)/i.test(trimmed)) {
+    return null;
+  }
+
+  const tokens = parseCommandTokens(trimmed);
+  if (tokens.length === 0 || tokens[0].toLowerCase() !== "touch") {
+    return null;
+  }
+
+  const paths: string[] = [];
+  for (const token of tokens.slice(1)) {
+    if (token.startsWith("-")) {
+      continue;
+    }
+    const pathError = validateWorkspaceFilePath(token);
+    if (pathError) {
+      return { error: pathError };
+    }
+    paths.push(token);
+  }
+
+  if (paths.length === 0) {
+    return { error: "touch 需要指定文件路径" };
+  }
+
+  return { paths };
+};
+
 /** v1 允许的 git 子命令白名单 */
 export const ALLOWED_GIT_COMMANDS = new Set([
   "status",
@@ -703,7 +916,7 @@ export const validateCommandInput = (
     return { valid: false, reason: "命令不能为空" };
   }
   if (tokens[0] !== "git") {
-    return { valid: false, reason: "仅允许 git 命令" };
+    return { valid: false, reason: "仅允许 git 命令、echo 写文件或 touch 新建文件" };
   }
   if (!tokens[1] || !ALLOWED_GIT_COMMANDS.has(tokens[1])) {
     return { valid: false, reason: `不允许的命令: ${tokens[1] ?? "未知"}` };

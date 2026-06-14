@@ -18,7 +18,11 @@ import {
   resolveRef,
   resolveRestorePaths,
   tryLineMerge,
+  parseEchoWriteCommand,
+  parseTouchCommand,
   validateCommandInput,
+  writeWorkingTreeFile,
+  touchWorkingTreeFile,
 } from "./git-engine.utils";
 
 /**
@@ -36,6 +40,51 @@ export class GitEngineService {
    * 返回值：CommandResult。
    */
   executeCommand(rawCommand: string, currentState: RepoState): CommandResult {
+    if (rawCommand.length > 512) {
+      return {
+        success: false,
+        output: "命令长度超过限制",
+        feedback: "命令长度超过限制",
+        state: currentState,
+      };
+    }
+    if (rawCommand.includes(";") || rawCommand.includes("|") || rawCommand.includes("&") || rawCommand.includes("`")) {
+      return {
+        success: false,
+        output: "不允许 shell 元字符",
+        feedback: "不允许 shell 元字符",
+        state: currentState,
+      };
+    }
+
+    const echoWrite = parseEchoWriteCommand(rawCommand);
+    if (echoWrite !== null) {
+      if ("error" in echoWrite) {
+        return {
+          success: false,
+          output: echoWrite.error,
+          feedback: echoWrite.error,
+          state: currentState,
+        };
+      }
+      const state = cloneRepoState(currentState);
+      return this.handleEchoWrite(state, echoWrite.content, echoWrite.path);
+    }
+
+    const touchCommand = parseTouchCommand(rawCommand);
+    if (touchCommand !== null) {
+      if ("error" in touchCommand) {
+        return {
+          success: false,
+          output: touchCommand.error,
+          feedback: touchCommand.error,
+          state: currentState,
+        };
+      }
+      const state = cloneRepoState(currentState);
+      return this.handleTouch(state, touchCommand.paths);
+    }
+
     const validation = validateCommandInput(rawCommand);
     if (!validation.valid || !validation.tokens) {
       return {
@@ -111,6 +160,54 @@ export class GitEngineService {
   private handleStatus(state: RepoState): CommandResult {
     const output = formatStatus(state);
     return { success: true, output, feedback: "已显示当前仓库状态", state };
+  }
+
+  /**
+   * 处理 echo 重定向写文件。
+   * 功能：在工作区新建或覆盖文件，后续仍需 git add / commit 纳入版本库。
+   * 参数：state - 当前仓库快照；content - 写入内容；path - 目标路径。
+   * 返回值：CommandResult。
+   */
+  private handleEchoWrite(state: RepoState, content: string, path: string): CommandResult {
+    if (state.conflicts[path]) {
+      const message = `无法写入冲突文件 '${path}'`;
+      return { success: false, output: message, feedback: message, state };
+    }
+
+    writeWorkingTreeFile(state, path, content);
+    return {
+      success: true,
+      output: "",
+      feedback: `已写入 ${path}`,
+      state,
+    };
+  }
+
+  /**
+   * 处理 touch 新建空文件。
+   * 功能：在工作区创建空文件，已存在文件保持内容不变。
+   * 参数：state - 当前仓库快照；paths - 目标路径列表。
+   * 返回值：CommandResult。
+   */
+  private handleTouch(state: RepoState, paths: string[]): CommandResult {
+    for (const path of paths) {
+      if (state.conflicts[path]) {
+        const message = `无法 touch 冲突文件 '${path}'`;
+        return { success: false, output: message, feedback: message, state };
+      }
+      touchWorkingTreeFile(state, path);
+    }
+
+    const feedback = paths.length === 1
+      ? `已创建 ${paths[0]}`
+      : `已创建 ${paths.length} 个文件`;
+
+    return {
+      success: true,
+      output: "",
+      feedback,
+      state,
+    };
   }
 
   /** 处理 git add，将工作区变更加入暂存区 */

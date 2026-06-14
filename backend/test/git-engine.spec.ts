@@ -28,6 +28,93 @@ describe("GitEngineService", () => {
     expect(result.state).toEqual(baseState);
   });
 
+  it("echo 重定向可新建未跟踪文件", () => {
+    const result = gitEngine.executeCommand('echo "f1" > feature.txt', baseState);
+    expect(result.success).toBe(true);
+    expect(result.state.workingTree["feature.txt"]).toEqual({
+      content: "f1",
+      status: "untracked",
+    });
+  });
+
+  it("echo 重定向可覆盖已跟踪文件", () => {
+    const result = gitEngine.executeCommand("echo v2 > a.txt", baseState);
+    expect(result.success).toBe(true);
+    expect(result.state.workingTree["a.txt"]).toEqual({
+      content: "v2",
+      status: "modified",
+    });
+  });
+
+  it("拒绝路径穿越的 echo 写文件", () => {
+    const result = gitEngine.executeCommand('echo "x" > ../secret.txt', baseState);
+    expect(result.success).toBe(false);
+    expect(result.state).toEqual(baseState);
+  });
+
+  it("touch 可新建未跟踪空文件", () => {
+    const result = gitEngine.executeCommand("touch feature.txt", baseState);
+    expect(result.success).toBe(true);
+    expect(result.state.workingTree["feature.txt"]).toEqual({
+      content: "",
+      status: "untracked",
+    });
+  });
+
+  it("touch 已存在文件时不改动内容", () => {
+    const result = gitEngine.executeCommand("touch a.txt", baseState);
+    expect(result.success).toBe(true);
+    expect(result.state.workingTree["a.txt"]).toEqual({
+      content: "hello",
+      status: "unchanged",
+    });
+  });
+
+  it("双脉并行：touch + echo 新建文件后可 commit 通关", () => {
+    const level = ALL_LEVELS.find((item) => item.sortOrder === 15);
+    expect(level).toBeDefined();
+
+    const addMain = gitEngine.executeCommand("git add main.txt", level!.initialState);
+    const commitMain = gitEngine.executeCommand('git commit -m "main update"', addMain.state);
+    expect(commitMain.success).toBe(true);
+
+    const switchFeature = gitEngine.executeCommand("git switch feature", commitMain.state);
+    expect(switchFeature.success).toBe(true);
+
+    const touchFeatureFile = gitEngine.executeCommand("touch feature.txt", switchFeature.state);
+    expect(touchFeatureFile.success).toBe(true);
+
+    const writeFeatureFile = gitEngine.executeCommand('echo "f1" > feature.txt', touchFeatureFile.state);
+    expect(writeFeatureFile.success).toBe(true);
+
+    const addFeatureFile = gitEngine.executeCommand("git add feature.txt", writeFeatureFile.state);
+    const commitFeature = gitEngine.executeCommand('git commit -m "add feature file"', addFeatureFile.state);
+    const result = judge.evaluate(commitFeature.state, level!.goal, level!.constraints, 5);
+
+    expect(result.passed).toBe(true);
+  });
+
+  it("双脉并行：echo 新建文件后可 add 并 commit 通关", () => {
+    const level = ALL_LEVELS.find((item) => item.sortOrder === 15);
+    expect(level).toBeDefined();
+
+    const addMain = gitEngine.executeCommand("git add main.txt", level!.initialState);
+    const commitMain = gitEngine.executeCommand('git commit -m "main update"', addMain.state);
+    expect(commitMain.success).toBe(true);
+
+    const switchFeature = gitEngine.executeCommand("git switch feature", commitMain.state);
+    expect(switchFeature.success).toBe(true);
+
+    const createFeatureFile = gitEngine.executeCommand('echo "f1" > feature.txt', switchFeature.state);
+    expect(createFeatureFile.success).toBe(true);
+
+    const addFeatureFile = gitEngine.executeCommand("git add feature.txt", createFeatureFile.state);
+    const commitFeature = gitEngine.executeCommand('git commit -m "add feature file"', addFeatureFile.state);
+    const result = judge.evaluate(commitFeature.state, level!.goal, level!.constraints, 4);
+
+    expect(result.passed).toBe(true);
+  });
+
   it("git status 只读不改变状态内容", () => {
     const result = gitEngine.executeCommand("git status", baseState);
     expect(result.success).toBe(true);
