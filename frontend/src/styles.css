@@ -3129,28 +3129,6 @@ a:hover { color: var(--accent-hover); }
   min-width: 180px;
 }
 
-.admin-points-grant-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.admin-points-grant-field {
-  display: grid;
-  gap: 6px;
-  min-width: 180px;
-}
-
-.admin-points-grant-field span {
-  font-size: 0.72rem;
-  color: var(--text-faint);
-}
-
-.admin-points-grant-field input {
-  width: 100%;
-}
-
 .text-positive {
   color: var(--accent-2);
 }
@@ -3174,6 +3152,16 @@ a:hover { color: var(--accent-hover); }
   grid-template-columns: 2fr 1fr auto;
   gap: 12px;
   align-items: end;
+}
+
+.admin-invite-create-grid .admin-invite-create-field {
+  margin-bottom: 0;
+}
+
+.admin-invite-create-submit {
+  white-space: nowrap;
+  min-height: 42px;
+  padding-inline: 18px;
 }
 
 .admin-users-table {
@@ -3375,6 +3363,10 @@ a:hover { color: var(--accent-hover); }
   .admin-dashboard-panels,
   .admin-dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-invite-create-submit {
+    width: 100%;
   }
 }
 

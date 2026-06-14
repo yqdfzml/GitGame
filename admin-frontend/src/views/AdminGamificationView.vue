@@ -277,20 +277,18 @@ onMounted(() => {
       description="查看积分钱包、流水、解锁记录，并向用户赠送积分。"
     />
 
-    <section class="card admin-gamification-section">
-      <div class="admin-gamification-section-head">
-        <h3>赠送积分</h3>
-      </div>
-      <div class="admin-points-grant-form">
-        <label class="admin-points-grant-field">
-          <span>用户邮箱</span>
+    <section class="card admin-invite-create">
+      <h3>赠送积分</h3>
+      <div class="admin-invite-create-grid">
+        <label class="admin-filter-label admin-invite-create-field">
+          用户邮箱
           <input v-model="grantEmail" type="email" placeholder="demo@gitgame.local" />
         </label>
-        <label class="admin-points-grant-field">
-          <span>赠送数量</span>
+        <label class="admin-filter-label admin-invite-create-field">
+          赠送数量
           <input v-model="grantAmount" type="number" min="1" step="1" placeholder="10" />
         </label>
-        <button class="btn-primary" :disabled="granting" @click="submitGrantPoints()">
+        <button class="btn-primary admin-invite-create-submit" :disabled="granting" @click="submitGrantPoints()">
           {{ granting ? "赠送中..." : "确认赠送" }}
         </button>
       </div>
