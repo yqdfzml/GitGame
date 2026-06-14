@@ -101,6 +101,12 @@ const router = createRouter({
           component: () => import("../views/admin/AdminAttemptDetailView.vue"),
           meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "Attempt 详情" },
         },
+        {
+          path: "invites",
+          name: "admin-invites",
+          component: () => import("../views/admin/AdminInvitesView.vue"),
+          meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "邀请码管理" },
+        },
       ],
     },
   ],

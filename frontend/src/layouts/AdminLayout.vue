@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { ArrowLeft, BookOpenCheck, History, LayoutDashboard, Users } from "lucide-vue-next";
+import { ArrowLeft, BookOpenCheck, History, LayoutDashboard, Ticket, Users } from "lucide-vue-next";
 
 /** 当前路由，用于高亮侧边栏 */
 const route = useRoute();
@@ -12,6 +12,7 @@ const navItems = [
   { to: "/admin/levels", label: "关卡管理", icon: BookOpenCheck },
   { to: "/admin/users", label: "用户管理", icon: Users },
   { to: "/admin/attempts", label: "学习记录", icon: History },
+  { to: "/admin/invites", label: "邀请码", icon: Ticket },
 ];
 
 /**

@@ -21,6 +21,9 @@ import type {
   AdminAttemptListFilters,
   AdminAttemptListResult,
   AdminAttemptDetail,
+  AdminInviteListItem,
+  AdminCreateInvitePayload,
+  AdminInviteActionResult,
 } from "../types/admin";
 import type { AuthUser, LevelSummary, LevelUnlockResult, PointWalletSummary } from "../types";
 
@@ -407,4 +410,31 @@ export const adminAttemptsApi = {
    * 返回值：attempt 详情。
    */
   getAttempt: (id: string) => request<AdminAttemptDetail>(`/admin/attempts/${id}`),
+};
+
+/** 管理端邀请码 API */
+export const adminInvitesApi = {
+  /**
+   * 列出邀请码。
+   * 功能：查看全部英雄帖及使用状态。
+   * 参数：无。
+   * 返回值：邀请码数组。
+   */
+  listInvites: () => request<AdminInviteListItem[]>("/admin/invites"),
+  /**
+   * 创建邀请码。
+   * 功能：生成新英雄帖。
+   * 参数：data - 备注与过期时间。
+   * 返回值：新邀请码摘要。
+   */
+  createInvite: (data: AdminCreateInvitePayload) =>
+    request<AdminInviteActionResult>("/admin/invites", { method: "POST", body: data }),
+  /**
+   * 作废邀请码。
+   * 功能：使未使用的邀请码立即失效。
+   * 参数：id - 邀请码 id。
+   * 返回值：作废结果。
+   */
+  revokeInvite: (id: string) =>
+    request<AdminInviteActionResult>(`/admin/invites/${id}/revoke`, { method: "POST" }),
 };

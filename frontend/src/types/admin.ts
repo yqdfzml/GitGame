@@ -226,3 +226,38 @@ export interface AdminAttemptDetail {
   };
   commands: AdminAttemptCommandItem[];
 }
+
+/** 邀请码状态 */
+export type AdminInviteStatus = "unused" | "used" | "expired" | "revoked";
+
+/** 管理端邀请码列表项 */
+export interface AdminInviteListItem {
+  id: string;
+  code: string;
+  note: string | null;
+  usedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  usedBy: {
+    id: string;
+    email: string;
+    displayName: string;
+  } | null;
+  status: AdminInviteStatus;
+}
+
+/** 创建邀请码参数 */
+export interface AdminCreateInvitePayload {
+  note?: string;
+  expiresAt?: string;
+}
+
+/** 邀请码操作结果 */
+export interface AdminInviteActionResult {
+  id: string;
+  code: string;
+  note?: string | null;
+  expiresAt?: string | null;
+  createdAt?: string;
+  status: AdminInviteStatus;
+}
