@@ -31,6 +31,7 @@ export default defineConfig({
       "/leaderboard": createApiProxy(),
       "/home": createApiProxy(),
       "/users": createApiProxy(),
+      "/points": createApiProxy(),
       "/admin": createApiProxy(),
       "/healthz": createApiProxy(),
     },
