@@ -144,34 +144,40 @@ const buildLevelHints = (goal: Record<string, unknown>, sortOrder: number): Leve
 
 /**
  * 从 goal 生成通关目标 checklist（不含答案细节）。
- * 功能：让用户知道要达成什么，但不泄露具体 commit hash 等。
+ * 功能：让用户知道要达成什么，明确分支/合并方向等，但不泄露 commit hash。
  * 参数：goal - 关卡目标 JSON。
  * 返回值：目标提示字符串数组。
  */
 const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
   const targets: string[] = [];
+
+  if (goal.branchMerged) {
+    const merges = goal.branchMerged as Array<{ source: string; target: string }>;
+    for (const item of merges) {
+      targets.push(`将分支 '${item.source}' 合并到 '${item.target}'`);
+    }
+  }
   if (goal.currentBranch) {
-    targets.push(`当前分支应为 '${goal.currentBranch as string}'`);
+    targets.push(`最终当前分支应为 '${goal.currentBranch as string}'`);
   }
-  if (goal.workingTreeClean) {
-    targets.push("工作区需要 clean");
+  if (goal.mergeCommitRequired) {
+    targets.push("合并结果需为 merge commit（两个父提交）");
   }
-  if (goal.indexEmpty) {
-    targets.push("暂存区需要为空");
+  if (goal.branchHeads) {
+    const branchNames = Object.keys(goal.branchHeads as Record<string, string>);
+    targets.push(`分支 ${branchNames.join("、")} 需指向正确提交`);
   }
-  if (goal.noConflicts) {
-    targets.push("不能有未解决冲突");
+  if (goal.branchFileContents) {
+    const branchFiles = goal.branchFileContents as Record<string, Record<string, string>>;
+    for (const [branch, files] of Object.entries(branchFiles)) {
+      const paths = Object.keys(files).join("、");
+      targets.push(`分支 '${branch}' 上 ${paths} 需达到目标内容`);
+    }
   }
   if (goal.fileContents) {
     for (const path of Object.keys(goal.fileContents as Record<string, string>)) {
-      targets.push(`提交后 ${path} 需达到目标内容`);
+      targets.push(`版本库中 ${path} 需达到目标内容`);
     }
-  }
-  if (goal.filesAbsentFromHead) {
-    targets.push("指定文件不能进入提交历史");
-  }
-  if (goal.branchFileContents) {
-    targets.push("指定分支需要包含目标文件内容");
   }
   if (goal.workingTreeContents) {
     for (const path of Object.keys(goal.workingTreeContents as Record<string, string>)) {
@@ -183,32 +189,44 @@ const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
       targets.push(`暂存区需包含 ${path}`);
     }
   }
-  if (goal.untrackedFiles) {
-    targets.push("部分文件需要保持未跟踪状态");
-  }
-  if (goal.branchHeads) {
-    targets.push("指定分支需要指向目标提交");
-  }
-  if (goal.mergeCommitRequired) {
-    targets.push("需要产生 merge commit（两个父提交）");
-  }
   if (goal.stashContents) {
-    targets.push("需要将当前修改贮藏起来");
+    const paths = Object.keys(goal.stashContents as Record<string, string>).join("、");
+    targets.push(`需将 ${paths} 的修改贮藏到 stash`);
   }
   if (goal.requiredTags) {
-    targets.push("需要给指定提交打上标签");
+    for (const tagName of Object.keys(goal.requiredTags as Record<string, string>)) {
+      targets.push(`需创建标签 '${tagName}'`);
+    }
   }
   if (goal.bisectFound) {
-    targets.push("需要通过 bisect 定位首个不良提交");
-  }
-  if (goal.branchMerged) {
-    targets.push("需要将指定分支合并到目标分支");
+    targets.push("需通过 git bisect 定位首个不良提交");
   }
   if (goal.branchContains) {
-    targets.push("指定分支需要包含目标提交");
+    targets.push("指定分支需保留应有的历史提交");
   }
   if (goal.branchNotContains) {
     targets.push("指定分支不能包含错误提交");
   }
+  if (goal.filesAbsentFromHead) {
+    const paths = (goal.filesAbsentFromHead as string[]).join("、");
+    targets.push(`${paths} 不能进入版本库`);
+  }
+  if (goal.untrackedFiles) {
+    const paths = (goal.untrackedFiles as string[]).join("、");
+    targets.push(`${paths} 需保持未跟踪状态`);
+  }
+  if (goal.workingTreeClean) {
+    targets.push("工作区需 clean（无未提交改动）");
+  }
+  if (goal.indexEmpty) {
+    targets.push("暂存区需为空");
+  }
+  if (goal.noConflicts) {
+    targets.push("不能有未解决冲突");
+  }
+  if (goal.commitsExist) {
+    targets.push("需保留指定的历史提交");
+  }
+
   return targets;
 };

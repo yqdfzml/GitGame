@@ -344,62 +344,8 @@ const goReplay = () => {
 
 <template>
   <div class="practice-page">
-    <header class="practice-header">
-      <div class="practice-header-main">
-        <h1 class="practice-title">{{ levelTitle || '练习' }}</h1>
-      </div>
-      <div v-if="judge" class="practice-meta">
-        <div class="practice-hint-wrap">
-          <button
-            type="button"
-            class="meta-chip practice-hint-trigger"
-            :class="{ active: hintOpen }"
-            :disabled="!hasAnyHints"
-            @click="toggleHintPanel"
-          >
-            提示
-          </button>
-          <div v-if="hintOpen && hasAnyHints" class="practice-hint-panel card">
-            <p class="practice-hint-panel-title">关卡提示</p>
-
-            <section v-if="goalHints.concepts.length > 0" class="practice-hint-section">
-              <h4 class="practice-hint-section-title">知识点</h4>
-              <ul class="hint-list practice-hint-list">
-                <li v-for="hint in goalHints.concepts" :key="`concept-${hint}`">{{ hint }}</li>
-              </ul>
-            </section>
-
-            <section v-if="goalHints.directions.length > 0" class="practice-hint-section">
-              <h4 class="practice-hint-section-title">解题方向</h4>
-              <ul class="hint-list practice-hint-list">
-                <li v-for="hint in goalHints.directions" :key="`direction-${hint}`">{{ hint }}</li>
-              </ul>
-            </section>
-
-            <section v-if="goalHints.keyPoints.length > 0" class="practice-hint-section">
-              <h4 class="practice-hint-section-title">关键点拨</h4>
-              <ul class="hint-list practice-hint-list">
-                <li v-for="hint in goalHints.keyPoints" :key="`key-${hint}`">{{ hint }}</li>
-              </ul>
-            </section>
-
-            <section v-if="goalHints.targets.length > 0" class="practice-hint-section">
-              <h4 class="practice-hint-section-title">通关目标</h4>
-              <ul class="hint-list practice-hint-list practice-hint-target-list">
-                <li v-for="hint in goalHints.targets" :key="`target-${hint}`">{{ hint }}</li>
-              </ul>
-            </section>
-          </div>
-        </div>
-        <span class="meta-chip">步骤 {{ stepCount }}</span>
-        <span class="meta-chip" :class="{ done: judge.passed }">
-          {{ judge.passed ? '已通关' : `进度 ${progressPct}%` }}
-        </span>
-      </div>
-    </header>
-
     <div v-if="lockedError" class="card practice-locked-card">
-      <h2 class="practice-locked-title">关卡未解锁</h2>
+      <h2 class="practice-locked-title">{{ levelTitle || '练习' }} · 关卡未解锁</h2>
       <p class="practice-locked-desc">请先前往关卡页消耗积分解锁，或完成每日签到积累积分。</p>
       <RouterLink to="/levels" class="btn-primary">返回关卡页</RouterLink>
     </div>
@@ -435,7 +381,55 @@ const goReplay = () => {
           <span class="terminal-dot red" />
           <span class="terminal-dot yellow" />
           <span class="terminal-dot green" />
-          <span class="terminal-chrome-title">Git 终端</span>
+          <h1 class="terminal-chrome-title">{{ levelTitle || '练习' }}</h1>
+          <div class="terminal-chrome-meta">
+            <div class="practice-hint-wrap">
+              <button
+                type="button"
+                class="meta-chip practice-hint-trigger"
+                :class="{ active: hintOpen }"
+                :disabled="!hasAnyHints"
+                @click="toggleHintPanel"
+              >
+                提示
+              </button>
+              <div v-if="hintOpen && hasAnyHints" class="practice-hint-panel card">
+                <p class="practice-hint-panel-title">关卡提示</p>
+
+                <section v-if="goalHints.concepts.length > 0" class="practice-hint-section">
+                  <h4 class="practice-hint-section-title">知识点</h4>
+                  <ul class="hint-list practice-hint-list">
+                    <li v-for="hint in goalHints.concepts" :key="`concept-${hint}`">{{ hint }}</li>
+                  </ul>
+                </section>
+
+                <section v-if="goalHints.directions.length > 0" class="practice-hint-section">
+                  <h4 class="practice-hint-section-title">解题方向</h4>
+                  <ul class="hint-list practice-hint-list">
+                    <li v-for="hint in goalHints.directions" :key="`direction-${hint}`">{{ hint }}</li>
+                  </ul>
+                </section>
+
+                <section v-if="goalHints.keyPoints.length > 0" class="practice-hint-section">
+                  <h4 class="practice-hint-section-title">关键点拨</h4>
+                  <ul class="hint-list practice-hint-list">
+                    <li v-for="hint in goalHints.keyPoints" :key="`key-${hint}`">{{ hint }}</li>
+                  </ul>
+                </section>
+
+                <section v-if="goalHints.targets.length > 0" class="practice-hint-section">
+                  <h4 class="practice-hint-section-title">通关目标</h4>
+                  <ul class="hint-list practice-hint-list practice-hint-target-list">
+                    <li v-for="hint in goalHints.targets" :key="`target-${hint}`">{{ hint }}</li>
+                  </ul>
+                </section>
+              </div>
+            </div>
+            <span class="meta-chip">步骤 {{ stepCount }}</span>
+            <span class="meta-chip" :class="{ done: judge.passed }">
+              {{ judge.passed ? '已通关' : `进度 ${progressPct}%` }}
+            </span>
+          </div>
         </div>
         <div class="terminal-body">
           <div ref="terminalOutputRef" class="terminal dark-scroll dark-scroll--terminal">

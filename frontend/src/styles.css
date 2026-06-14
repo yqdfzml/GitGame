@@ -2029,7 +2029,7 @@ a:hover { color: var(--accent-hover); }
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(300px, 0.74fr) 1.26fr;
+  grid-template-columns: minmax(340px, 1.18fr) minmax(260px, 0.82fr);
   gap: 14px;
   align-items: stretch;
   overflow: hidden;
@@ -2078,8 +2078,8 @@ a:hover { color: var(--accent-hover); }
   grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
   gap: 12px;
   flex: 0 0 auto;
-  height: clamp(200px, 26vh, 236px);
-  max-height: 236px;
+  height: clamp(248px, 32vh, 292px);
+  max-height: 292px;
   min-height: 0;
   overflow: hidden;
 }
@@ -2206,15 +2206,38 @@ a:hover { color: var(--accent-hover); }
 }
 
 .terminal-chrome {
-  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-  background: var(--bg-elevated); border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  position: relative;
 }
 .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
 .terminal-dot.red { background: #d94e2d; }
 .terminal-dot.yellow { background: #e8a838; }
 .terminal-dot.green { background: #2fb388; }
-.terminal-chrome-title { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint); }
+.terminal-chrome-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.terminal-chrome-meta {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: center;
+  position: relative;
+}
 
 .terminal {
   background: #0c0a09;

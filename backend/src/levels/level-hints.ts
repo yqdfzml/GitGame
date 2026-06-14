@@ -101,28 +101,28 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
   },
   16: {
     concepts: ["快进合并（fast-forward）发生在 main 无新提交、feature 领先时，main 直接移到 feature。"],
-    directions: ["在 main 上合并 feature，使 main 包含 feature 的改动。"],
-    keyPoints: ["git checkout main → git merge feature。"],
+    directions: ["当前在 main，将 feature 合并进来（git merge feature）。"],
+    keyPoints: ["git merge feature，合并后 main 包含 feature 的全部改动。"],
   },
   17: {
     concepts: ["两分支各有独立提交时，merge 会产生 merge commit（两个父提交）。"],
-    directions: ["在 main 上合并 feature，保留双方文件改动。"],
-    keyPoints: ["git merge feature 后检查 git log 是否出现 merge commit。"],
+    directions: ["当前在 main，执行 git merge feature，保留双方文件改动。"],
+    keyPoints: ["git merge feature → 完成 merge commit，main 同时有 main.txt 与 feature.txt。"],
   },
   18: {
     concepts: ["修改不同行时 Git 可自动合并，无需手动解决冲突。"],
-    directions: ["在 main 上合并 feature，保留双方对 doc.md 的修改。"],
-    keyPoints: ["git merge feature，确认 doc.md 同时包含 LINE1 与 LINE3。"],
+    directions: ["当前在 main，git merge feature，自动合并 doc.md。"],
+    keyPoints: ["git merge feature，doc.md 应同时包含 LINE1 与 LINE3。"],
   },
   19: {
-    concepts: ["同一行冲突时需选择保留哪一方；checkout --theirs 取被合并分支的版本。"],
-    directions: ["合并 feature 产生冲突后，选择 feature 的 config.json 并完成 merge commit。"],
+    concepts: ["同一行冲突时需选择保留哪一方；checkout --theirs 取被合并分支（feature）的版本。"],
+    directions: ["当前在 main，git merge feature，冲突时 config.json 取 feature 版本。"],
     keyPoints: ["git merge feature → git checkout --theirs config.json → git add → git commit。"],
   },
   20: {
     concepts: ["部分文件冲突、部分自动合并时，只需解决冲突文件，其余会自动合入。"],
-    directions: ["合并 feature，仅解决 config.json 冲突并保留 feature 版本。"],
-    keyPoints: ["merge 后处理 config.json 冲突，readme.md 应自动变为 hello。"],
+    directions: ["当前在 main，git merge feature，config.json 取 feature 版。"],
+    keyPoints: ["merge 后 config.json=feat-v，readme.md 应自动变为 hello。"],
   },
   21: {
     concepts: ["git restore --staged 只取消暂存，不丢弃工作区修改。"],
