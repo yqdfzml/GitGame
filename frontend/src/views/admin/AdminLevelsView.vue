@@ -1,35 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { adminApi } from "../api/client";
-import { TOPIC_CHAPTER_IDS } from "../utils/levelPresentation";
-
-/** 管理端关卡列表项 */
-interface AdminLevelItem {
-  id: string;
-  courseId: string;
-  chapterId: string | null;
-  title: string;
-  description: string;
-  difficulty: string;
-  sortOrder: number;
-  status: string;
-}
-
-/** 表单编辑数据 */
-interface LevelFormData {
-  courseId: string;
-  chapterId: string;
-  title: string;
-  description: string;
-  difficulty: string;
-  sortOrder: number;
-  initialState: Record<string, unknown>;
-  goal: Record<string, unknown>;
-  constraints: Record<string, unknown>;
-}
+import { adminApi } from "../../api/client";
+import AdminListState from "../../components/admin/AdminListState.vue";
+import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
+import type {
+  AdminLevelFormData,
+  AdminLevelItem,
+  AdminLevelListFilters,
+} from "../../types/admin";
+import { TOPIC_CHAPTER_IDS } from "../../utils/levelPresentation";
 
 /** 默认表单模板 */
-const DEFAULT_FORM: LevelFormData = {
+const DEFAULT_FORM: AdminLevelFormData = {
   courseId: "custom",
   chapterId: "workspace",
   title: "自定义关卡",
@@ -53,14 +35,21 @@ const DEFAULT_FORM: LevelFormData = {
 const levelList = ref<AdminLevelItem[]>([]);
 /** 当前选中关卡 id，空字符串表示新建 */
 const selectedLevelId = ref("");
-/** 章节筛选 */
-const chapterFilter = ref("");
+/** 列表筛选条件 */
+const filters = ref<AdminLevelListFilters>({
+  search: "",
+  chapterId: "",
+  status: "",
+  difficulty: "",
+});
 /** 是否使用 JSON 高级模式 */
 const advancedMode = ref(false);
 /** 表单数据 */
-const formData = ref<LevelFormData>({ ...DEFAULT_FORM });
+const formData = ref<AdminLevelFormData>({ ...DEFAULT_FORM });
 /** JSON 高级模式文本 */
 const jsonDraft = ref("");
+/** JSON 解析错误 */
+const jsonParseError = ref("");
 /** 校验结果 */
 const validationErrors = ref<string[]>([]);
 /** 校验是否通过 */
@@ -71,27 +60,41 @@ const message = ref("");
 const isError = ref(false);
 /** 列表加载中 */
 const listLoading = ref(true);
+/** 列表错误 */
+const listError = ref("");
 /** 详情加载中 */
 const detailLoading = ref(false);
 /** 保存中 */
 const saving = ref(false);
+/** 发布中 */
+const publishing = ref(false);
+/** 归档中 */
+const archiving = ref(false);
+/** 复制中 */
+const cloning = ref(false);
 
 /**
  * 加载关卡列表。
- * 功能：供左侧列表与章节筛选使用。
+ * 功能：按筛选条件请求后台列表。
  * 参数：无。
  * 返回值：无。
  */
 const loadLevelList = () => {
   listLoading.value = true;
+  listError.value = "";
+
   adminApi
-    .listLevels(chapterFilter.value || undefined)
+    .listLevels({
+      search: filters.value.search || undefined,
+      chapterId: filters.value.chapterId || undefined,
+      status: filters.value.status || undefined,
+      difficulty: filters.value.difficulty || undefined,
+    })
     .then((data) => {
       levelList.value = data;
     })
     .catch((err: Error) => {
-      message.value = err.message;
-      isError.value = true;
+      listError.value = err.message;
     })
     .finally(() => {
       listLoading.value = false;
@@ -106,6 +109,7 @@ const loadLevelList = () => {
  */
 const syncJsonFromForm = () => {
   jsonDraft.value = JSON.stringify(formData.value, null, 2);
+  jsonParseError.value = "";
 };
 
 /**
@@ -115,19 +119,38 @@ const syncJsonFromForm = () => {
  * 返回值：是否解析成功。
  */
 const syncFormFromJson = (): boolean => {
-  const parsed = JSON.parse(jsonDraft.value) as Partial<LevelFormData>;
-  formData.value = {
-    courseId: parsed.courseId ?? DEFAULT_FORM.courseId,
-    chapterId: parsed.chapterId ?? DEFAULT_FORM.chapterId,
-    title: parsed.title ?? DEFAULT_FORM.title,
-    description: parsed.description ?? DEFAULT_FORM.description,
-    difficulty: parsed.difficulty ?? DEFAULT_FORM.difficulty,
-    sortOrder: parsed.sortOrder ?? DEFAULT_FORM.sortOrder,
-    initialState: parsed.initialState ?? DEFAULT_FORM.initialState,
-    goal: parsed.goal ?? DEFAULT_FORM.goal,
-    constraints: parsed.constraints ?? DEFAULT_FORM.constraints,
-  };
-  return true;
+  try {
+    const parsed = JSON.parse(jsonDraft.value) as Partial<AdminLevelFormData>;
+    formData.value = {
+      courseId: parsed.courseId ?? DEFAULT_FORM.courseId,
+      chapterId: parsed.chapterId ?? DEFAULT_FORM.chapterId,
+      title: parsed.title ?? DEFAULT_FORM.title,
+      description: parsed.description ?? DEFAULT_FORM.description,
+      difficulty: parsed.difficulty ?? DEFAULT_FORM.difficulty,
+      sortOrder: parsed.sortOrder ?? DEFAULT_FORM.sortOrder,
+      initialState: parsed.initialState ?? DEFAULT_FORM.initialState,
+      goal: parsed.goal ?? DEFAULT_FORM.goal,
+      constraints: parsed.constraints ?? DEFAULT_FORM.constraints,
+    };
+    jsonParseError.value = "";
+    return true;
+  } catch (error) {
+    jsonParseError.value = error instanceof Error ? error.message : "JSON 解析失败";
+    return false;
+  }
+};
+
+/**
+ * 格式化 JSON 文本。
+ * 功能：重新缩进 JSON 草稿，便于阅读和排查。
+ * 参数：无。
+ * 返回值：无。
+ */
+const formatJsonDraft = () => {
+  if (!syncFormFromJson()) {
+    return;
+  }
+  syncJsonFromForm();
 };
 
 /**
@@ -226,8 +249,11 @@ const saveLevel = () => {
   message.value = "";
   isError.value = false;
 
-  if (advancedMode.value) {
-    syncFormFromJson();
+  if (advancedMode.value && !syncFormFromJson()) {
+    saving.value = false;
+    message.value = jsonParseError.value || "JSON 格式错误";
+    isError.value = true;
+    return;
   }
 
   runLocalValidation();
@@ -239,7 +265,6 @@ const saveLevel = () => {
   }
 
   const payload = { ...formData.value };
-
   const savePromise = selectedLevelId.value
     ? adminApi.updateLevel(selectedLevelId.value, payload)
     : adminApi.createLevel(payload);
@@ -264,7 +289,7 @@ const saveLevel = () => {
 
 /**
  * 发布当前关卡。
- * 功能：将草稿或已存在关卡发布到玩家端。
+ * 功能：先本地校验，再调用后台发布接口。
  * 参数：无。
  * 返回值：无。
  */
@@ -275,6 +300,20 @@ const publishLevel = () => {
     return;
   }
 
+  if (advancedMode.value && !syncFormFromJson()) {
+    message.value = jsonParseError.value || "JSON 格式错误，无法发布";
+    isError.value = true;
+    return;
+  }
+
+  runLocalValidation();
+  if (!validationValid.value) {
+    message.value = "发布前校验未通过，请先修正错误";
+    isError.value = true;
+    return;
+  }
+
+  publishing.value = true;
   adminApi
     .publishLevel(selectedLevelId.value)
     .then(() => {
@@ -282,6 +321,100 @@ const publishLevel = () => {
       isError.value = false;
       loadLevelList();
       selectLevel(selectedLevelId.value);
+    })
+    .catch((err: Error) => {
+      message.value = err.message;
+      isError.value = true;
+    })
+    .finally(() => {
+      publishing.value = false;
+    });
+};
+
+/**
+ * 归档当前关卡。
+ * 功能：将已发布关卡标记为 ARCHIVED。
+ * 参数：无。
+ * 返回值：无。
+ */
+const archiveLevel = () => {
+  if (!selectedLevelId.value) {
+    return;
+  }
+
+  const confirmed = window.confirm("确认归档该关卡？归档后玩家端将不再展示。");
+  if (!confirmed) {
+    return;
+  }
+
+  archiving.value = true;
+  adminApi
+    .archiveLevel(selectedLevelId.value)
+    .then(() => {
+      message.value = "关卡已归档";
+      isError.value = false;
+      loadLevelList();
+      selectLevel(selectedLevelId.value);
+    })
+    .catch((err: Error) => {
+      message.value = err.message;
+      isError.value = true;
+    })
+    .finally(() => {
+      archiving.value = false;
+    });
+};
+
+/**
+ * 复制当前关卡。
+ * 功能：基于现有配置创建 DRAFT 副本。
+ * 参数：无。
+ * 返回值：无。
+ */
+const cloneLevel = () => {
+  if (!selectedLevelId.value) {
+    return;
+  }
+
+  cloning.value = true;
+  adminApi
+    .cloneLevel(selectedLevelId.value)
+    .then((result) => {
+      message.value = `已复制为「${result.title}」`;
+      isError.value = false;
+      loadLevelList();
+      selectLevel(result.id);
+    })
+    .catch((err: Error) => {
+      message.value = err.message;
+      isError.value = true;
+    })
+    .finally(() => {
+      cloning.value = false;
+    });
+};
+
+/**
+ * 应用排序字段。
+ * 功能：单独更新 courseId、chapterId、sortOrder。
+ * 参数：无。
+ * 返回值：无。
+ */
+const applySortFields = () => {
+  if (!selectedLevelId.value) {
+    return;
+  }
+
+  adminApi
+    .updateLevelSort(selectedLevelId.value, {
+      courseId: formData.value.courseId,
+      chapterId: formData.value.chapterId,
+      sortOrder: formData.value.sortOrder,
+    })
+    .then(() => {
+      message.value = "排序字段已更新";
+      isError.value = false;
+      loadLevelList();
     })
     .catch((err: Error) => {
       message.value = err.message;
@@ -297,7 +430,23 @@ const selectedLevel = computed(() => {
 /** 预览 JSON 文本 */
 const previewJson = computed(() => JSON.stringify(formData.value, null, 2));
 
-watch(chapterFilter, loadLevelList);
+/** 列表是否为空 */
+const listEmpty = computed(() => levelList.value.length === 0);
+
+/** 状态中文映射 */
+const statusLabelMap: Record<string, string> = {
+  DRAFT: "草稿",
+  PUBLISHED: "已发布",
+  ARCHIVED: "已归档",
+};
+
+watch(
+  filters,
+  () => {
+    loadLevelList();
+  },
+  { deep: true },
+);
 
 watch(
   formData,
@@ -319,6 +468,13 @@ watch(advancedMode, (enabled) => {
   }
 });
 
+watch(jsonDraft, () => {
+  if (!advancedMode.value) {
+    return;
+  }
+  syncFormFromJson();
+});
+
 onMounted(() => {
   syncJsonFromForm();
   loadLevelList();
@@ -326,43 +482,74 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="page-stack admin-page">
-    <header class="page-header">
-      <h1 class="page-title">管理后台</h1>
-    </header>
+  <section class="admin-levels-page">
+    <AdminPageHeader title="关卡管理" description="内容生产工具：列表筛选、编辑、校验与发布。">
+      <template #actions>
+        <button class="btn-primary" @click="startCreate">新建关卡</button>
+      </template>
+    </AdminPageHeader>
 
     <div class="admin-workspace">
       <aside class="admin-sidebar card">
         <div class="admin-sidebar-head">
           <h2>关卡列表</h2>
-          <button class="btn-ghost admin-new-btn" @click="startCreate">新建</button>
         </div>
 
-        <label class="admin-filter-label">
-          章节筛选
-          <select v-model="chapterFilter" class="admin-filter-select">
-            <option value="">全部章节</option>
-            <option v-for="chapterId in TOPIC_CHAPTER_IDS" :key="chapterId" :value="chapterId">
-              {{ chapterId }}
-            </option>
-          </select>
-        </label>
+        <div class="admin-filter-grid">
+          <label class="admin-filter-label">
+            搜索标题
+            <input v-model="filters.search" type="search" placeholder="输入标题关键词" />
+          </label>
+          <label class="admin-filter-label">
+            章节
+            <select v-model="filters.chapterId" class="admin-filter-select">
+              <option value="">全部章节</option>
+              <option v-for="chapterId in TOPIC_CHAPTER_IDS" :key="chapterId" :value="chapterId">
+                {{ chapterId }}
+              </option>
+            </select>
+          </label>
+          <label class="admin-filter-label">
+            状态
+            <select v-model="filters.status" class="admin-filter-select">
+              <option value="">全部状态</option>
+              <option value="DRAFT">草稿</option>
+              <option value="PUBLISHED">已发布</option>
+              <option value="ARCHIVED">已归档</option>
+            </select>
+          </label>
+          <label class="admin-filter-label">
+            难度
+            <select v-model="filters.difficulty" class="admin-filter-select">
+              <option value="">全部难度</option>
+              <option value="BEGINNER">BEGINNER</option>
+              <option value="INTERMEDIATE">INTERMEDIATE</option>
+              <option value="ADVANCED">ADVANCED</option>
+            </select>
+          </label>
+        </div>
 
-        <div v-if="listLoading" class="admin-list-loading">加载中...</div>
-        <ul v-else class="admin-level-list">
-          <li
-            v-for="level in levelList"
-            :key="level.id"
-            class="admin-level-item"
-            :class="{ active: selectedLevelId === level.id }"
-            @click="selectLevel(level.id)"
-          >
-            <strong>{{ level.title }}</strong>
-            <span class="admin-level-meta">
-              {{ level.chapterId ?? "未分章" }} · {{ level.status }}
-            </span>
-          </li>
-        </ul>
+        <AdminListState
+          :loading="listLoading"
+          :error="listError"
+          :empty="listEmpty"
+          empty-text="没有匹配的关卡"
+        >
+          <ul class="admin-level-list">
+            <li
+              v-for="level in levelList"
+              :key="level.id"
+              class="admin-level-item"
+              :class="{ active: selectedLevelId === level.id }"
+              @click="selectLevel(level.id)"
+            >
+              <strong>{{ level.title }}</strong>
+              <span class="admin-level-meta">
+                {{ level.chapterId ?? "未分章" }} · {{ statusLabelMap[level.status] ?? level.status }}
+              </span>
+            </li>
+          </ul>
+        </AdminListState>
       </aside>
 
       <main class="admin-editor card">
@@ -381,8 +568,14 @@ onMounted(() => {
 
         <template v-else>
           <div v-if="advancedMode" class="form-group">
-            <label>关卡 JSON</label>
+            <div class="admin-json-toolbar">
+              <label>关卡 JSON</label>
+              <button class="btn-ghost admin-json-format-btn" type="button" @click="formatJsonDraft">
+                格式化 JSON
+              </button>
+            </div>
             <textarea v-model="jsonDraft" rows="24" class="admin-json-textarea" />
+            <p v-if="jsonParseError" class="error-msg">{{ jsonParseError }}</p>
           </div>
 
           <div v-else class="admin-form-grid">
@@ -424,7 +617,38 @@ onMounted(() => {
             <button class="btn-primary" :disabled="saving" @click="saveLevel">
               {{ saving ? "保存中..." : "保存草稿" }}
             </button>
-            <button class="btn-ghost" :disabled="!selectedLevelId" @click="publishLevel">发布关卡</button>
+            <button
+              class="btn-ghost"
+              :disabled="!selectedLevelId || publishing"
+              title="发布前会执行本地校验"
+              @click="publishLevel"
+            >
+              {{ publishing ? "发布中..." : "发布关卡" }}
+            </button>
+            <button
+              class="btn-ghost"
+              :disabled="!selectedLevelId || cloning"
+              title="复制为草稿副本"
+              @click="cloneLevel"
+            >
+              {{ cloning ? "复制中..." : "复制关卡" }}
+            </button>
+            <button
+              class="btn-ghost"
+              :disabled="!selectedLevelId || archiving"
+              title="归档后玩家端不可见"
+              @click="archiveLevel"
+            >
+              {{ archiving ? "归档中..." : "归档关卡" }}
+            </button>
+            <button
+              class="btn-ghost"
+              :disabled="!selectedLevelId"
+              title="单独更新 courseId / chapterId / sortOrder"
+              @click="applySortFields"
+            >
+              应用排序
+            </button>
           </div>
 
           <p v-if="message" :class="isError ? 'error-msg' : 'success-msg'">{{ message }}</p>
@@ -435,12 +659,13 @@ onMounted(() => {
         <h2>预览与校验</h2>
 
         <div v-if="selectedLevel" class="admin-preview-status">
-          <span>状态：{{ selectedLevel.status }}</span>
+          <span>状态：{{ statusLabelMap[selectedLevel.status] ?? selectedLevel.status }}</span>
           <span>ID：{{ selectedLevel.id }}</span>
         </div>
 
         <div class="admin-validation" :class="validationValid ? 'ok' : 'fail'">
           <strong>{{ validationValid ? "校验通过" : "校验未通过" }}</strong>
+          <p class="admin-validation-hint">发布前请确认以下检查项全部通过</p>
           <ul v-if="validationErrors.length > 0">
             <li v-for="errorItem in validationErrors" :key="errorItem">{{ errorItem }}</li>
           </ul>

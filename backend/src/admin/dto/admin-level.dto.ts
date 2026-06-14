@@ -47,6 +47,23 @@ export class CreateLevelDto {
   constraints!: Record<string, unknown>;
 }
 
+/** 关卡排序调整 DTO */
+export class SortLevelDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  courseId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  chapterId?: string;
+
+  @IsOptional()
+  @IsInt()
+  sortOrder?: number;
+}
+
 /** 更新关卡 DTO */
 export class UpdateLevelDto {
   @IsOptional()

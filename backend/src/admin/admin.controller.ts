@@ -12,7 +12,8 @@ import {
 import { AdminGuard } from "../auth/guards/admin.guard";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminService } from "./admin.service";
-import { CreateLevelDto, UpdateLevelDto } from "./dto/admin-level.dto";
+import { Difficulty, LevelStatus } from "@prisma/client";
+import { CreateLevelDto, SortLevelDto, UpdateLevelDto } from "./dto/admin-level.dto";
 
 /** 管理后台控制器 */
 @Controller("admin/levels")
@@ -22,13 +23,18 @@ export class AdminController {
 
   /**
    * 列出全部关卡。
-   * 功能：供管理后台左侧列表与章节筛选使用。
-   * 参数：chapterId - 可选章节筛选。
+   * 功能：供管理后台列表与多维筛选使用。
+   * 参数：chapterId、status、difficulty、search - 可选筛选。
    * 返回值：关卡摘要数组。
    */
   @Get()
-  listLevels(@Query("chapterId") chapterId?: string) {
-    return this.adminService.listLevels(chapterId);
+  listLevels(
+    @Query("chapterId") chapterId?: string,
+    @Query("status") status?: LevelStatus,
+    @Query("difficulty") difficulty?: Difficulty,
+    @Query("search") search?: string,
+  ) {
+    return this.adminService.listLevels({ chapterId, status, difficulty, search });
   }
 
   /**
@@ -84,5 +90,27 @@ export class AdminController {
   @Post(":id/archive")
   archiveLevel(@Param("id", ParseIntPipe) id: number) {
     return this.adminService.archiveLevel(BigInt(id));
+  }
+
+  /**
+   * 复制关卡。
+   * 功能：基于现有配置创建 DRAFT 副本。
+   * 参数：id - 源关卡 id。
+   * 返回值：新关卡摘要。
+   */
+  @Post(":id/clone")
+  cloneLevel(@Param("id", ParseIntPipe) id: number) {
+    return this.adminService.cloneLevel(BigInt(id));
+  }
+
+  /**
+   * 调整关卡排序。
+   * 功能：更新 courseId、chapterId 或 sortOrder。
+   * 参数：id - 关卡 id；dto - 排序字段。
+   * 返回值：更新后的排序信息。
+   */
+  @Patch(":id/sort")
+  updateLevelSort(@Param("id", ParseIntPipe) id: number, @Body() dto: SortLevelDto) {
+    return this.adminService.updateLevelSort(BigInt(id), dto);
   }
 }

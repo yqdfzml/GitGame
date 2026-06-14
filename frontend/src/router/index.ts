@@ -58,9 +58,26 @@ const router = createRouter({
     },
     {
       path: "/admin",
-      name: "admin",
-      component: () => import("../views/AdminView.vue"),
+      component: () => import("../layouts/AdminLayout.vue"),
       meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        {
+          path: "",
+          redirect: "/admin/dashboard",
+        },
+        {
+          path: "dashboard",
+          name: "admin-dashboard",
+          component: () => import("../views/admin/AdminDashboardView.vue"),
+          meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "总览 Dashboard" },
+        },
+        {
+          path: "levels",
+          name: "admin-levels",
+          component: () => import("../views/admin/AdminLevelsView.vue"),
+          meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "关卡管理" },
+        },
+      ],
     },
   ],
 });

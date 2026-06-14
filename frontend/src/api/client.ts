@@ -6,6 +6,14 @@
  */
 
 import { clearAuthUser, saveAuthUser } from "./authStorage";
+import type {
+  AdminLevelActionResult,
+  AdminLevelDetail,
+  AdminLevelFormData,
+  AdminLevelItem,
+  AdminLevelListFilters,
+  AdminLevelSortResult,
+} from "../types/admin";
 import type { AuthUser, LevelSummary, LevelUnlockResult, PointWalletSummary } from "../types";
 
 /** API 基础路径，开发环境走 Vite 同源代理 */
@@ -210,44 +218,84 @@ export const usersApi = {
 
 /** 管理 API */
 export const adminApi = {
-  listLevels: (chapterId?: string) =>
-    request<Array<{
-      id: string;
-      courseId: string;
-      chapterId: string | null;
-      title: string;
-      description: string;
-      difficulty: string;
-      sortOrder: number;
-      status: string;
-      publishedAt: string | null;
-      updatedAt: string;
-    }>>(chapterId ? `/admin/levels?chapterId=${chapterId}` : "/admin/levels"),
-  getLevel: (id: string) =>
-    request<{
-      id: string;
-      courseId: string;
-      chapterId: string | null;
-      title: string;
-      description: string;
-      difficulty: string;
-      sortOrder: number;
-      status: string;
-      publishedAt: string | null;
-      initialState: Record<string, unknown>;
-      goal: Record<string, unknown>;
-      constraints: Record<string, unknown>;
-      validation: { valid: boolean; errors: string[] };
-    }>(`/admin/levels/${id}`),
-  createLevel: (data: Record<string, unknown>) =>
-    request<{ id: string }>("/admin/levels", { method: "POST", body: data }),
-  updateLevel: (id: string, data: Record<string, unknown>) =>
-    request<{ id: string; status: string; title: string }>(`/admin/levels/${id}`, {
-      method: "PATCH",
-      body: data,
-    }),
+  /**
+   * 列出关卡。
+   * 功能：支持搜索、章节、状态、难度筛选。
+   * 参数：filters - 可选筛选条件。
+   * 返回值：关卡摘要数组。
+   */
+  listLevels: (filters: Partial<AdminLevelListFilters> = {}) => {
+    const params = new URLSearchParams();
+    if (filters.search) {
+      params.set("search", filters.search);
+    }
+    if (filters.chapterId) {
+      params.set("chapterId", filters.chapterId);
+    }
+    if (filters.status) {
+      params.set("status", filters.status);
+    }
+    if (filters.difficulty) {
+      params.set("difficulty", filters.difficulty);
+    }
+    const query = params.toString();
+    return request<AdminLevelItem[]>(query ? `/admin/levels?${query}` : "/admin/levels");
+  },
+  /**
+   * 获取关卡详情。
+   * 功能：返回完整配置与 schema 校验结果。
+   * 参数：id - 关卡 id。
+   * 返回值：关卡详情。
+   */
+  getLevel: (id: string) => request<AdminLevelDetail>(`/admin/levels/${id}`),
+  /**
+   * 创建草稿关卡。
+   * 功能：写入 DRAFT 状态关卡。
+   * 参数：data - 关卡表单数据。
+   * 返回值：新关卡 id。
+   */
+  createLevel: (data: AdminLevelFormData) =>
+    request<AdminLevelActionResult>("/admin/levels", { method: "POST", body: data }),
+  /**
+   * 更新关卡。
+   * 功能：编辑草稿或已发布关卡内容。
+   * 参数：id - 关卡 id；data - 更新数据。
+   * 返回值：更新后的关卡摘要。
+   */
+  updateLevel: (id: string, data: AdminLevelFormData) =>
+    request<AdminLevelActionResult>(`/admin/levels/${id}`, { method: "PATCH", body: data }),
+  /**
+   * 发布关卡。
+   * 功能：DRAFT -> PUBLISHED。
+   * 参数：id - 关卡 id。
+   * 返回值：发布结果。
+   */
   publishLevel: (id: string) =>
-    request<{ id: string; status: string }>(`/admin/levels/${id}/publish`, { method: "POST" }),
+    request<AdminLevelActionResult>(`/admin/levels/${id}/publish`, { method: "POST" }),
+  /**
+   * 归档关卡。
+   * 功能：PUBLISHED -> ARCHIVED。
+   * 参数：id - 关卡 id。
+   * 返回值：归档结果。
+   */
   archiveLevel: (id: string) =>
-    request<{ id: string; status: string }>(`/admin/levels/${id}/archive`, { method: "POST" }),
+    request<AdminLevelActionResult>(`/admin/levels/${id}/archive`, { method: "POST" }),
+  /**
+   * 复制关卡。
+   * 功能：基于现有配置创建 DRAFT 副本。
+   * 参数：id - 源关卡 id。
+   * 返回值：新关卡摘要。
+   */
+  cloneLevel: (id: string) =>
+    request<AdminLevelActionResult>(`/admin/levels/${id}/clone`, { method: "POST" }),
+  /**
+   * 调整关卡排序。
+   * 功能：更新 courseId、chapterId 或 sortOrder。
+   * 参数：id - 关卡 id；data - 排序字段。
+   * 返回值：更新后的排序信息。
+   */
+  updateLevelSort: (
+    id: string,
+    data: { courseId?: string; chapterId?: string; sortOrder?: number },
+  ) => request<AdminLevelSortResult>(`/admin/levels/${id}/sort`, { method: "PATCH", body: data }),
 };
