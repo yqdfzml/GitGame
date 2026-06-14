@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { BookOpenCheck, GitBranch, Home, Medal, Shield, Trophy } from "lucide-vue-next";
-import { computed, onMounted, ref, watch } from "vue";
+import { BookOpenCheck, ChevronDown, GitBranch, Home, Medal, Shield, Trophy } from "lucide-vue-next";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, RouterView } from "vue-router";
 import { usersApi } from "./api/client";
 import { useAuthStore } from "./stores/auth";
@@ -68,16 +68,59 @@ const loadUserHeader = () => {
  * 返回值：无。
  */
 const handleLogout = () => {
+  closeUserMenu();
   auth.logout().then(() => {
     window.location.href = "/login";
   });
 };
 
-onMounted(loadUserHeader);
+onMounted(() => {
+  loadUserHeader();
+  document.addEventListener("click", handleDocumentClick);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleDocumentClick);
+});
 watch(() => auth.isLoggedIn, loadUserHeader);
 
 /** 顶栏展示的积分余额，来自 Store */
 const topbarBalance = computed(() => pointsStore.balance);
+/** 用户菜单是否展开 */
+const userMenuOpen = ref(false);
+
+/**
+ * 切换用户菜单展开状态。
+ * 功能：点击头像区域时展开或收起下拉菜单。
+ * 参数：无。
+ * 返回值：无。
+ */
+const toggleUserMenu = () => {
+  userMenuOpen.value = !userMenuOpen.value;
+};
+
+/**
+ * 关闭用户菜单。
+ * 功能：收起下拉菜单。
+ * 参数：无。
+ * 返回值：无。
+ */
+const closeUserMenu = () => {
+  userMenuOpen.value = false;
+};
+
+/**
+ * 点击页面其他区域时关闭用户菜单。
+ * 功能：避免菜单一直悬停打开。
+ * 参数：event - 文档点击事件。
+ * 返回值：无。
+ */
+const handleDocumentClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  if (!target.closest(".user-menu")) {
+    closeUserMenu();
+  }
+};
 </script>
 
 <template>
@@ -125,12 +168,26 @@ const topbarBalance = computed(() => pointsStore.balance);
         >
           {{ activeTitle.name }}
         </span>
-        <div v-if="auth.user" class="user-chip">
-          <span class="user-avatar">{{ userInitial() }}</span>
-          {{ auth.user.displayName || auth.user.id }}
+        <div v-if="auth.isLoggedIn && auth.user" class="user-menu">
+          <button
+            type="button"
+            class="user-chip user-menu-trigger"
+            :aria-expanded="userMenuOpen"
+            aria-haspopup="menu"
+            @click="toggleUserMenu"
+          >
+            <span class="user-avatar">{{ userInitial() }}</span>
+            <span class="user-menu-name">{{ auth.user.displayName || auth.user.id }}</span>
+            <ChevronDown class="user-menu-chevron" aria-hidden="true" />
+          </button>
+
+          <div v-if="userMenuOpen" class="user-menu-panel" role="menu">
+            <button type="button" class="user-menu-item" role="menuitem" @click="handleLogout">
+              登出
+            </button>
+          </div>
         </div>
-        <button v-if="auth.isLoggedIn" class="btn-ghost" @click="handleLogout">登出</button>
-        <RouterLink v-else to="/login" class="btn-primary">登录</RouterLink>
+        <RouterLink v-else-if="!auth.isLoggedIn" to="/login" class="btn-primary">登录</RouterLink>
       </div>
     </header>
     <main class="main-content">

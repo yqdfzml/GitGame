@@ -167,6 +167,65 @@ a:hover { color: var(--accent-hover); }
   color: var(--text-muted);
 }
 
+.user-menu {
+  position: relative;
+}
+
+.user-menu-trigger {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.user-menu-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text-faint);
+  transition: transform var(--transition);
+}
+
+.user-menu-trigger[aria-expanded="true"] .user-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.user-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 140px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+}
+
+.user-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-menu-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
 .user-avatar {
   width: 22px;
   height: 22px;
