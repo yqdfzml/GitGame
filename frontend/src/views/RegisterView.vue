@@ -104,7 +104,7 @@ const handleSubmit = () => {
         </div>
 
         <NForm class="register-form" label-placement="top" :show-require-mark="false">
-          <NFormItem label="头像">
+          <NFormItem label="头像" class="register-avatar-field">
             <AvatarCropPicker @change="handleAvatarChange" />
           </NFormItem>
 

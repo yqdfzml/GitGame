@@ -1984,10 +1984,20 @@ a:hover { color: var(--accent-hover); }
   margin-bottom: 4px;
 }
 
+.register-avatar-field .n-form-item-label {
+  justify-content: center;
+}
+
+.register-avatar-field .n-form-item-blank {
+  justify-content: center;
+}
+
 .avatar-picker-trigger {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .avatar-picker-preview {
@@ -2017,9 +2027,10 @@ a:hover { color: var(--accent-hover); }
   font-size: 1.5rem;
 }
 
-.avatar-picker-meta {
-  display: flex;
-  align-items: center;
+.avatar-picker-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .avatar-crop-input {

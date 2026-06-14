@@ -192,7 +192,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="avatar-picker-root">
-    <div class="avatar-picker-trigger">
+    <div class="avatar-picker-trigger" @click="pickImage">
     <input
       ref="fileInputRef"
       type="file"
@@ -201,16 +201,14 @@ onBeforeUnmount(() => {
       @change="handleFileChange"
     />
 
-    <button type="button" class="avatar-picker-preview" @click="pickImage">
+    <button type="button" class="avatar-picker-preview" @click.stop="pickImage">
       <img v-if="confirmedPreviewUrl" :src="confirmedPreviewUrl" alt="头像预览" />
       <span v-else class="avatar-picker-placeholder">+</span>
     </button>
 
-    <div class="avatar-picker-meta">
-      <NButton text size="small" @click="pickImage">
-        {{ confirmedPreviewUrl ? "重新裁剪头像" : "选择并裁剪头像" }}
-      </NButton>
-    </div>
+    <span class="avatar-picker-label">
+      {{ confirmedPreviewUrl ? "重新裁剪头像" : "选择并裁剪头像" }}
+    </span>
   </div>
 
   <NModal
