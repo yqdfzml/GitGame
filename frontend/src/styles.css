@@ -2716,7 +2716,40 @@ a:hover { color: var(--accent-hover); }
 }
 
 .conflict-option-icon {
-  font-size: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 2px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.conflict-option-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.conflict-option-icon--visual {
+  background: rgba(47, 179, 136, 0.14);
+  color: var(--accent-2);
+}
+
+.conflict-option-card:hover .conflict-option-icon--vim {
+  color: var(--accent-hover);
+  background: rgba(242, 189, 75, 0.2);
+}
+
+.conflict-option-card:hover .conflict-option-icon--visual {
+  color: #45c896;
+  background: rgba(47, 179, 136, 0.22);
 }
 
 .conflict-option-name {

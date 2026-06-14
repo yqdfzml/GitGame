@@ -41,12 +41,22 @@ const pickMode = (mode: "vim" | "visual") => {
 
       <div class="conflict-dialog-options">
         <button type="button" class="conflict-option-card" @click="pickMode('vim')">
-          <span class="conflict-option-icon">⌨</span>
+          <span class="conflict-option-icon conflict-option-icon--vim" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
+            </svg>
+          </span>
           <span class="conflict-option-name">极简 Vim</span>
           <span class="conflict-option-desc">i 编辑，:wq 保存</span>
         </button>
         <button type="button" class="conflict-option-card" @click="pickMode('visual')">
-          <span class="conflict-option-icon">✎</span>
+          <span class="conflict-option-icon conflict-option-icon--visual" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+          </span>
           <span class="conflict-option-name">可视化编辑器</span>
           <span class="conflict-option-desc">高亮冲突，一键取某一方</span>
         </button>
