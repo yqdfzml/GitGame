@@ -865,6 +865,41 @@ export const writeWorkingTreeFile = (state: RepoState, path: string, content: st
 };
 
 /**
+ * 判断文本是否仍含 Git 冲突标记。
+ * 功能：保存冲突文件前校验玩家是否已手动清理标记行。
+ * 参数：content - 待写入的文件全文。
+ * 返回值：true 表示仍含冲突标记。
+ */
+export const hasConflictMarkers = (content: string): boolean => {
+  return content.includes("<<<<<<<")
+    || content.includes("=======")
+    || content.includes(">>>>>>>");
+};
+
+/**
+ * 将玩家编辑后的内容写入冲突文件并清除冲突状态。
+ * 功能：更新工作区、移除 conflicts 记录，后续仍需 git add。
+ * 参数：state - 仓库状态；path - 冲突文件路径；content - 解决后的全文。
+ * 返回值：无；文件不存在冲突或仍含标记时抛出 Error。
+ */
+export const resolveConflictFile = (state: RepoState, path: string, content: string): void => {
+  if (!state.conflicts[path]) {
+    throw new Error(`文件 '${path}' 当前没有冲突`);
+  }
+  if (hasConflictMarkers(content)) {
+    throw new Error("内容仍包含冲突标记，请删除 <<<<<<< / ======= / >>>>>>> 后再保存");
+  }
+  const headFiles = getHeadFiles(state);
+  const inHead = headFiles[path] !== undefined;
+  state.workingTree[path] = {
+    content,
+    status: inHead ? "modified" : "untracked",
+  };
+  delete state.conflicts[path];
+  refreshWorkingTreeStatus(state);
+};
+
+/**
  * touch 工作区文件（练习专用）。
  * 功能：新建空文件；已存在且未删除的文件保持原内容不变。
  * 参数：state - 仓库状态；path - 目标文件路径。

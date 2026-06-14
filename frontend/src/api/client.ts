@@ -181,6 +181,15 @@ export const attemptsApi = {
       method: "POST",
       body: { command },
     }),
+  resolveConflict: (id: string, path: string, content: string) =>
+    request<import("./types").CommandResponse>(`/attempts/${id}/resolve-conflict`, {
+      method: "POST",
+      body: { path, content },
+    }),
+  resetSteps: (id: string) =>
+    request<import("./types").AttemptDetail>(`/attempts/${id}/reset-steps`, {
+      method: "POST",
+    }),
   replay: (id: string) =>
     request<{
       attemptId: string;

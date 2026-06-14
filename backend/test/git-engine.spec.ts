@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { resolveConflictFile, hasConflictMarkers } from "../src/git-engine/git-engine.utils";
 import { GitEngineService } from "../src/git-engine/git-engine.service";
 import type { RepoState } from "../src/git-engine/repo-state.types";
 import { JudgeService } from "../src/judge/judge.service";
@@ -485,5 +486,43 @@ describe("merge 多路径", () => {
       1,
     );
     expect(judgeResult.passed).toBe(true);
+  });
+});
+
+describe("resolveConflictFile", () => {
+  it("清除冲突标记并更新工作区", () => {
+    const state: RepoState = {
+      ...baseState,
+      conflicts: {
+        "config.json": { base: "{}", ours: '{"env":"main"}', theirs: '{"env":"feature"}' },
+      },
+      workingTree: {
+        "config.json": {
+          content: "<<<<<<< HEAD\n{\"env\":\"main\"}\n=======\n{\"env\":\"feature\"}\n>>>>>>> feature",
+          status: "modified",
+        },
+      },
+      merging: { branch: "feature", commitId: "feat03" },
+    };
+
+    resolveConflictFile(state, "config.json", '{"env":"feature"}');
+    expect(state.conflicts["config.json"]).toBeUndefined();
+    expect(state.workingTree["config.json"].content).toBe('{"env":"feature"}');
+  });
+
+  it("拒绝仍含冲突标记的内容", () => {
+    const state: RepoState = {
+      ...baseState,
+      conflicts: {
+        "a.txt": { base: "x", ours: "y", theirs: "z" },
+      },
+    };
+
+    expect(() => resolveConflictFile(state, "a.txt", "<<<<<<< HEAD\ny")).toThrow();
+  });
+
+  it("hasConflictMarkers 可识别标记行", () => {
+    expect(hasConflictMarkers("<<<<<<< HEAD")).toBe(true);
+    expect(hasConflictMarkers("clean content")).toBe(false);
   });
 });

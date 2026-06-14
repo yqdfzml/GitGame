@@ -91,6 +91,16 @@ export interface HeadRef {
   ref: string;
 }
 
+/** 冲突文件信息 */
+export interface ConflictFile {
+  /** 共同祖先内容 */
+  base: string;
+  /** 当前分支内容 */
+  ours: string;
+  /** 合并分支内容 */
+  theirs: string;
+}
+
 /** 工作区文件 */
 export interface WorkingFile {
   content: string;
@@ -125,7 +135,7 @@ export interface RepoState {
   head: HeadRef;
   workingTree: Record<string, WorkingFile>;
   index: Record<string, string>;
-  conflicts: Record<string, unknown>;
+  conflicts: Record<string, ConflictFile>;
   /** 贮藏栈 */
   stash?: StashEntry[];
 }

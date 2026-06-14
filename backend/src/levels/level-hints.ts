@@ -135,9 +135,9 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
     keyPoints: ["git merge feature，doc.md 应同时包含 LINE1 与 LINE3。"],
   },
   23: {
-    concepts: ["同一文件冲突时需选择保留哪一方。"],
-    directions: ["merge 后 status 看冲突文件，config.json 取 feature 版。"],
-    keyPoints: ["git merge feature → checkout --theirs config.json → add → commit。"],
+    concepts: ["同一文件冲突时需选择保留哪一方，或手动编辑合并结果。"],
+    directions: ["merge 后选择 Vim 或可视化编辑器，config.json 取 feature 版。"],
+    keyPoints: ["git merge feature → 编辑 config.json → git add → git commit；也可用 checkout --theirs。"],
   },
   24: {
     concepts: ["部分文件冲突、部分自动合并时，只需解决冲突文件。"],

@@ -15,7 +15,7 @@ import type {
   LevelGoal,
   RepoState,
 } from "../git-engine/repo-state.types";
-import { cloneRepoState } from "../git-engine/git-engine.utils";
+import { cloneRepoState, resolveConflictFile } from "../git-engine/git-engine.utils";
 import { fromPrismaJson, toPrismaJson } from "../common/json.util";
 
 /** 单次命令提交的最大步数上限 */
@@ -253,6 +253,210 @@ export class AttemptsService {
       newlyUnlockedBadges,
       nextLevel,
     };
+  }
+
+  /**
+   * 保存玩家手动解决后的冲突文件内容。
+   * 功能：校验冲突标记已清除，更新工作区并记录一步操作。
+   * 参数：userId - 用户 id；attemptId - 会话 id；path - 文件路径；content - 解决后全文。
+   * 返回值：更新后的仓库状态与判题结果。
+   */
+  async resolveConflict(
+    userId: bigint,
+    attemptId: bigint,
+    path: string,
+    content: string,
+  ) {
+    const attempt = await this.findOwnedAttempt(userId, attemptId);
+    if (attempt.status !== "IN_PROGRESS") {
+      throw new BadRequestException("该练习已结束");
+    }
+    if (attempt.stepCount >= MAX_ATTEMPT_STEPS) {
+      throw new BadRequestException("已达到最大命令步数");
+    }
+
+    const level = await this.prisma.level.findUnique({ where: { id: attempt.levelId } });
+    if (!level) {
+      throw new NotFoundException("关卡不存在");
+    }
+
+    const currentState = cloneRepoState(fromPrismaJson<RepoState>(attempt.currentState));
+    try {
+      resolveConflictFile(currentState, path, content);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "冲突解决失败";
+      throw new BadRequestException(message);
+    }
+
+    const newStepCount = attempt.stepCount + 1;
+    const goal = fromPrismaJson<LevelGoal>(level.goal);
+    const constraints = fromPrismaJson<LevelConstraints>(level.constraints);
+    const judgeResult = this.judge.evaluate(currentState, goal, constraints, newStepCount);
+    const newStatus = judgeResult.passed ? "COMPLETED" : "IN_PROGRESS";
+    const commandLabel = `edit ${path}`;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.attemptCommand.create({
+        data: {
+          attemptId,
+          stepIndex: newStepCount,
+          command: commandLabel,
+          feedback: `已保存 ${path}，请 git add 并 commit`,
+          success: true,
+          output: null,
+        },
+      });
+
+      await tx.attemptSnapshot.create({
+        data: {
+          attemptId,
+          stepIndex: newStepCount,
+          state: toPrismaJson(currentState),
+        },
+      });
+
+      await tx.attempt.update({
+        where: { id: attemptId },
+        data: {
+          currentState: toPrismaJson(currentState),
+          stepCount: newStepCount,
+          status: newStatus,
+          completedAt: judgeResult.passed ? new Date() : null,
+        },
+      });
+
+      if (judgeResult.passed) {
+        const durationSeconds = Math.floor(
+          (Date.now() - attempt.startedAt.getTime()) / 1000,
+        );
+
+        await tx.levelResult.upsert({
+          where: { userId_levelId: { userId, levelId: attempt.levelId } },
+          create: {
+            userId,
+            levelId: attempt.levelId,
+            attemptId,
+            score: judgeResult.score,
+            durationSeconds,
+            commandCount: newStepCount,
+          },
+          update: {
+            attemptId,
+            score: judgeResult.score,
+            durationSeconds,
+            commandCount: newStepCount,
+            completedAt: new Date(),
+          },
+        });
+
+        const user = await tx.user.findUnique({ where: { id: userId } });
+        if (user) {
+          const existingEntry = await tx.leaderboardEntry.findUnique({
+            where: { userId_levelId: { userId, levelId: attempt.levelId } },
+          });
+          const shouldUpdateLeaderboard =
+            !existingEntry
+            || judgeResult.score > existingEntry.score
+            || (judgeResult.score === existingEntry.score
+              && durationSeconds < existingEntry.durationSeconds);
+
+          if (shouldUpdateLeaderboard) {
+            await tx.leaderboardEntry.upsert({
+              where: { userId_levelId: { userId, levelId: attempt.levelId } },
+              create: {
+                userId,
+                levelId: attempt.levelId,
+                score: judgeResult.score,
+                durationSeconds,
+                displayName: user.displayName,
+              },
+              update: {
+                score: judgeResult.score,
+                durationSeconds,
+                displayName: user.displayName,
+              },
+            });
+          }
+        }
+      }
+    });
+
+    let newlyUnlockedBadges: string[] = [];
+    let nextLevel = null;
+    if (judgeResult.passed) {
+      newlyUnlockedBadges = await this.badgesService.syncAfterLevelComplete(userId);
+      nextLevel = await this.pointsService.tryAutoUnlockNextLevel(userId, attempt.levelId);
+    }
+
+    return {
+      success: true,
+      output: "",
+      feedback: `已保存 ${path}，请 git add 并 commit`,
+      state: currentState,
+      stepCount: newStepCount,
+      judge: judgeResult,
+      completed: judgeResult.passed,
+      newlyUnlockedBadges,
+      nextLevel,
+    };
+  }
+
+  /**
+   * 清空练习已执行步骤并重置到开局状态。
+   * 功能：删除命令历史与中间快照，仓库回到 stepIndex 0。
+   * 参数：userId - 用户 id；attemptId - 会话 id。
+   * 返回值：重置后的 attempt 详情。
+   */
+  async resetAttemptSteps(userId: bigint, attemptId: bigint) {
+    const attempt = await this.findOwnedAttempt(userId, attemptId);
+    if (attempt.status !== "IN_PROGRESS") {
+      throw new BadRequestException("仅进行中的练习可清空步骤");
+    }
+    if (attempt.stepCount === 0) {
+      throw new BadRequestException("当前没有可清空的步骤");
+    }
+
+    const level = await this.prisma.level.findUnique({ where: { id: attempt.levelId } });
+    if (!level) {
+      throw new NotFoundException("关卡不存在");
+    }
+
+    const initialSnapshot = await this.prisma.attemptSnapshot.findFirst({
+      where: {
+        attemptId,
+        stepIndex: 0,
+      },
+    });
+    if (!initialSnapshot) {
+      throw new NotFoundException("练习初始快照不存在");
+    }
+
+    const initialState = cloneRepoState(fromPrismaJson<RepoState>(initialSnapshot.state));
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.attemptCommand.deleteMany({ where: { attemptId } });
+      await tx.attemptSnapshot.deleteMany({
+        where: {
+          attemptId,
+          stepIndex: { gt: 0 },
+        },
+      });
+      await tx.attempt.update({
+        where: { id: attemptId },
+        data: {
+          currentState: toPrismaJson(initialState),
+          stepCount: 0,
+          completedAt: null,
+        },
+      });
+    });
+
+    const updatedAttempt = await this.prisma.attempt.findUnique({ where: { id: attemptId } });
+    if (!updatedAttempt) {
+      throw new NotFoundException("练习会话不存在");
+    }
+
+    return this.buildAttemptDetail(updatedAttempt, level);
   }
 
   /**

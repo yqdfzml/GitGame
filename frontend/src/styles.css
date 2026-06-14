@@ -2349,6 +2349,22 @@ a:hover { color: var(--accent-hover); }
 }
 .meta-chip.done { color: var(--accent-2); border-color: rgba(47, 179, 136, 0.3); background: var(--success-soft); }
 
+.meta-chip.practice-reset-steps {
+  cursor: pointer;
+  color: var(--danger);
+  border-color: rgba(217, 78, 45, 0.25);
+  background: var(--danger-soft);
+}
+
+.meta-chip.practice-reset-steps:hover:not(:disabled) {
+  border-color: rgba(217, 78, 45, 0.45);
+}
+
+.meta-chip.practice-reset-steps:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 
 .terminal-panel {
   padding: 0;
@@ -2622,6 +2638,306 @@ a:hover { color: var(--accent-hover); }
 }
 .staging-banner { color: var(--warn); background: rgba(232, 168, 56, 0.1); border: 1px solid rgba(232, 168, 56, 0.2); }
 .conflict-banner { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(217, 78, 45, 0.2); }
+
+.file-item-conflict {
+  cursor: pointer;
+  border: 1px solid rgba(217, 78, 45, 0.25);
+  background: var(--danger-soft);
+}
+
+.file-item-conflict:hover {
+  border-color: rgba(217, 78, 45, 0.45);
+}
+
+.file-item-conflict .file-path {
+  color: var(--danger);
+}
+
+/* ── 冲突解决弹窗与编辑器 ── */
+
+.conflict-dialog-overlay,
+.conflict-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.conflict-dialog {
+  width: min(560px, 100%);
+  padding: 24px;
+}
+
+.conflict-dialog-title {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+}
+
+.conflict-dialog-desc,
+.conflict-dialog-files,
+.conflict-dialog-hint,
+.conflict-dialog-note {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.conflict-dialog-files {
+  color: var(--danger);
+  font-family: var(--font-mono);
+}
+
+.conflict-dialog-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.conflict-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.conflict-option-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-card);
+}
+
+.conflict-option-icon {
+  font-size: 1.4rem;
+}
+
+.conflict-option-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.conflict-option-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.conflict-dialog-later {
+  margin-top: 4px;
+}
+
+.conflict-editor {
+  width: min(720px, 100%);
+  max-height: min(80vh, 640px);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.conflict-editor-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.conflict-editor-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.conflict-editor-path {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--accent);
+}
+
+.conflict-editor-legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+  font-size: 0.75rem;
+}
+
+.conflict-legend-item.ours {
+  color: #e85d4c;
+}
+
+.conflict-legend-item.theirs {
+  color: #4c9be8;
+}
+
+.conflict-editor-textarea {
+  flex: 1;
+  min-height: 280px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.conflict-editor-error {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--danger);
+}
+
+.conflict-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.conflict-editor-actions-spacer {
+  flex: 1;
+}
+
+/* ── 极简 Vim 覆盖层 ── */
+
+.practice-terminal-wrap {
+  position: relative;
+}
+
+.vim-editor-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: #1a1b26;
+  border-radius: inherit;
+}
+
+.vim-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.vim-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #24283b;
+  border-bottom: 1px solid #414868;
+  flex-shrink: 0;
+}
+
+.vim-editor-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7aa2f7;
+}
+
+.vim-editor-path {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: #a9b1d6;
+}
+
+.vim-editor-close {
+  border: none;
+  background: transparent;
+  color: #a9b1d6;
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.vim-editor-view {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  outline: none;
+}
+
+.vim-editor-content {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #c0caf5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.vim-editor-textarea {
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+  border: none;
+  background: #1a1b26;
+  color: #c0caf5;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  resize: none;
+  outline: none;
+}
+
+.vim-editor-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 12px;
+  background: #24283b;
+  border-top: 1px solid #414868;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.vim-editor-mode {
+  color: #9ece6a;
+  font-weight: 600;
+}
+
+.vim-editor-status-msg {
+  color: #565f89;
+}
+
+.vim-editor-command-input {
+  width: 100%;
+  padding: 4px 12px;
+  border: none;
+  border-top: 1px solid #414868;
+  background: #1a1b26;
+  color: #c0caf5;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  outline: none;
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .conflict-dialog-options {
+    grid-template-columns: 1fr;
+  }
+}
 
 .working-tree-section-title {
   margin: 8px 0 6px;

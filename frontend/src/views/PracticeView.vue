@@ -3,7 +3,10 @@ import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { attemptsApi, levelsApi } from "../api/client";
 import CommitGraph from "../components/CommitGraph.vue";
+import ConflictChoiceDialog from "../components/ConflictChoiceDialog.vue";
+import ConflictVisualEditor from "../components/ConflictVisualEditor.vue";
 import GoalFeedback from "../components/GoalFeedback.vue";
+import MinimalVimEditor from "../components/MinimalVimEditor.vue";
 import WorkingTreePanel from "../components/WorkingTreePanel.vue";
 import { usePointsStore } from "../stores/points";
 import { useToastStore } from "../stores/toast";
@@ -60,6 +63,8 @@ const terminalLines = ref<Array<{ text: string; type: string }>>([]);
 const commandInput = ref("");
 /** 是否提交中 */
 const submitting = ref(false);
+/** 是否正在清空步骤 */
+const resettingSteps = ref(false);
 /** 是否已通关 */
 const completed = ref(false);
 /** 当前步数 */
@@ -82,6 +87,16 @@ const historyBrowseIndex = ref(-1);
 const historyDraftInput = ref("");
 /** 程序改写输入框时，避免 input 事件重置翻历史状态 */
 const suppressHistoryBrowseReset = ref(false);
+/** 已提示过的冲突文件路径，用于检测新冲突 */
+const knownConflictPaths = ref<string[]>([]);
+/** 是否显示冲突解决方式选择弹窗 */
+const showConflictChoice = ref(false);
+/** 当前打开的冲突编辑器类型 */
+const conflictEditorMode = ref<"vim" | "visual" | null>(null);
+/** 是否显示冲突编辑器（Vim 或可视化） */
+const showConflictEditor = ref(false);
+/** 正在编辑的冲突文件路径 */
+const editingConflictPath = ref("");
 
 /** 目标完成百分比，以开局差距为基准从 0% 起算 */
 const progressPct = computed(() => {
@@ -103,6 +118,30 @@ const historySuggestion = computed(() => {
 /** 历史建议的灰色幽灵后缀 */
 const historySuggestionSuffix = computed(() => {
   return buildHistorySuggestionSuffix(commandInput.value, historySuggestion.value);
+});
+
+/** 当前仓库中的冲突文件路径列表 */
+const currentConflictPaths = computed(() => {
+  if (!repoState.value) {
+    return [];
+  }
+  return Object.keys(repoState.value.conflicts);
+});
+
+/** 正在编辑文件的工作区全文 */
+const editingConflictContent = computed(() => {
+  if (!repoState.value || !editingConflictPath.value) {
+    return "";
+  }
+  return repoState.value.workingTree[editingConflictPath.value]?.content ?? "";
+});
+
+/** 正在编辑文件的冲突元信息 */
+const editingConflictMeta = computed(() => {
+  if (!repoState.value || !editingConflictPath.value) {
+    return null;
+  }
+  return repoState.value.conflicts[editingConflictPath.value] ?? null;
 });
 
 /**
@@ -160,6 +199,11 @@ const resetPracticeState = () => {
   commandHistory.value = [];
   historyBrowseIndex.value = -1;
   historyDraftInput.value = "";
+  knownConflictPaths.value = [];
+  showConflictChoice.value = false;
+  conflictEditorMode.value = null;
+  showConflictEditor.value = false;
+  editingConflictPath.value = "";
 };
 
 /**
@@ -188,6 +232,153 @@ const applyAttemptSession = (attempt: AttemptDetail) => {
   historyBrowseIndex.value = -1;
   historyDraftInput.value = "";
   commandInput.value = "";
+  syncConflictPrompt(attempt.state, { onResume: true });
+};
+
+/**
+ * 获取仓库状态中的冲突文件路径。
+ * 功能：统一从 repoState 读取 conflicts 键列表。
+ * 参数：state - 仓库快照。
+ * 返回值：冲突文件路径数组。
+ */
+const getConflictPaths = (state: RepoState | null): string[] => {
+  if (!state) {
+    return [];
+  }
+  return Object.keys(state.conflicts);
+};
+
+/**
+ * 根据仓库状态决定是否弹出冲突解决方式选择框。
+ * 功能：新出现冲突或恢复会话时提示玩家选择 Vim / 可视化编辑器。
+ * 参数：state - 最新仓库快照；options.onResume - 是否为恢复会话。
+ * 返回值：无。
+ */
+const syncConflictPrompt = (
+  state: RepoState | null,
+  options?: { onResume?: boolean },
+) => {
+  const paths = getConflictPaths(state);
+  if (paths.length === 0) {
+    knownConflictPaths.value = [];
+    showConflictChoice.value = false;
+    return;
+  }
+
+  const hasNewConflict = paths.some((path) => !knownConflictPaths.value.includes(path));
+  if (options?.onResume || hasNewConflict) {
+    knownConflictPaths.value = paths;
+    showConflictChoice.value = true;
+  }
+};
+
+/**
+ * 打开指定冲突文件的编辑器。
+ * 功能：按玩家选择启动 Vim 或可视化编辑界面。
+ * 参数：mode - 编辑模式；path - 可选，默认取第一个冲突文件。
+ * 返回值：无。
+ */
+const openConflictEditor = (mode: "vim" | "visual", path?: string) => {
+  const paths = getConflictPaths(repoState.value);
+  const targetPath = path ?? paths[0];
+  if (!targetPath) {
+    return;
+  }
+  editingConflictPath.value = targetPath;
+  conflictEditorMode.value = mode;
+  showConflictEditor.value = true;
+};
+
+/**
+ * 玩家从弹窗选择冲突解决方式。
+ * 功能：关闭选择框并打开对应编辑器。
+ * 参数：mode - vim 或 visual。
+ * 返回值：无。
+ */
+const handleConflictChoice = (mode: "vim" | "visual") => {
+  openConflictEditor(mode);
+};
+
+/**
+ * 玩家点击工作区冲突文件时再次选择编辑方式。
+ * 功能：若尚未选择过模式则弹窗，否则沿用上次的编辑器。
+ * 参数：path - 被点击的文件路径。
+ * 返回值：无。
+ */
+const handleConflictFileClick = (path: string) => {
+  if (conflictEditorMode.value) {
+    openConflictEditor(conflictEditorMode.value, path);
+    return;
+  }
+  editingConflictPath.value = path;
+  showConflictChoice.value = true;
+};
+
+/**
+ * 将命令执行后的通关、徽章等副作用写入界面。
+ * 功能：submitCommand 与 resolveConflict 共用。
+ * 参数：result - 服务端返回的执行结果。
+ * 返回值：无。
+ */
+const applyCommandSideEffects = (result: CommandResponse) => {
+  repoState.value = result.state;
+  judge.value = result.judge;
+  stepCount.value = result.stepCount;
+  completed.value = result.completed;
+  if (result.completed) {
+    terminalLines.value.push({ text: `通关！得分: ${result.judge.score}`, type: "success" });
+    const completeToast = levelCompleteToast(result.judge.score);
+    toastStore.success(completeToast.message, completeToast.emoji);
+    appendNextLevelHint(result.nextLevel);
+  }
+  if (result.newlyUnlockedBadges && result.newlyUnlockedBadges.length > 0) {
+    const badgeCount = result.newlyUnlockedBadges.length;
+    terminalLines.value.push({
+      text: `解锁徽章 ${badgeCount} 枚，前往「徽章」页查看`,
+      type: "success",
+    });
+    const badgeToast = badgeUnlockToast(badgeCount);
+    toastStore.success(badgeToast.message, badgeToast.emoji);
+  }
+  syncConflictPrompt(result.state);
+};
+
+/**
+ * 保存冲突文件编辑结果。
+ * 功能：调用 resolve-conflict API 并刷新仓库状态。
+ * 参数：content - 玩家编辑后的文件全文。
+ * 返回值：无。
+ */
+const saveConflictContent = (content: string) => {
+  if (!attemptId.value || !editingConflictPath.value || submitting.value) {
+    return;
+  }
+
+  const path = editingConflictPath.value;
+  submitting.value = true;
+  showConflictEditor.value = false;
+  terminalLines.value.push({ text: `$ edit ${path}`, type: "output" });
+
+  attemptsApi.resolveConflict(attemptId.value, path, content)
+    .then((result) => {
+      appendCommandResult(result);
+      applyCommandSideEffects(result);
+
+      const remainingPaths = getConflictPaths(result.state);
+      if (remainingPaths.length > 0) {
+        knownConflictPaths.value = remainingPaths;
+        showConflictChoice.value = true;
+      }
+    })
+    .catch((err: Error) => {
+      terminalLines.value.push({ text: err.message, type: "error" });
+      showConflictEditor.value = true;
+    })
+    .finally(() => {
+      submitting.value = false;
+      scrollTerminalToBottom();
+      focusCommandInput();
+    });
 };
 
 /**
@@ -472,6 +663,23 @@ const submitCommand = () => {
   const cmd = commandInput.value.trim();
   if (!cmd || !attemptId.value || submitting.value) return;
 
+  /** vim 命令：本地打开极简编辑器，不消耗步数 */
+  const vimMatch = cmd.match(/^vim\s+(\S+)$/);
+  if (vimMatch) {
+    const filePath = vimMatch[1];
+    if (repoState.value?.conflicts[filePath]) {
+      commandHistory.value = pushCommandHistory(commandHistory.value, cmd);
+      historyBrowseIndex.value = -1;
+      historyDraftInput.value = "";
+      terminalLines.value.push({ text: `$ ${cmd}`, type: "output" });
+      terminalLines.value.push({ text: `进入 Vim 编辑 ${filePath}（:wq 保存，:q! 放弃）`, type: "output" });
+      commandInput.value = "";
+      openConflictEditor("vim", filePath);
+      scrollTerminalToBottom();
+      return;
+    }
+  }
+
   submitting.value = true;
   commandHistory.value = pushCommandHistory(commandHistory.value, cmd);
   historyBrowseIndex.value = -1;
@@ -482,25 +690,7 @@ const submitCommand = () => {
   attemptsApi.submitCommand(attemptId.value, cmd)
     .then((result) => {
       appendCommandResult(result);
-      repoState.value = result.state;
-      judge.value = result.judge;
-      stepCount.value = result.stepCount;
-      completed.value = result.completed;
-      if (result.completed) {
-        terminalLines.value.push({ text: `通关！得分: ${result.judge.score}`, type: "success" });
-        const completeToast = levelCompleteToast(result.judge.score);
-        toastStore.success(completeToast.message, completeToast.emoji);
-        appendNextLevelHint(result.nextLevel);
-      }
-      if (result.newlyUnlockedBadges && result.newlyUnlockedBadges.length > 0) {
-        const badgeCount = result.newlyUnlockedBadges.length;
-        terminalLines.value.push({
-          text: `解锁徽章 ${badgeCount} 枚，前往「徽章」页查看`,
-          type: "success",
-        });
-        const badgeToast = badgeUnlockToast(badgeCount);
-        toastStore.success(badgeToast.message, badgeToast.emoji);
-      }
+      applyCommandSideEffects(result);
     })
     .catch((err: Error) => {
       terminalLines.value.push({ text: err.message, type: "error" });
@@ -509,6 +699,50 @@ const submitCommand = () => {
       submitting.value = false;
       scrollTerminalToBottom();
       focusCommandInput();
+    });
+};
+
+/**
+ * 将练习重置到开局状态。
+ * 功能：清空终端历史、命令记录与仓库变更，从初始快照重新开始。
+ * 参数：无。
+ * 返回值：无。
+ */
+const resetAttemptSteps = () => {
+  if (!attemptId.value || submitting.value || resettingSteps.value || completed.value) {
+    return;
+  }
+  if (stepCount.value === 0) {
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "确定清空本关已执行的全部命令？仓库将恢复到开局状态，此操作不可撤销。",
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  resettingSteps.value = true;
+  showConflictChoice.value = false;
+  showConflictEditor.value = false;
+  conflictEditorMode.value = null;
+  editingConflictPath.value = "";
+  knownConflictPaths.value = [];
+
+  attemptsApi.resetSteps(attemptId.value)
+    .then((attempt) => {
+      applyAttemptSession(attempt);
+      terminalLines.value.push({ text: "已清空步骤，仓库已恢复为开局状态", type: "success" });
+      scrollTerminalToBottom();
+      focusCommandInput();
+    })
+    .catch((err: Error) => {
+      terminalLines.value.push({ text: err.message, type: "error" });
+      scrollTerminalToBottom();
+    })
+    .finally(() => {
+      resettingSteps.value = false;
     });
 };
 
@@ -542,7 +776,7 @@ const goReplay = () => {
           </div>
           <div class="card practice-panel-compact">
             <p class="panel-title">工作区</p>
-            <WorkingTreePanel :state="repoState" />
+            <WorkingTreePanel :state="repoState" @edit-conflict="handleConflictFileClick" />
           </div>
         </div>
         <div class="card practice-panel-goal">
@@ -560,7 +794,7 @@ const goReplay = () => {
         </div>
       </div>
 
-      <div class="card terminal-panel">
+      <div class="card terminal-panel practice-terminal-wrap">
         <div class="terminal-chrome">
           <span class="terminal-dot red" />
           <span class="terminal-dot yellow" />
@@ -610,6 +844,15 @@ const goReplay = () => {
               </div>
             </div>
             <span class="meta-chip">步骤 {{ stepCount }}</span>
+            <button
+              v-if="!completed && stepCount > 0"
+              type="button"
+              class="meta-chip practice-reset-steps"
+              :disabled="submitting || resettingSteps"
+              @click="resetAttemptSteps"
+            >
+              {{ resettingSteps ? '清空中…' : '清空步骤' }}
+            </button>
             <span class="meta-chip" :class="{ done: judge.passed }">
               {{ judge.passed ? '已通关' : `进度 ${progressPct}%` }}
             </span>
@@ -665,7 +908,30 @@ const goReplay = () => {
             <RouterLink to="/levels" class="btn-ghost">返回关卡</RouterLink>
           </div>
         </div>
+
+        <MinimalVimEditor
+          v-if="conflictEditorMode === 'vim'"
+          v-model:show="showConflictEditor"
+          :path="editingConflictPath"
+          :content="editingConflictContent"
+          @save="saveConflictContent"
+        />
       </div>
     </div>
+
+    <ConflictChoiceDialog
+      v-model:show="showConflictChoice"
+      :conflict-paths="currentConflictPaths"
+      @choose="handleConflictChoice"
+    />
+
+    <ConflictVisualEditor
+      v-if="conflictEditorMode === 'visual'"
+      v-model:show="showConflictEditor"
+      :path="editingConflictPath"
+      :content="editingConflictContent"
+      :conflict="editingConflictMeta"
+      @save="saveConflictContent"
+    />
   </div>
 </template>

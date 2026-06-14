@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import type { RepoState, StashEntry } from "../types";
 import { buildBranchColorMap, getBranchColor, getHeadBranchName } from "../utils/branchColors";
 import { fileStatusLabel } from "../utils/fileStatusLabel";
@@ -7,6 +7,11 @@ import { fileStatusLabel } from "../utils/fileStatusLabel";
 const props = defineProps<{
   /** 当前仓库状态 */
   state: RepoState;
+}>();
+
+const emit = defineEmits<{
+  /** 点击冲突文件，请求打开编辑器 */
+  "edit-conflict": [path: string];
 }>();
 
 /** 贮藏栈列表，无数据时为空数组 */
@@ -41,6 +46,32 @@ const stashFilePaths = (entry: StashEntry) => {
   const pathSet = new Set([...workingPaths, ...indexPaths]);
   return Array.from(pathSet);
 };
+
+/** 当前处于冲突状态的文件路径集合 */
+const conflictPathSet = computed(() => new Set(Object.keys(props.state.conflicts)));
+
+/**
+ * 判断文件是否处于冲突状态。
+ * 功能：为冲突文件行添加可点击样式。
+ * 参数：path - 文件路径。
+ * 返回值：true 表示该文件有未解决冲突。
+ */
+const isConflictFile = (path: string): boolean => {
+  return conflictPathSet.value.has(path);
+};
+
+/**
+ * 点击冲突文件时通知父组件打开编辑器。
+ * 功能：仅冲突文件响应点击。
+ * 参数：path - 被点击的文件路径。
+ * 返回值：无。
+ */
+const handleFileClick = (path: string) => {
+  if (!isConflictFile(path)) {
+    return;
+  }
+  emit("edit-conflict", path);
+};
 </script>
 
 <template>
@@ -56,7 +87,13 @@ const stashFilePaths = (entry: StashEntry) => {
 
     <div class="working-tree-scroll dark-scroll">
       <ul class="file-list">
-        <li v-for="(file, path) in state.workingTree" :key="path" class="file-item">
+        <li
+          v-for="(file, path) in state.workingTree"
+          :key="path"
+          class="file-item"
+          :class="{ 'file-item-conflict': isConflictFile(path) }"
+          @click="handleFileClick(path)"
+        >
           <span class="file-path">{{ path }}</span>
           <span class="file-status" :class="file.status">{{ fileStatusLabel(file.status) }}</span>
         </li>
@@ -85,7 +122,7 @@ const stashFilePaths = (entry: StashEntry) => {
       暂存区：{{ Object.keys(state.index).join('、') }}
     </div>
     <div v-if="Object.keys(state.conflicts).length > 0" class="conflict-banner working-tree-footer">
-      冲突：{{ Object.keys(state.conflicts).join('、') }}
+      冲突：{{ Object.keys(state.conflicts).join('、') }}（点击文件可编辑）
     </div>
   </div>
 </template>
