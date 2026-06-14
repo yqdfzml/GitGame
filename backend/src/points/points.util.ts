@@ -124,3 +124,51 @@ export function parseDateOnly(dateText: string): Date {
   const [yearText, monthText, dayText] = dateText.split("-");
   return new Date(Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText)));
 }
+
+/**
+ * 在上海自然日上偏移若干天。
+ * 功能：计算日历起止范围。
+ * 参数：dateText - YYYY-MM-DD；days - 偏移天数，负数为向前。
+ * 返回值：偏移后的 YYYY-MM-DD。
+ */
+export function addShanghaiDays(dateText: string, days: number): string {
+  const [yearText, monthText, dayText] = dateText.split("-");
+  const utcDate = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText)));
+  utcDate.setUTCDate(utcDate.getUTCDate() + days);
+  return formatShanghaiDate(utcDate);
+}
+
+/**
+ * 取指定日期所在周的周日（含当天）。
+ * 功能：GitHub 日历从周日列开始对齐。
+ * 参数：dateText - YYYY-MM-DD。
+ * 返回值：该周周日 YYYY-MM-DD。
+ */
+export function getSundayOnOrBefore(dateText: string): string {
+  const [yearText, monthText, dayText] = dateText.split("-");
+  const utcDate = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText)));
+  utcDate.setUTCDate(utcDate.getUTCDate() - utcDate.getUTCDay());
+  return formatShanghaiDate(utcDate);
+}
+
+/**
+ * 根据签到积分计算热力等级。
+ * 功能：映射到 GitHub 风格 0-4 档颜色。
+ * 参数：pointsAwarded - 当日签到积分，0 表示未签到。
+ * 返回值：0-4 热力等级。
+ */
+export function calcCheckInHeatLevel(pointsAwarded: number): number {
+  if (pointsAwarded <= 0) {
+    return 0;
+  }
+  if (pointsAwarded <= 10) {
+    return 1;
+  }
+  if (pointsAwarded <= 12) {
+    return 2;
+  }
+  if (pointsAwarded <= 18) {
+    return 3;
+  }
+  return 4;
+}

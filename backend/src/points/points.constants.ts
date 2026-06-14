@@ -39,3 +39,16 @@ export interface LevelUnlockState {
   unlockCost: number;
   canStart: boolean;
 }
+
+/** 单日签到记录，供日历热力图使用 */
+export interface CheckInCalendarDay {
+  date: string;
+  pointsAwarded: number;
+}
+
+/** 近一年签到日历 DTO */
+export interface CheckInCalendarResponse {
+  startDate: string;
+  endDate: string;
+  days: CheckInCalendarDay[];
+}

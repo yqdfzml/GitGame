@@ -35,6 +35,19 @@ export interface PointWalletSummary {
   lastCheckInDate: string | null;
 }
 
+/** 单日签到记录 */
+export interface CheckInCalendarDay {
+  date: string;
+  pointsAwarded: number;
+}
+
+/** 近一年签到日历 */
+export interface CheckInCalendarResponse {
+  startDate: string;
+  endDate: string;
+  days: CheckInCalendarDay[];
+}
+
 /** 关卡解锁结果 */
 export interface LevelUnlockResult {
   unlockStatus: LevelUnlockStatus;

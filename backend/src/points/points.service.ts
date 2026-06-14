@@ -5,12 +5,18 @@ import {
 } from "@nestjs/common";
 import type { Difficulty } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import type { LevelUnlockState, PointWalletResponse } from "./points.constants";
+import type {
+  CheckInCalendarResponse,
+  LevelUnlockState,
+  PointWalletResponse,
+} from "./points.constants";
 import {
+  addShanghaiDays,
   calcCheckInPoints,
   calcNextStreakDay,
   calcUnlockCost,
   formatShanghaiDate,
+  getSundayOnOrBefore,
   isFreePublishedLevel,
   parseDateOnly,
   toDateText,
@@ -61,6 +67,42 @@ export class PointsService {
    * 参数：userId - 用户 id。
    * 返回值：签到后的钱包摘要。
    */
+  /**
+   * 获取近一年签到日历数据。
+   * 功能：返回 GitHub 风格热力图所需的日期与积分。
+   * 参数：userId - 用户 id。
+   * 返回值：CheckInCalendarResponse。
+   */
+  async getCheckInCalendar(userId: bigint): Promise<CheckInCalendarResponse> {
+    const endDate = formatShanghaiDate(new Date());
+    const rawStartDate = addShanghaiDays(endDate, -364);
+    const startDate = getSundayOnOrBefore(rawStartDate);
+
+    const rows = await this.prisma.dailyCheckIn.findMany({
+      where: {
+        userId,
+        checkInDate: {
+          gte: parseDateOnly(startDate),
+          lte: parseDateOnly(endDate),
+        },
+      },
+      select: {
+        checkInDate: true,
+        pointsAwarded: true,
+      },
+      orderBy: { checkInDate: "asc" },
+    });
+
+    return {
+      startDate,
+      endDate,
+      days: rows.map((row) => ({
+        date: toDateText(row.checkInDate)!,
+        pointsAwarded: row.pointsAwarded,
+      })),
+    };
+  }
+
   async checkIn(userId: bigint): Promise<PointWalletResponse> {
     const today = formatShanghaiDate(new Date());
     const todayDate = parseDateOnly(today);

@@ -362,6 +362,13 @@ a:hover { color: var(--accent-hover); }
   gap: 18px;
 }
 
+.home-dashboard-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: stretch;
+}
+
 .home-main {
   position: relative;
   padding: 14px 20px;
@@ -536,6 +543,144 @@ a:hover { color: var(--accent-hover); }
 
 .home-main-kpi-link:hover strong {
   color: var(--accent-hover);
+}
+
+.check-in-calendar {
+  padding: 14px 16px;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-self: stretch;
+}
+
+.check-in-calendar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.check-in-calendar-title {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.check-in-calendar-count {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.check-in-calendar-loading {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.check-in-calendar-error {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.check-in-calendar-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.check-in-calendar-months {
+  position: relative;
+  margin-left: 22px;
+  min-height: 14px;
+}
+
+.check-in-calendar-month {
+  position: absolute;
+  top: 0;
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.check-in-calendar-grid-wrap {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.check-in-calendar-weekdays {
+  display: grid;
+  grid-template-rows: repeat(7, 11px);
+  gap: 3px;
+  font-size: 0.58rem;
+  color: var(--text-faint);
+  line-height: 11px;
+}
+
+.check-in-calendar-weekdays span:nth-child(1) {
+  grid-row: 2;
+}
+
+.check-in-calendar-weekdays span:nth-child(2) {
+  grid-row: 4;
+}
+
+.check-in-calendar-weekdays span:nth-child(3) {
+  grid-row: 6;
+}
+
+.check-in-calendar-grid {
+  display: flex;
+  gap: 3px;
+}
+
+.check-in-calendar-week {
+  display: grid;
+  grid-template-rows: repeat(7, 11px);
+  gap: 3px;
+}
+
+.check-in-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: block;
+}
+
+.check-in-cell--empty {
+  background: transparent;
+}
+
+.check-in-cell--0 {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.check-in-cell--1 {
+  background: rgba(47, 179, 136, 0.28);
+}
+
+.check-in-cell--2 {
+  background: rgba(47, 179, 136, 0.48);
+}
+
+.check-in-cell--3 {
+  background: rgba(47, 179, 136, 0.68);
+}
+
+.check-in-cell--4 {
+  background: rgba(47, 179, 136, 0.92);
+}
+
+.check-in-calendar-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  font-size: 0.62rem;
+  color: var(--text-faint);
 }
 
 .ui-chip {
@@ -787,6 +932,10 @@ a:hover { color: var(--accent-hover); }
 }
 
 @media (max-width: 960px) {
+  .home-dashboard-hero {
+    grid-template-columns: 1fr;
+  }
+
   .home-main-kpis {
     flex-wrap: wrap;
   }

@@ -32,4 +32,17 @@ export class PointsController {
     const userId = BigInt(req.user!.sub);
     return this.pointsService.checkIn(userId);
   }
+
+  /**
+   * 获取近一年签到日历。
+   * 功能：供首页 GitHub 风格热力图展示。
+   * 参数：req - 鉴权请求。
+   * 返回值：CheckInCalendarResponse。
+   */
+  @Get("check-in-calendar")
+  @UseGuards(JwtAuthGuard)
+  getCheckInCalendar(@Req() req: AuthRequest) {
+    const userId = BigInt(req.user!.sub);
+    return this.pointsService.getCheckInCalendar(userId);
+  }
 }

@@ -59,3 +59,12 @@ describe("isFreePublishedLevel", () => {
     expect(isFreePublishedLevel(3)).toBe(false);
   });
 });
+
+describe("addShanghaiDays", () => {
+  it("可向前向后偏移自然日", async () => {
+    const { addShanghaiDays, getSundayOnOrBefore } = await import("../src/points/points.util");
+    expect(addShanghaiDays("2026-06-14", -1)).toBe("2026-06-13");
+    expect(addShanghaiDays("2026-06-14", 1)).toBe("2026-06-15");
+    expect(getSundayOnOrBefore("2026-06-14")).toBe("2026-06-08");
+  });
+});

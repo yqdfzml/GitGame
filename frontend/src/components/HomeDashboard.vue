@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { homeApi, levelsApi, usersApi } from "../api/client";
 import ActivityFeedPanel from "./ActivityFeedPanel.vue";
+import CheckInCalendar from "./CheckInCalendar.vue";
 import LeaderboardPanel from "./LeaderboardPanel.vue";
 import { usePointsStore } from "../stores/points";
 import type { BadgeItem, HomeActivityItem, LeaderboardEntry, LevelSummary } from "../types";
@@ -97,60 +98,64 @@ const canContinue = computed(() => {
     <p v-if="error" class="error-msg">{{ error }}</p>
 
     <template v-if="!loading && !error">
-      <section class="home-main card">
-        <div class="home-main-body">
-          <div class="home-main-lead">
-            <template v-if="nextLevel">
-              <p class="home-main-eyebrow">
-                <span v-if="nextPresentation">{{ nextPresentation.chapterLabel }}</span>
-                <span v-if="nextPresentation" class="home-main-eyebrow-sep">·</span>
-                <span :class="canContinue ? 'is-ok' : 'is-warn'">
-                  {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
-                </span>
-              </p>
-              <h2 class="home-main-title">{{ nextLevel.title }}</h2>
-              <p v-if="nextPresentation" class="home-main-meta">{{ nextPresentation.skillLabel }}</p>
-            </template>
+      <div class="home-dashboard-hero">
+        <section class="home-main card">
+          <div class="home-main-body">
+            <div class="home-main-lead">
+              <template v-if="nextLevel">
+                <p class="home-main-eyebrow">
+                  <span v-if="nextPresentation">{{ nextPresentation.chapterLabel }}</span>
+                  <span v-if="nextPresentation" class="home-main-eyebrow-sep">·</span>
+                  <span :class="canContinue ? 'is-ok' : 'is-warn'">
+                    {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
+                  </span>
+                </p>
+                <h2 class="home-main-title">{{ nextLevel.title }}</h2>
+                <p v-if="nextPresentation" class="home-main-meta">{{ nextPresentation.skillLabel }}</p>
+              </template>
 
-            <template v-else>
-              <p class="home-main-eyebrow">
-                <span class="is-ok">主线完成</span>
-              </p>
-              <h2 class="home-main-title">全部通关</h2>
-            </template>
-          </div>
-
-          <div class="home-main-progress">
-            <div class="home-main-progress-top">
-              <span class="home-main-kpi-label">进度</span>
-              <span class="home-main-progress-num">{{ routeProgress.percent }}%</span>
+              <template v-else>
+                <p class="home-main-eyebrow">
+                  <span class="is-ok">主线完成</span>
+                </p>
+                <h2 class="home-main-title">全部通关</h2>
+              </template>
             </div>
-            <div class="progress-track home-main-progress-track">
-              <div :style="{ width: `${routeProgress.percent}%` }" />
-            </div>
-            <span class="home-main-progress-sub">{{ routeProgress.completed }}/{{ routeProgress.total }}</span>
-          </div>
 
-          <div class="home-main-kpis">
-            <span class="home-main-kpi">
-              <em>积分</em>
-              <strong>{{ pointsStore.balance ?? 0 }}</strong>
-            </span>
-            <span class="home-main-kpi">
-              <em>连签</em>
-              <strong>{{ pointsStore.wallet?.currentStreak ?? 0 }}<small>天</small></strong>
-            </span>
-            <RouterLink
-              v-if="recentBadges.length > 0"
-              to="/achievements"
-              class="home-main-kpi home-main-kpi-link"
-            >
-              <em>成就</em>
-              <strong>{{ recentBadges[0].name }}<template v-if="recentBadges.length > 1"> +{{ recentBadges.length - 1 }}</template></strong>
-            </RouterLink>
+            <div class="home-main-progress">
+              <div class="home-main-progress-top">
+                <span class="home-main-kpi-label">进度</span>
+                <span class="home-main-progress-num">{{ routeProgress.percent }}%</span>
+              </div>
+              <div class="progress-track home-main-progress-track">
+                <div :style="{ width: `${routeProgress.percent}%` }" />
+              </div>
+              <span class="home-main-progress-sub">{{ routeProgress.completed }}/{{ routeProgress.total }}</span>
+            </div>
+
+            <div class="home-main-kpis">
+              <span class="home-main-kpi">
+                <em>积分</em>
+                <strong>{{ pointsStore.balance ?? 0 }}</strong>
+              </span>
+              <span class="home-main-kpi">
+                <em>连签</em>
+                <strong>{{ pointsStore.wallet?.currentStreak ?? 0 }}<small>天</small></strong>
+              </span>
+              <RouterLink
+                v-if="recentBadges.length > 0"
+                to="/achievements"
+                class="home-main-kpi home-main-kpi-link"
+              >
+                <em>成就</em>
+                <strong>{{ recentBadges[0].name }}<template v-if="recentBadges.length > 1"> +{{ recentBadges.length - 1 }}</template></strong>
+              </RouterLink>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <CheckInCalendar />
+      </div>
 
       <section class="home-dashboard-secondary">
         <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />

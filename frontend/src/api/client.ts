@@ -168,6 +168,7 @@ export const levelsApi = {
 export const pointsApi = {
   summary: () => request<PointWalletSummary>("/points/me"),
   checkIn: () => request<PointWalletSummary>("/points/check-in", { method: "POST" }),
+  checkInCalendar: () => request<import("../types").CheckInCalendarResponse>("/points/check-in-calendar"),
 };
 
 /** 练习 API */
