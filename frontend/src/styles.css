@@ -577,6 +577,7 @@ a:hover { color: var(--accent-hover); }
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .practice-layout {
@@ -586,6 +587,13 @@ a:hover { color: var(--accent-hover); }
   grid-template-columns: 0.95fr 1.05fr;
   gap: 14px;
   align-items: stretch;
+  overflow: hidden;
+}
+
+.practice-sidebar,
+.terminal-panel {
+  min-height: 0;
+  overflow: hidden;
 }
 @media (max-width: 960px) {
   .main-content:has(.practice-page) {
@@ -607,24 +615,36 @@ a:hover { color: var(--accent-hover); }
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .practice-sidebar-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  flex-shrink: 0;
+  flex: 0 0 172px;
+  height: 172px;
+  min-height: 0;
 }
 
 .practice-panel-compact {
   padding: 12px 14px;
   min-height: 0;
-  max-height: 168px;
-  overflow-y: auto;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .practice-panel-compact .panel-title {
+  flex-shrink: 0;
   margin-bottom: 8px;
+}
+
+.practice-panel-compact > :not(.panel-title) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .practice-panel-compact .head-badge {
@@ -715,7 +735,13 @@ a:hover { color: var(--accent-hover); }
 .terminal-line.error { color: #e8705a; }
 .terminal-line.success { color: var(--accent-2); }
 
-.terminal-input-area { padding: 12px 14px; background: var(--bg-elevated); border-top: 1px solid var(--border); flex-shrink: 0; }
+.terminal-input-area {
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 56px;
+}
 .terminal-input-row { display: flex; gap: 10px; align-items: center; }
 .prompt-symbol { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); flex-shrink: 0; }
 .terminal-input-row input {
@@ -765,7 +791,14 @@ a:hover { color: var(--accent-hover); }
 .file-status.deleted { color: var(--danger); background: var(--danger-soft); }
 
 .staging-banner, .conflict-banner {
-  margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.78rem;
+  margin-top: 8px; padding: 8px 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.78rem;
+}
+
+.practice-panel-compact .staging-banner,
+.practice-panel-compact .conflict-banner {
+  margin-top: 6px;
+  padding: 6px 8px;
+  font-size: 0.72rem;
 }
 .staging-banner { color: var(--warn); background: rgba(232, 168, 56, 0.1); border: 1px solid rgba(232, 168, 56, 0.2); }
 .conflict-banner { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(217, 78, 45, 0.2); }

@@ -40,6 +40,8 @@ const stepCount = ref(0);
 const error = ref("");
 /** 命令输入框 DOM 引用，用于命令执行后恢复焦点 */
 const commandInputRef = ref<HTMLInputElement | null>(null);
+/** 终端输出区域 DOM 引用，用于命令执行后滚到底部 */
+const terminalOutputRef = ref<HTMLDivElement | null>(null);
 
 /** 目标完成百分比，以开局差距为基准从 0% 起算 */
 const progressPct = computed(() => {
@@ -60,7 +62,22 @@ const progressPct = computed(() => {
 const focusCommandInput = () => {
   if (completed.value) return;
   nextTick(() => {
-    commandInputRef.value?.focus();
+    // preventScroll 避免浏览器为聚焦而滚动页面，导致底部输入区被挤出视口
+    commandInputRef.value?.focus({ preventScroll: true });
+  });
+};
+
+/**
+ * 将终端输出滚到最新一行。
+ * 功能：命令执行后保持输出区停在底部，避免内容撑高外层布局。
+ * 参数：无。
+ * 返回值：无。
+ */
+const scrollTerminalToBottom = () => {
+  nextTick(() => {
+    const terminalEl = terminalOutputRef.value;
+    if (!terminalEl) return;
+    terminalEl.scrollTop = terminalEl.scrollHeight;
   });
 };
 
@@ -78,6 +95,7 @@ onMounted(() => {
     initialSatisfiedKeys.value = [...attempt.judge.satisfied];
     stepCount.value = attempt.stepCount;
     terminalLines.value.push({ text: "练习已开始。输入 git 命令并按 Enter 执行。", type: "success" });
+    scrollTerminalToBottom();
     focusCommandInput();
   }).catch((err: Error) => {
     error.value = err.message;
@@ -120,6 +138,7 @@ const submitCommand = () => {
     })
     .finally(() => {
       submitting.value = false;
+      scrollTerminalToBottom();
       focusCommandInput();
     });
 };
@@ -188,7 +207,7 @@ const goReplay = () => {
           <span class="terminal-dot green" />
           <span class="terminal-chrome-title">git — zsh</span>
         </div>
-        <div class="terminal">
+        <div ref="terminalOutputRef" class="terminal">
           <div
             v-for="(line, i) in terminalLines"
             :key="i"
