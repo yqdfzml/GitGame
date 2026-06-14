@@ -2853,9 +2853,23 @@ a:hover { color: var(--accent-hover); }
 /* ── 用户管理 ── */
 .admin-users-toolbar {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   padding: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-attempt-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.74rem;
+  color: var(--text-faint);
+}
+
+.admin-attempt-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 12px;
 }
 
@@ -3007,7 +3021,8 @@ a:hover { color: var(--accent-hover); }
 
 @media (max-width: 1100px) {
   .admin-users-toolbar,
-  .admin-user-detail-grid {
+  .admin-user-detail-grid,
+  .admin-attempt-detail-grid {
     grid-template-columns: 1fr;
   }
 }

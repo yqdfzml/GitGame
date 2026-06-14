@@ -161,3 +161,68 @@ export interface AdminUserActionResult {
 export interface AdminRevokeSessionsResult {
   revokedCount: number;
 }
+
+/** 管理端 attempt 列表项 */
+export interface AdminAttemptListItem {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  levelId: string;
+  levelTitle: string;
+  levelChapterId: string | null;
+  status: string;
+  stepCount: number;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+/** 管理端 attempt 列表分页结果 */
+export interface AdminAttemptListResult {
+  items: AdminAttemptListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 管理端 attempt 列表筛选 */
+export interface AdminAttemptListFilters {
+  search: string;
+  levelId: string;
+  userId: string;
+  status: string;
+  page: number;
+  pageSize: number;
+}
+
+/** 管理端 attempt 命令条目 */
+export interface AdminAttemptCommandItem {
+  stepIndex: number;
+  command: string;
+  success: boolean;
+  feedback: string | null;
+  output: string | null;
+  createdAt: string;
+}
+
+/** 管理端 attempt 详情 */
+export interface AdminAttemptDetail {
+  id: string;
+  status: string;
+  stepCount: number;
+  startedAt: string;
+  completedAt: string | null;
+  user: {
+    id: string;
+    email: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+  level: {
+    id: string;
+    title: string;
+    chapterId: string | null;
+    difficulty: string;
+  };
+  commands: AdminAttemptCommandItem[];
+}

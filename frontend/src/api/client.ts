@@ -18,6 +18,9 @@ import type {
   AdminUserDetail,
   AdminUserListFilters,
   AdminUserListResult,
+  AdminAttemptListFilters,
+  AdminAttemptListResult,
+  AdminAttemptDetail,
 } from "../types/admin";
 import type { AuthUser, LevelSummary, LevelUnlockResult, PointWalletSummary } from "../types";
 
@@ -364,4 +367,44 @@ export const adminUsersApi = {
    */
   revokeSessions: (id: string) =>
     request<AdminRevokeSessionsResult>(`/admin/users/${id}/revoke-sessions`, { method: "POST" }),
+};
+
+/** 管理端练习记录 API */
+export const adminAttemptsApi = {
+  /**
+   * 分页列出 attempt。
+   * 功能：支持用户搜索、关卡、状态筛选。
+   * 参数：filters - 筛选与分页条件。
+   * 返回值：分页 attempt 列表。
+   */
+  listAttempts: (filters: Partial<AdminAttemptListFilters> = {}) => {
+    const params = new URLSearchParams();
+    if (filters.search) {
+      params.set("search", filters.search);
+    }
+    if (filters.levelId) {
+      params.set("levelId", filters.levelId);
+    }
+    if (filters.userId) {
+      params.set("userId", filters.userId);
+    }
+    if (filters.status) {
+      params.set("status", filters.status);
+    }
+    if (filters.page) {
+      params.set("page", String(filters.page));
+    }
+    if (filters.pageSize) {
+      params.set("pageSize", String(filters.pageSize));
+    }
+    const query = params.toString();
+    return request<AdminAttemptListResult>(query ? `/admin/attempts?${query}` : "/admin/attempts");
+  },
+  /**
+   * 获取 attempt 详情。
+   * 功能：返回命令序列与每步反馈。
+   * 参数：id - attempt id。
+   * 返回值：attempt 详情。
+   */
+  getAttempt: (id: string) => request<AdminAttemptDetail>(`/admin/attempts/${id}`),
 };

@@ -89,6 +89,18 @@ const router = createRouter({
           component: () => import("../views/admin/AdminUserDetailView.vue"),
           meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "用户详情" },
         },
+        {
+          path: "attempts",
+          name: "admin-attempts",
+          component: () => import("../views/admin/AdminAttemptsView.vue"),
+          meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "学习记录" },
+        },
+        {
+          path: "attempts/:id",
+          name: "admin-attempt-detail",
+          component: () => import("../views/admin/AdminAttemptDetailView.vue"),
+          meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "Attempt 详情" },
+        },
       ],
     },
   ],
