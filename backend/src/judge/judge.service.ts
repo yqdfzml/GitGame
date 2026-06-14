@@ -80,7 +80,7 @@ export class JudgeService {
           satisfied.push(`branchHeads:${branch}`);
         } else {
           gaps.push({
-            key: "branchHeads",
+            key: `branchHeads:${branch}`,
             message: `分支 '${branch}' 应指向 '${expectedCommit}'，实际为 '${actualCommit}'`,
           });
         }
@@ -97,8 +97,8 @@ export class JudgeService {
           satisfied.push(`fileContents:${path}`);
         } else {
           gaps.push({
-            key: "fileContents",
-            message: `文件 '${path}' 内容不符合目标`,
+            key: `fileContents:${path}`,
+            message: `提交历史中 '${path}' 内容不符合目标`,
           });
         }
       }
@@ -113,8 +113,8 @@ export class JudgeService {
           satisfied.push(`workingTreeContents:${path}`);
         } else {
           gaps.push({
-            key: "workingTreeContents",
-            message: `工作区文件 '${path}' 内容不符合目标`,
+            key: `workingTreeContents:${path}`,
+            message: `工作区 '${path}' 内容不符合目标`,
           });
         }
       }
@@ -129,7 +129,7 @@ export class JudgeService {
           satisfied.push(`untrackedFiles:${path}`);
         } else {
           gaps.push({
-            key: "untrackedFiles",
+            key: `untrackedFiles:${path}`,
             message: `文件 '${path}' 应保持未跟踪状态`,
           });
         }
@@ -144,8 +144,8 @@ export class JudgeService {
           satisfied.push(`indexContents:${path}`);
         } else {
           gaps.push({
-            key: "indexContents",
-            message: `暂存区文件 '${path}' 内容不符合目标`,
+            key: `indexContents:${path}`,
+            message: `暂存区 '${path}' 内容不符合目标`,
           });
         }
       }

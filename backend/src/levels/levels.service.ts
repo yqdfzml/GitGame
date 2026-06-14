@@ -110,13 +110,19 @@ const buildGoalHints = (goal: Record<string, unknown>): string[] => {
     hints.push("不能有未解决冲突");
   }
   if (goal.fileContents) {
-    hints.push("HEAD 提交中的部分文件需要达到指定内容");
+    for (const path of Object.keys(goal.fileContents as Record<string, string>)) {
+      hints.push(`提交后 ${path} 需达到目标内容`);
+    }
   }
   if (goal.workingTreeContents) {
-    hints.push("工作区中部分文件需要达到指定内容");
+    for (const path of Object.keys(goal.workingTreeContents as Record<string, string>)) {
+      hints.push(`工作区 ${path} 需达到目标内容`);
+    }
   }
   if (goal.indexContents) {
-    hints.push("暂存区需要包含指定文件");
+    for (const path of Object.keys(goal.indexContents as Record<string, string>)) {
+      hints.push(`暂存区需包含 ${path}`);
+    }
   }
   if (goal.untrackedFiles) {
     hints.push("部分文件需要保持未跟踪状态");

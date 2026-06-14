@@ -14,8 +14,8 @@ const levelId = route.params.levelId as string;
 
 /** 关卡标题 */
 const levelTitle = ref("");
-/** 目标提示 */
-const goalHints = ref<string[]>([]);
+/** 关卡任务说明 */
+const levelDescription = ref("");
 /** 当前 attempt id */
 const attemptId = ref("");
 /** 当前仓库状态 */
@@ -49,7 +49,6 @@ const progressPct = computed(() => {
   return calcChallengeProgress(
     judge.value,
     initialGapCount.value,
-    initialSatisfiedKeys.value,
   );
 });
 
@@ -84,7 +83,7 @@ const scrollTerminalToBottom = () => {
 onMounted(() => {
   levelsApi.get(levelId).then((level) => {
     levelTitle.value = level.title;
-    goalHints.value = level.goalHints;
+    levelDescription.value = level.description;
   });
 
   attemptsApi.create(levelId).then((attempt) => {
@@ -198,7 +197,7 @@ const goReplay = () => {
           <p class="panel-title">目标反馈</p>
           <GoalFeedback
             :judge="judge"
-            :goal-hints="goalHints"
+            :task-description="levelDescription"
             :progress-pct="progressPct"
             :initial-gap-count="initialGapCount"
             :initial-satisfied-keys="initialSatisfiedKeys"

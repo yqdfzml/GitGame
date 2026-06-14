@@ -1,31 +1,30 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { JudgeResult } from "../types";
-import { calcResolvedCount, calcTotalGoalCount } from "../utils/challengeProgress";
+import { calcResolvedCount } from "../utils/challengeProgress";
 
 const props = defineProps<{
   /** 判题结果 */
   judge: JudgeResult;
-  /** 目标提示列表 */
-  goalHints: string[];
+  /** 关卡任务说明 */
+  taskDescription: string;
   /** 完成进度百分比 */
   progressPct: number;
-  /** 开局时的差距项数量，用于展示从 0 开始的完成数 */
+  /** 开局时的差距项数量，进度从 0 起算 */
   initialGapCount?: number;
-  /** 开局时已满足的条件 key，不在「已达成」中重复展示 */
+  /** 开局时已满足的条件 key，用于「已达成」展示 */
   initialSatisfiedKeys?: string[];
 }>();
 
-/** 本轮已完成的目标项数量 */
+/** 玩家本轮需消除的差距项总数（等于开局差距项数） */
+const targetCount = computed(() => props.initialGapCount ?? 0);
+
+/** 玩家本轮已消除的差距项数量 */
 const resolvedCount = computed(() => {
-  if (props.initialGapCount !== undefined) {
-    return calcResolvedCount(
-      props.judge,
-      props.initialGapCount,
-      props.initialSatisfiedKeys ?? [],
-    );
+  if (props.initialGapCount === undefined) {
+    return props.judge.satisfied.length;
   }
-  return props.judge.satisfied.length;
+  return calcResolvedCount(props.judge, props.initialGapCount);
 });
 
 /** 本轮玩家新达成的条件 */
@@ -34,24 +33,13 @@ const visibleSatisfied = computed(() => {
   return props.judge.satisfied.filter((item) => !baseline.includes(item));
 });
 
-/** 本轮需要玩家完成的目标项总数 */
-const targetCount = computed(() => {
-  if (props.initialGapCount !== undefined) {
-    return calcTotalGoalCount(
-      props.judge,
-      props.initialGapCount,
-      props.initialSatisfiedKeys ?? [],
-    );
-  }
-  return props.judge.satisfied.length + props.judge.gaps.length;
-});
-
-/** 顶部状态文案：观察型关卡在状态符合但未通关时给出引导 */
+/** 顶部状态文案 */
 const statusLabel = computed(() => {
   if (props.judge.passed) {
     return "目标已达成";
   }
-  const hasOnlyMinStepsGap = props.judge.gaps.length === 1 && props.judge.gaps[0]?.key === "minSteps";
+  const hasOnlyMinStepsGap =
+    props.judge.gaps.length === 1 && props.judge.gaps[0]?.key === "minSteps";
   if (hasOnlyMinStepsGap && props.judge.satisfied.length > 0) {
     return "状态已符合";
   }
@@ -71,18 +59,15 @@ const statusLabel = computed(() => {
       </div>
     </div>
 
-    <p class="panel-title">目标提示</p>
-    <ul class="hint-list">
-      <li v-for="(hint, i) in goalHints" :key="i">{{ hint }}</li>
-      <li v-if="goalHints.length === 0" class="empty-hint">暂无提示</li>
-    </ul>
+    <p class="panel-title">关卡目标</p>
+    <p class="task-desc">{{ taskDescription }}</p>
 
     <p v-if="visibleSatisfied.length > 0" class="panel-title">已达成</p>
     <ul v-if="visibleSatisfied.length > 0" class="satisfied-list">
       <li v-for="item in visibleSatisfied" :key="item" class="satisfied-item">{{ item }}</li>
     </ul>
 
-    <p class="panel-title">差距</p>
+    <p class="panel-title">待完成</p>
     <ul class="gap-list">
       <li v-for="gap in judge.gaps" :key="gap.key + gap.message" class="gap-item">{{ gap.message }}</li>
       <li v-if="judge.gaps.length === 0" class="empty-hint" style="color:var(--accent-2)">全部达成！</li>

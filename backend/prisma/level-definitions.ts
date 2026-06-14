@@ -110,7 +110,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       ...makeRepoWithCommit("main", "w4d5e6f", "base", { "app.js": "clean" }),
       workingTree: { "app.js": { content: "dirty", status: "modified" } },
     },
-    goal: { workingTreeClean: true, indexEmpty: true, workingTreeContents: { "app.js": "clean" } },
+    goal: { workingTreeClean: true, indexEmpty: true },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
   },
 
@@ -131,7 +131,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       ...makeRepoWithCommit("main", "s2b3c4d", "base", { "app.js": "v1", "debug.log": "old log" }),
       workingTree: { "app.js": { content: "v2", status: "modified" }, "debug.log": { content: "new log", status: "modified" } },
     },
-    goal: { fileContents: { "app.js": "v2" }, workingTreeContents: { "debug.log": "new log" }, indexEmpty: true, currentBranch: "main" },
+    goal: { fileContents: { "app.js": "v2" }, workingTreeContents: { "debug.log": "new log" }, indexEmpty: true },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
   },
   {
@@ -143,7 +143,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       index: { "app.js": "v2" },
       workingTree: { "app.js": { content: "v2", status: "modified" }, "todo.txt": { content: "wip task", status: "modified" } },
     },
-    goal: { fileContents: { "app.js": "v2" }, workingTreeContents: { "todo.txt": "wip task" }, indexEmpty: true, currentBranch: "main" },
+    goal: { fileContents: { "app.js": "v2" }, workingTreeContents: { "todo.txt": "wip task" }, indexEmpty: true },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
   },
   {
@@ -329,7 +329,7 @@ export const ALL_LEVELS: LevelSeed[] = [
     description: "app.js 被误改，用 restore 恢复到 HEAD。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: { ...makeRepoWithCommit("main", "u2b3c4d", "base", { "app.js": "correct" }), workingTree: { "app.js": { content: "wrong", status: "modified" } } },
-    goal: { workingTreeClean: true, workingTreeContents: { "app.js": "correct" }, currentBranch: "main" },
+    goal: { workingTreeClean: true, currentBranch: "main" },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
   },
   {
