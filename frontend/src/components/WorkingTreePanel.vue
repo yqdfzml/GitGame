@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { RepoState, StashEntry } from "../types";
+import { buildBranchColorMap, getBranchColor, getHeadBranchName } from "../utils/branchColors";
 import { fileStatusLabel } from "../utils/fileStatusLabel";
 
 const props = defineProps<{
@@ -10,6 +11,20 @@ const props = defineProps<{
 
 /** 贮藏栈列表，无数据时为空数组 */
 const stashList = computed(() => props.state.stash ?? []);
+
+/** 分支名到颜色的映射 */
+const branchColorMap = computed(() => buildBranchColorMap(Object.keys(props.state.branches)));
+
+/** HEAD 当前所在分支名 */
+const headBranchName = computed(() => getHeadBranchName(props.state));
+
+/** 当前分支在 HEAD 行使用的颜色 */
+const headBranchColor = computed(() => {
+  if (!headBranchName.value) {
+    return "var(--accent)";
+  }
+  return getBranchColor(headBranchName.value, branchColorMap.value);
+});
 
 /**
  * 汇总单条贮藏内的文件路径。
@@ -32,7 +47,10 @@ const stashFilePaths = (entry: StashEntry) => {
   <div class="working-tree-panel">
     <div class="head-badge working-tree-head">
       HEAD →
-      <strong>{{ state.head.type === 'branch' ? state.head.ref : state.head.ref.slice(0, 7) }}</strong>
+      <strong
+        class="working-tree-head-branch"
+        :style="{ '--branch-color': headBranchColor }"
+      >{{ state.head.type === 'branch' ? state.head.ref : state.head.ref.slice(0, 7) }}</strong>
       <span v-if="state.head.type === 'detached'" class="working-tree-detached">（分离 HEAD）</span>
     </div>
 

@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import { toPrismaJson } from "../src/common/json.util";
+import { convertLegacyPracticeScore, DEFAULT_LEVEL_BASE_SCORE } from "../src/judge/scoring.constants";
 import { ALL_LEVELS } from "./level-definitions";
 
 const prisma = new PrismaClient();
@@ -185,6 +186,8 @@ async function main() {
     }
   }
 
+  await normalizeLegacyPracticeScores();
+
   const completedResults = await prisma.levelResult.findMany({
     include: { user: { select: { displayName: true } } },
   });
@@ -207,6 +210,31 @@ async function main() {
   }
 
   console.log(`种子数据写入完成：2 用户 + ${ALL_LEVELS.length} 关卡 + 演示排行榜`);
+}
+
+/**
+ * 折算旧版 100 分制的通关得分。
+ * 功能：更新 levelResult 中仍高于当前满分的记录，避免排行榜总分虚高。
+ * 参数：无。
+ * 返回值：Promise<void>。
+ */
+async function normalizeLegacyPracticeScores() {
+  const legacyResults = await prisma.levelResult.findMany({
+    where: { score: { gt: DEFAULT_LEVEL_BASE_SCORE } },
+    select: { id: true, score: true },
+  });
+
+  for (const row of legacyResults) {
+    const nextScore = convertLegacyPracticeScore(row.score);
+    await prisma.levelResult.update({
+      where: { id: row.id },
+      data: { score: nextScore },
+    });
+  }
+
+  if (legacyResults.length > 0) {
+    console.log(`已折算 ${legacyResults.length} 条旧版通关得分（100 分制 → 30 分制）`);
+  }
 }
 
 main()

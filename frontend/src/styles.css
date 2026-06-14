@@ -2294,19 +2294,48 @@ a:hover { color: var(--accent-hover); }
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
 .commit-node {
-  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
-  border-radius: 6px; margin-bottom: 4px; transition: background var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  transition: background var(--transition);
 }
 .commit-node:hover { background: var(--surface-hover); }
 .commit-node.is-head { background: var(--accent-soft); }
-.commit-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
-.commit-dot.head { background: var(--accent-2); box-shadow: 0 0 8px rgba(47, 179, 136, 0.5); }
-.commit-id { color: var(--accent); font-weight: 500; }
-.commit-msg { color: var(--text-muted); }
+.commit-id { color: var(--accent); font-weight: 500; flex-shrink: 0; }
+.commit-msg {
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
 .commit-branch {
-  margin-left: auto; font-size: 0.7rem; padding: 2px 8px;
-  background: var(--accent-soft); color: var(--accent); border-radius: 4px;
+  margin-left: auto;
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border: 1px solid var(--branch-color);
+  border-radius: 4px;
+  color: var(--branch-color);
+  background: transparent;
+  flex-shrink: 0;
+}
+.commit-branch.is-current {
+  color: #0c0a09;
+  background: var(--branch-color);
+}
+.commit-head-tag {
+  font-size: 0.62rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(154, 146, 136, 0.18);
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .head-badge {
@@ -2315,6 +2344,13 @@ a:hover { color: var(--accent-hover); }
   font-family: var(--font-mono); font-size: 0.78rem;
 }
 .head-badge strong { color: var(--accent); }
+
+.working-tree-head-branch {
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #0c0a09 !important;
+  background: var(--branch-color);
+}
 
 .working-tree-panel {
   display: flex;
