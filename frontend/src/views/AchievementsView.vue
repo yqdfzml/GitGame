@@ -169,47 +169,58 @@ const switchCategory = (category: BadgeCategory) => {
 
     <template v-if="!loading && !error && badgeData">
       <section class="achievements-hero card">
-        <div class="achievements-hero-main">
-          <div class="achievements-title-block">
-            <span class="achievements-label">当前称号</span>
-            <strong
-              v-if="badgeData.activeTitle"
-              class="achievements-active-title"
-              :style="{ color: badgeData.activeTitle.color }"
-            >
-              {{ badgeData.activeTitle.name }}
-            </strong>
-            <strong v-else class="achievements-active-title muted">尚未获得称号</strong>
+        <div class="achievements-hero-head">
+          <div class="achievements-titles">
+            <div class="achievements-title-item">
+              <span class="achievements-label">当前称号</span>
+              <strong
+                v-if="badgeData.activeTitle"
+                class="achievements-active-title"
+                :style="{ color: badgeData.activeTitle.color }"
+              >
+                {{ badgeData.activeTitle.name }}
+              </strong>
+              <strong v-else class="achievements-active-title muted">尚未获得称号</strong>
+            </div>
+
+            <span class="achievements-title-sep">→</span>
+
+            <div class="achievements-title-item">
+              <span class="achievements-label">下一称号</span>
+              <strong
+                v-if="nextTitleBadge"
+                class="achievements-next-title"
+                :style="{ color: nextTitleBadge.color }"
+              >
+                {{ nextTitleBadge.name }}
+              </strong>
+              <strong v-else class="achievements-next-title muted">已满级</strong>
+            </div>
           </div>
 
-          <div class="achievements-title-block">
-            <span class="achievements-label">下一称号</span>
-            <strong
-              v-if="nextTitleBadge"
-              class="achievements-next-title"
-              :style="{ color: nextTitleBadge.color }"
-            >
-              {{ nextTitleBadge.name }}
-            </strong>
-            <strong v-else class="achievements-next-title muted">已满级</strong>
+          <div class="home-main-kpis achievements-hero-kpis">
+            <span class="home-main-kpi">
+              <em>段位</em>
+              <strong>{{ badgeData.rank.name }}</strong>
+            </span>
+            <span class="home-main-kpi">
+              <em>徽章</em>
+              <strong>{{ badgeData.unlockedCount }}/{{ badgeData.totalCount }}</strong>
+            </span>
+            <span class="home-main-kpi">
+              <em>称号</em>
+              <strong>{{ titleProgressPercent }}%</strong>
+            </span>
           </div>
         </div>
 
-        <div class="achievements-hero-side">
-          <div class="achievements-rank-block">
-            <span class="achievements-label">段位</span>
-            <strong>{{ badgeData.rank.name }}</strong>
+        <div class="achievements-hero-foot">
+          <div class="achievements-hero-progress-top">
+            <span class="achievements-label">称号修行进度</span>
+            <span class="achievements-hero-progress-num">{{ titleProgressPercent }}%</span>
           </div>
-          <div class="achievements-progress-block">
-            <span class="achievements-label">徽章进度</span>
-            <strong>{{ badgeData.unlockedCount }}/{{ badgeData.totalCount }}</strong>
-          </div>
-          <div class="achievements-progress-block">
-            <span class="achievements-label">称号进度</span>
-            <strong>{{ titleProgressPercent }}%</strong>
-            <div class="progress-track achievements-title-track">
-              <div :style="{ width: `${titleProgressPercent}%` }" />
-            </div>
+          <div class="progress-track achievements-title-track">
+            <div :style="{ width: `${titleProgressPercent}%` }" />
           </div>
         </div>
       </section>
