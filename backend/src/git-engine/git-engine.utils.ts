@@ -7,7 +7,11 @@ import type { CommitNode, RepoState } from "./repo-state.types";
  * 返回值：新的 RepoState 副本。
  */
 export const cloneRepoState = (state: RepoState): RepoState => {
-  return JSON.parse(JSON.stringify(state)) as RepoState;
+  const cloned = JSON.parse(JSON.stringify(state)) as RepoState;
+  if (!cloned.stash) {
+    cloned.stash = [];
+  }
+  return cloned;
 };
 
 /**
@@ -156,6 +160,8 @@ export const createCommit = (
   };
   state.commits[commitId] = commit;
   state.index = {};
+  state.conflicts = {};
+  state.merging = undefined;
   state.workingTree = {};
   for (const [path, content] of Object.entries(files)) {
     state.workingTree[path] = { content, status: "unchanged" };
@@ -182,6 +188,18 @@ export const checkoutRef = (state: RepoState, ref: string): string => {
     throw new Error(`路径规格 '${ref}' 未匹配到任何已知 ref`);
   }
 
+  // 切换分支前检查工作区与暂存区，避免无声丢失修改
+  const targetBranch = state.branches[ref] ? ref : null;
+  const currentBranch = state.head.type === "branch" ? state.head.ref : null;
+  if (targetBranch && currentBranch && targetBranch !== currentBranch) {
+    refreshWorkingTreeStatus(state);
+    const hasDirtyWorkingTree = !isWorkingTreeClean(state);
+    const hasStagedChanges = !isIndexEmpty(state);
+    if (hasDirtyWorkingTree || hasStagedChanges) {
+      throw new Error("请先提交或贮藏您的修改，再切换分支");
+    }
+  }
+
   if (state.branches[ref]) {
     state.head = { type: "branch", ref };
   } else {
@@ -191,6 +209,7 @@ export const checkoutRef = (state: RepoState, ref: string): string => {
   const files = state.commits[commitId]?.files ?? {};
   state.index = {};
   state.conflicts = {};
+  state.merging = undefined;
   state.workingTree = {};
   for (const [path, content] of Object.entries(files)) {
     state.workingTree[path] = { content, status: "unchanged" };
@@ -229,6 +248,87 @@ export const isAncestor = (state: RepoState, ancestor: string, commitId: string)
     }
   }
   return false;
+};
+
+/**
+ * 查找两个提交的最近公共祖先（merge-base）。
+ * 功能：三方合并时获取 base 版本内容。
+ * 参数：state - 仓库；commitA/commitB - 两个提交 id。
+ * 返回值：公共祖先 commit id，找不到时返回 null。
+ */
+export const findMergeBase = (
+  state: RepoState,
+  commitA: string,
+  commitB: string,
+): string | null => {
+  const ancestorsA = new Set<string>();
+  const stackA = [commitA];
+  while (stackA.length > 0) {
+    const current = stackA.pop()!;
+    if (ancestorsA.has(current)) continue;
+    ancestorsA.add(current);
+    const node = state.commits[current];
+    if (!node) continue;
+    for (const parent of node.parents) {
+      stackA.push(parent);
+    }
+  }
+
+  const stackB = [commitB];
+  const visitedB = new Set<string>();
+  while (stackB.length > 0) {
+    const current = stackB.pop()!;
+    if (visitedB.has(current)) continue;
+    visitedB.add(current);
+    if (ancestorsA.has(current)) {
+      return current;
+    }
+    const node = state.commits[current];
+    if (!node) continue;
+    for (const parent of node.parents) {
+      stackB.push(parent);
+    }
+  }
+  return null;
+};
+
+/**
+ * 尝试按行合并两个文件版本。
+ * 功能：当双方修改不同行时自动合并，同行冲突则返回 null。
+ * 参数：base/ours/theirs - 三个版本的全文。
+ * 返回值：合并结果，无法自动合并时返回 null。
+ */
+export const tryLineMerge = (
+  base: string,
+  ours: string,
+  theirs: string,
+): string | null => {
+  const baseLines = base.split("\n");
+  const ourLines = ours.split("\n");
+  const theirLines = theirs.split("\n");
+  const maxLen = Math.max(baseLines.length, ourLines.length, theirLines.length);
+  const merged: string[] = [];
+
+  for (let i = 0; i < maxLen; i += 1) {
+    const baseLine = baseLines[i] ?? "";
+    const ourLine = ourLines[i] ?? baseLine;
+    const theirLine = theirLines[i] ?? baseLine;
+    const ourChanged = ourLine !== baseLine;
+    const theirChanged = theirLine !== baseLine;
+
+    if (ourChanged && theirChanged && ourLine !== theirLine) {
+      return null;
+    }
+    if (ourChanged) {
+      merged.push(ourLine);
+    } else if (theirChanged) {
+      merged.push(theirLine);
+    } else {
+      merged.push(baseLine);
+    }
+  }
+
+  return merged.join("\n");
 };
 
 /**
@@ -341,6 +441,37 @@ export const formatLog = (state: RepoState, maxCount = 20): string => {
 };
 
 /**
+ * 将工作区与暂存区重置为 HEAD 快照。
+ * 功能：stash 贮藏后或 hard reset 时恢复干净工作区。
+ * 参数：state - 仓库状态（会被原地修改）。
+ * 返回值：无。
+ */
+export const resetWorkingTreeToHead = (state: RepoState): void => {
+  const headFiles = getHeadFiles(state);
+  state.workingTree = {};
+  for (const [path, content] of Object.entries(headFiles)) {
+    state.workingTree[path] = { content, status: "unchanged" };
+  }
+  state.index = {};
+  state.conflicts = {};
+};
+
+/**
+ * 判断是否存在未提交的本地变更。
+ * 功能：供 stash 与切换分支前的守卫逻辑使用。
+ * 参数：state - 仓库状态。
+ * 返回值：true 表示有变更可贮藏。
+ */
+export const hasLocalChanges = (state: RepoState): boolean => {
+  refreshWorkingTreeStatus(state);
+  const hasDirtyWorkingTree = Object.values(state.workingTree).some(
+    (file) => file.status !== "unchanged",
+  );
+  const hasStagedChanges = Object.keys(state.index).length > 0;
+  return hasDirtyWorkingTree || hasStagedChanges;
+};
+
+/**
  * 解析用户输入的 Git 命令为 token 数组。
  * 功能：支持引号包裹的参数。
  * 参数：raw - 原始命令字符串。
@@ -411,6 +542,8 @@ export const ALLOWED_GIT_COMMANDS = new Set([
   "reset",
   "revert",
   "restore",
+  "stash",
+  "cherry-pick",
 ]);
 
 /**

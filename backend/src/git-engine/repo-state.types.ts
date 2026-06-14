@@ -43,6 +43,18 @@ export interface ConflictFile {
   theirs: string;
 }
 
+/** stash 条目，保存被贮藏的工作区与暂存区快照 */
+export interface StashEntry {
+  /** stash 引用 id，如 stash@{0} */
+  id: string;
+  /** 贮藏说明 */
+  message: string;
+  /** 贮藏时的工作区文件 */
+  workingTree: Record<string, WorkingFile>;
+  /** 贮藏时的暂存区 */
+  index: Record<string, string>;
+}
+
 /** 虚拟 Git 仓库完整状态 */
 export interface RepoState {
   /** 所有提交，key 为 commit id */
@@ -57,6 +69,10 @@ export interface RepoState {
   index: Record<string, string>;
   /** 未解决冲突 */
   conflicts: Record<string, ConflictFile>;
+  /** 贮藏栈，最新条目在数组末尾 */
+  stash: StashEntry[];
+  /** 进行中的合并操作，冲突解决后 commit 时用于生成双父提交 */
+  merging?: { branch: string; commitId: string };
 }
 
 /** 命令执行结果 */
@@ -77,8 +93,16 @@ export interface LevelGoal {
   currentBranch?: string;
   /** 指定分支应包含的 commit id */
   branchContains?: Array<{ branch: string; commit: string }>;
-  /** 期望的文件最终内容 */
+  /** 分支指针必须指向的 commit id */
+  branchHeads?: Record<string, string>;
+  /** HEAD 提交中期望的文件内容 */
   fileContents?: Record<string, string>;
+  /** 工作区中期望的文件内容 */
+  workingTreeContents?: Record<string, string>;
+  /** 必须保持未跟踪状态的文件路径 */
+  untrackedFiles?: string[];
+  /** 暂存区中期望的文件内容 */
+  indexContents?: Record<string, string>;
   /** 工作区是否 clean */
   workingTreeClean?: boolean;
   /** 暂存区是否 empty */
@@ -89,6 +113,10 @@ export interface LevelGoal {
   commitsExist?: string[];
   /** source 分支已合并到 target */
   branchMerged?: Array<{ source: string; target: string }>;
+  /** HEAD 提交必须是 merge commit（两个父提交） */
+  mergeCommitRequired?: boolean;
+  /** 贮藏栈中必须保存的工作区内容 */
+  stashContents?: Record<string, string>;
 }
 
 /** 关卡约束 */

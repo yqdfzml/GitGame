@@ -110,7 +110,25 @@ const buildGoalHints = (goal: Record<string, unknown>): string[] => {
     hints.push("不能有未解决冲突");
   }
   if (goal.fileContents) {
-    hints.push("部分文件需要达到指定内容");
+    hints.push("HEAD 提交中的部分文件需要达到指定内容");
+  }
+  if (goal.workingTreeContents) {
+    hints.push("工作区中部分文件需要达到指定内容");
+  }
+  if (goal.indexContents) {
+    hints.push("暂存区需要包含指定文件");
+  }
+  if (goal.untrackedFiles) {
+    hints.push("部分文件需要保持未跟踪状态");
+  }
+  if (goal.branchHeads) {
+    hints.push("指定分支需要指向目标提交");
+  }
+  if (goal.mergeCommitRequired) {
+    hints.push("需要产生 merge commit（两个父提交）");
+  }
+  if (goal.stashContents) {
+    hints.push("需要将当前修改贮藏起来");
   }
   if (goal.branchMerged) {
     hints.push("需要将指定分支合并到目标分支");

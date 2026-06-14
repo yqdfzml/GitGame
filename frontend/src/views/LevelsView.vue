@@ -56,12 +56,12 @@ const topicCards = computed(() => {
     const completedCount = chapterLevels.filter((level) =>
       completedLevelIds.value.includes(level.id),
     ).length;
-    const totalCount = chapterLevels.length > 0 ? chapterLevels.length : 1;
+    const totalCount = chapterLevels.length;
 
     return {
       chapterId,
       presentation,
-      level: chapterLevels[0],
+      levelCount: chapterLevels.length,
       completedCount,
       totalCount,
     };
@@ -107,8 +107,9 @@ const routePercent = computed(() => {
           <LevelChallengeCard
             v-for="topic in topicCards"
             :key="topic.chapterId"
+            :chapter-id="topic.chapterId"
             :presentation="topic.presentation"
-            :level="topic.level"
+            :level-count="topic.levelCount"
             :completed-count="topic.completedCount"
             :total-count="topic.totalCount"
           />

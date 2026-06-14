@@ -16,6 +16,7 @@ const levelJson = ref(JSON.stringify({
     workingTree: {},
     index: {},
     conflicts: {},
+    stash: [],
   },
   goal: { workingTreeClean: true },
   constraints: { baseScore: 100, stepPenalty: 2 },

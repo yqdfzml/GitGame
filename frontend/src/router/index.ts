@@ -24,6 +24,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/levels/:chapterId",
+      name: "chapter-levels",
+      component: () => import("../views/ChapterLevelsView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/achievements",
       name: "achievements",
       component: () => import("../views/AchievementsView.vue"),

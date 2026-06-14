@@ -10,6 +10,7 @@ import {
   isAncestor,
   isIndexEmpty,
   isWorkingTreeClean,
+  refreshWorkingTreeStatus,
 } from "../git-engine/git-engine.utils";
 
 /**
@@ -67,7 +68,26 @@ export class JudgeService {
       }
     }
 
-    // 3. 检查文件最终内容
+    // 2b. 检查分支指针是否指向指定 commit
+    if (goal.branchHeads) {
+      for (const [branch, expectedCommit] of Object.entries(goal.branchHeads)) {
+        const actualCommit = state.branches[branch];
+        if (!actualCommit) {
+          gaps.push({ key: "branchHeads", message: `分支 '${branch}' 不存在` });
+          continue;
+        }
+        if (actualCommit === expectedCommit) {
+          satisfied.push(`branchHeads:${branch}`);
+        } else {
+          gaps.push({
+            key: "branchHeads",
+            message: `分支 '${branch}' 应指向 '${expectedCommit}'，实际为 '${actualCommit}'`,
+          });
+        }
+      }
+    }
+
+    // 3. 检查 HEAD 提交中的文件内容
     if (goal.fileContents) {
       const headId = getHeadCommitId(state);
       const headFiles = headId ? state.commits[headId]?.files ?? {} : {};
@@ -79,6 +99,53 @@ export class JudgeService {
           gaps.push({
             key: "fileContents",
             message: `文件 '${path}' 内容不符合目标`,
+          });
+        }
+      }
+    }
+
+    // 3b. 检查工作区文件内容
+    if (goal.workingTreeContents) {
+      refreshWorkingTreeStatus(state);
+      for (const [path, expected] of Object.entries(goal.workingTreeContents)) {
+        const actual = state.workingTree[path]?.content;
+        if (actual === expected) {
+          satisfied.push(`workingTreeContents:${path}`);
+        } else {
+          gaps.push({
+            key: "workingTreeContents",
+            message: `工作区文件 '${path}' 内容不符合目标`,
+          });
+        }
+      }
+    }
+
+    // 3c. 检查文件必须保持未跟踪
+    if (goal.untrackedFiles) {
+      refreshWorkingTreeStatus(state);
+      for (const path of goal.untrackedFiles) {
+        const file = state.workingTree[path];
+        if (file && (file.status === "untracked" || file.status === "added")) {
+          satisfied.push(`untrackedFiles:${path}`);
+        } else {
+          gaps.push({
+            key: "untrackedFiles",
+            message: `文件 '${path}' 应保持未跟踪状态`,
+          });
+        }
+      }
+    }
+
+    // 3d. 检查暂存区文件内容
+    if (goal.indexContents) {
+      for (const [path, expected] of Object.entries(goal.indexContents)) {
+        const actual = state.index[path];
+        if (actual === expected) {
+          satisfied.push(`indexContents:${path}`);
+        } else {
+          gaps.push({
+            key: "indexContents",
+            message: `暂存区文件 '${path}' 内容不符合目标`,
           });
         }
       }
@@ -139,6 +206,37 @@ export class JudgeService {
             message: `'${item.source}' 尚未合并到 '${item.target}'`,
           });
         }
+      }
+    }
+
+    // 9. HEAD 必须是 merge commit
+    if (goal.mergeCommitRequired) {
+      const headId = getHeadCommitId(state);
+      const headCommit = headId ? state.commits[headId] : null;
+      if (headCommit && headCommit.parents.length >= 2) {
+        satisfied.push("mergeCommitRequired");
+      } else {
+        gaps.push({ key: "mergeCommitRequired", message: "当前提交应为 merge commit（两个父提交）" });
+      }
+    }
+
+    // 10. 贮藏栈中必须保存指定工作区内容
+    if (goal.stashContents) {
+      const stashList = state.stash ?? [];
+      let matched = false;
+      for (const entry of stashList) {
+        const allMatch = Object.entries(goal.stashContents).every(
+          ([path, expected]) => entry.workingTree[path]?.content === expected,
+        );
+        if (allMatch) {
+          matched = true;
+          break;
+        }
+      }
+      if (matched) {
+        satisfied.push("stashContents");
+      } else {
+        gaps.push({ key: "stashContents", message: "贮藏栈中未找到目标工作内容" });
       }
     }
 

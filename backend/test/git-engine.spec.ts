@@ -15,6 +15,7 @@ const baseState: RepoState = {
   workingTree: { "a.txt": { content: "hello", status: "unchanged" } },
   index: {},
   conflicts: {},
+  stash: [],
 };
 
 describe("GitEngineService", () => {
@@ -73,6 +74,7 @@ describe("merge 多路径", () => {
     workingTree: { "x": { content: "1", status: "unchanged" } },
     index: {},
     conflicts: {},
+    stash: [],
   };
 
   it("merge 路径可通关", () => {

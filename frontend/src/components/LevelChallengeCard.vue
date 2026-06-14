@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { LevelSummary } from "../types";
 import type { LevelPresentation } from "../utils/levelPresentation";
 import { kindIconMap } from "../utils/levelPresentation";
 
 const props = defineProps<{
   /** 主题展示元数据 */
   presentation: LevelPresentation;
-  /** 该主题下首关，无则视为未开放 */
-  level?: LevelSummary;
+  /** 章节 id */
+  chapterId: string;
+  /** 该主题下关卡数量 */
+  levelCount: number;
   /** 主题内已通关数 */
   completedCount: number;
   /** 主题内关卡总数 */
@@ -24,16 +25,16 @@ const isDone = computed(() => props.totalCount > 0 && props.completedCount >= pr
 /** 进度文案，如 0/1 或 1/1 */
 const progressLabel = computed(() => `${props.completedCount}/${props.totalCount}`);
 
-/** 卡片简短说明：开放关卡用主题描述，未开放用轻提示 */
+/** 卡片简短说明：开放章节用主题描述，未开放用轻提示 */
 const cardHint = computed(() =>
-  props.level ? props.presentation.topicDesc : props.presentation.lockedHint,
+  props.levelCount > 0 ? props.presentation.topicDesc : props.presentation.lockedHint,
 );
 </script>
 
 <template>
   <RouterLink
-    v-if="level"
-    :to="`/practice/${level.id}`"
+    v-if="levelCount > 0"
+    :to="`/levels/${chapterId}`"
     class="topic-card"
     :class="{ done: isDone, open: !isDone }"
   >

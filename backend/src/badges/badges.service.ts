@@ -312,7 +312,7 @@ export class BadgesService {
       case "title_02":
         return completedCount >= 2;
       case "title_03":
-        return context.clearedChapterIds.includes("commit");
+        return context.clearedChapterIds.includes("workspace");
       case "title_04":
         return context.clearedChapterIds.includes("branch");
       case "title_05":
@@ -320,7 +320,7 @@ export class BadgesService {
       case "title_06":
         return context.clearedChapterIds.includes("undo");
       case "title_07":
-        return context.clearedChapterIds.includes("staging");
+        return context.clearedChapterIds.includes("snapshot");
       case "title_08":
         return this.hasHistoryCommandInCompletedAttempt(context);
       case "title_09":

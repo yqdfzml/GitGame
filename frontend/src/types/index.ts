@@ -60,6 +60,8 @@ export interface RepoState {
   workingTree: Record<string, WorkingFile>;
   index: Record<string, string>;
   conflicts: Record<string, unknown>;
+  /** 贮藏栈 */
+  stash?: Array<{ id: string; message: string }>;
 }
 
 /** 命令历史条目 */

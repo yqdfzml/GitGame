@@ -4,13 +4,17 @@ import {
   checkoutRef,
   cloneRepoState,
   createCommit,
+  findMergeBase,
   formatLog,
   formatStatus,
   getHeadCommitId,
   getHeadFiles,
+  hasLocalChanges,
   isAncestor,
   refreshWorkingTreeStatus,
+  resetWorkingTreeToHead,
   resolveRef,
+  tryLineMerge,
   validateCommandInput,
 } from "./git-engine.utils";
 
@@ -67,6 +71,10 @@ export class GitEngineService {
           return this.handleRevert(state, tokens.slice(2));
         case "restore":
           return this.handleRestore(state, tokens.slice(2));
+        case "stash":
+          return this.handleStash(state, tokens.slice(2));
+        case "cherry-pick":
+          return this.handleCherryPick(state, tokens.slice(2));
         default:
           return {
             success: false,
@@ -138,7 +146,12 @@ export class GitEngineService {
     }
 
     const parentId = getHeadCommitId(state);
-    const parents = parentId ? [parentId] : [];
+    let parents = parentId ? [parentId] : [];
+    // 冲突解决后的提交需要保留 merge 的双父结构
+    if (state.merging && parentId) {
+      parents = [parentId, state.merging.commitId];
+    }
+
     const commitId = createCommit(state, message, parents);
 
     return {
@@ -173,8 +186,16 @@ export class GitEngineService {
     return { success: true, output: "", feedback: `已创建分支 '${branchName}'`, state };
   }
 
-  /** 处理 git checkout，切换或 -b 创建分支 */
+  /** 处理 git checkout，切换或 -b 创建分支，合并冲突时支持 --ours/--theirs */
   private handleCheckout(state: RepoState, args: string[]): CommandResult {
+    const oursIndex = args.indexOf("--ours");
+    const theirsIndex = args.indexOf("--theirs");
+    if (oursIndex >= 0 || theirsIndex >= 0) {
+      const side = oursIndex >= 0 ? "ours" : "theirs";
+      const paths = args.filter((a) => !a.startsWith("-"));
+      return this.handleCheckoutConflictSide(state, paths, side);
+    }
+
     const createIndex = args.indexOf("-b");
     if (createIndex >= 0) {
       const branchName = args[createIndex + 1];
@@ -265,6 +286,8 @@ export class GitEngineService {
 
     const ours = state.commits[currentId].files;
     const theirs = state.commits[targetId].files;
+    const mergeBaseId = findMergeBase(state, currentId, targetId);
+    const baseFiles = mergeBaseId ? state.commits[mergeBaseId]?.files ?? {} : ours;
     const allPaths = new Set([...Object.keys(ours), ...Object.keys(theirs)]);
     state.conflicts = {};
     const mergedFiles: Record<string, string> = { ...ours };
@@ -272,14 +295,22 @@ export class GitEngineService {
     for (const path of allPaths) {
       const ourContent = ours[path];
       const theirContent = theirs[path];
+      const baseContent = baseFiles[path] ?? "";
+
       if (ourContent === theirContent) {
         if (ourContent !== undefined) {
           mergedFiles[path] = ourContent;
         }
         continue;
       }
-      if (ourContent !== undefined && theirContent !== undefined && ourContent !== theirContent) {
-        state.conflicts[path] = { base: ourContent, ours: ourContent, theirs: theirContent };
+
+      if (ourContent !== undefined && theirContent !== undefined) {
+        const lineMerged = tryLineMerge(baseContent, ourContent, theirContent);
+        if (lineMerged !== null) {
+          mergedFiles[path] = lineMerged;
+          continue;
+        }
+        state.conflicts[path] = { base: baseContent, ours: ourContent, theirs: theirContent };
         mergedFiles[path] = `<<<<<<< HEAD\n${ourContent}\n=======\n${theirContent}\n>>>>>>> ${branchName}`;
       } else if (theirContent !== undefined) {
         mergedFiles[path] = theirContent;
@@ -287,6 +318,7 @@ export class GitEngineService {
     }
 
     if (Object.keys(state.conflicts).length > 0) {
+      state.merging = { branch: branchName, commitId: targetId };
       state.index = { ...mergedFiles };
       state.workingTree = {};
       for (const [path, content] of Object.entries(mergedFiles)) {
@@ -344,6 +376,7 @@ export class GitEngineService {
         state.workingTree[path] = { content, status: "unchanged" };
       }
       state.conflicts = {};
+      state.merging = undefined;
     }
 
     return { success: true, output: "", feedback: `已 ${mode} reset 到 ${commitId}`, state };
@@ -405,5 +438,170 @@ export class GitEngineService {
     }
 
     return { success: true, output: "", feedback: "已恢复文件", state };
+  }
+
+  /**
+   * 处理合并冲突时选择 ours/theirs 版本。
+   * 功能：用冲突一方的内容覆盖工作区与暂存区，并清除该文件冲突标记。
+   * 参数：state - 仓库；paths - 文件路径列表；side - ours 或 theirs。
+   * 返回值：CommandResult。
+   */
+  private handleCheckoutConflictSide(
+    state: RepoState,
+    paths: string[],
+    side: "ours" | "theirs",
+  ): CommandResult {
+    if (paths.length === 0) {
+      return { success: false, output: "请指定冲突文件路径", feedback: "请指定冲突文件路径", state };
+    }
+
+    for (const path of paths) {
+      const conflict = state.conflicts[path];
+      if (!conflict) {
+        return {
+          success: false,
+          output: `文件 '${path}' 当前没有冲突`,
+          feedback: `文件 '${path}' 当前没有冲突`,
+          state,
+        };
+      }
+      const resolvedContent = side === "ours" ? conflict.ours : conflict.theirs;
+      state.workingTree[path] = { content: resolvedContent, status: "modified" };
+      state.index[path] = resolvedContent;
+      delete state.conflicts[path];
+    }
+
+    return {
+      success: true,
+      output: "",
+      feedback: `已采用 ${side === "ours" ? "当前分支" : "合并分支"} 版本解决冲突`,
+      state,
+    };
+  }
+
+  /**
+   * 处理 git stash 子命令。
+   * 功能：贮藏、恢复、列出本地修改。
+   * 参数：state - 仓库；args - stash 子命令及参数。
+   * 返回值：CommandResult。
+   */
+  private handleStash(state: RepoState, args: string[]): CommandResult {
+    if (!state.stash) {
+      state.stash = [];
+    }
+
+    const subCommand = args[0] ?? "push";
+
+    if (subCommand === "push" || subCommand === "save" || subCommand === "-u" || args.length === 0) {
+      refreshWorkingTreeStatus(state);
+      if (!hasLocalChanges(state)) {
+        return { success: false, output: "没有要贮藏的本地修改", feedback: "没有要贮藏的本地修改", state };
+      }
+
+      const stashId = `stash@{${state.stash.length}}`;
+      const branchName = state.head.type === "branch" ? state.head.ref : "detached";
+      const workingTreeCopy = JSON.parse(JSON.stringify(state.workingTree));
+      const indexCopy = { ...state.index };
+
+      state.stash.push({
+        id: stashId,
+        message: `WIP on ${branchName}`,
+        workingTree: workingTreeCopy,
+        index: indexCopy,
+      });
+
+      resetWorkingTreeToHead(state);
+      return {
+        success: true,
+        output: `Saved working directory and index state ${stashId}`,
+        feedback: `已贮藏当前修改到 ${stashId}`,
+        state,
+      };
+    }
+
+    if (subCommand === "list") {
+      if (state.stash.length === 0) {
+        return { success: true, output: "", feedback: "贮藏栈为空", state };
+      }
+      const lines = state.stash.map((entry, index) => `${entry.id}: ${entry.message}`);
+      return { success: true, output: lines.join("\n"), feedback: "已列出贮藏记录", state };
+    }
+
+    if (subCommand === "pop" || subCommand === "apply") {
+      if (state.stash.length === 0) {
+        return { success: false, output: "贮藏栈为空", feedback: "贮藏栈为空", state };
+      }
+
+      const entry = state.stash[subCommand === "pop" ? state.stash.length - 1 : state.stash.length - 1];
+      state.workingTree = JSON.parse(JSON.stringify(entry.workingTree));
+      state.index = { ...entry.index };
+      refreshWorkingTreeStatus(state);
+
+      if (subCommand === "pop") {
+        state.stash.pop();
+      }
+
+      return {
+        success: true,
+        output: subCommand === "pop" ? `Dropped ${entry.id}` : "",
+        feedback: subCommand === "pop" ? `已恢复并移除 ${entry.id}` : `已恢复 ${entry.id}`,
+        state,
+      };
+    }
+
+    return {
+      success: false,
+      output: `不支持的 stash 子命令: ${subCommand}`,
+      feedback: `不支持的 stash 子命令: ${subCommand}`,
+      state,
+    };
+  }
+
+  /**
+   * 处理 git cherry-pick，将指定提交应用到当前分支。
+   * 功能：复制目标提交相对其父提交的变更并生成新提交。
+   * 参数：state - 仓库；args - cherry-pick 参数。
+   * 返回值：CommandResult。
+   */
+  private handleCherryPick(state: RepoState, args: string[]): CommandResult {
+    const ref = args.find((a) => !a.startsWith("-"));
+    if (!ref) {
+      return { success: false, output: "请指定要 cherry-pick 的 commit", feedback: "请指定 commit", state };
+    }
+
+    const commitId = resolveRef(state, ref);
+    if (!commitId) {
+      return { success: false, output: `无法解析 commit '${ref}'`, feedback: "commit 不存在", state };
+    }
+
+    const sourceCommit = state.commits[commitId];
+    const parentId = sourceCommit.parents[0];
+    const parentFiles = parentId ? state.commits[parentId]?.files ?? {} : {};
+    const headFiles = getHeadFiles(state);
+    state.index = {};
+
+    for (const [path, content] of Object.entries(sourceCommit.files)) {
+      if (parentFiles[path] !== content) {
+        state.index[path] = content;
+      }
+    }
+    for (const path of Object.keys(parentFiles)) {
+      if (sourceCommit.files[path] === undefined && headFiles[path] !== undefined) {
+        state.index[path] = headFiles[path];
+      }
+    }
+
+    if (Object.keys(state.index).length === 0) {
+      return { success: true, output: "为空提交，跳过", feedback: "该提交没有可应用的变更", state };
+    }
+
+    const currentHeadId = getHeadCommitId(state);
+    createCommit(state, `cherry-pick: ${sourceCommit.message}`, currentHeadId ? [currentHeadId] : []);
+    return {
+      success: true,
+      output: `已 cherry-pick ${commitId}`,
+      feedback: `已将提交 ${commitId} 应用到当前分支`,
+      state,
+    };
   }
 }
