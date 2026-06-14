@@ -31,11 +31,11 @@ const loadLevels = () => {
 
   Promise.all([
     levelsApi.list(),
-    usersApi.stats(),
+    usersApi.stats().catch(() => null),
   ])
     .then(([levelList, stats]) => {
       levels.value = levelList;
-      recentPassedLevels.value = stats.recentResults;
+      recentPassedLevels.value = stats?.recentResults ?? [];
     })
     .catch((err: Error) => {
       error.value = err.message;
@@ -63,9 +63,21 @@ const mapNodes = computed(() => {
       levelCount: chapterLevels.length,
       completedCount,
       totalCount,
-    };
-  });
-});
+/** 展示用的最近通关（最多 3 条） */
+const displayRecentLevels = computed(() => recentPassedLevels.value.slice(0, 3));
+
+/**
+ * 最近通关条目的左侧标签。
+ * 功能：第一条显示「最近」，其余显示「通关」。
+ * 参数：index - 条目序号。
+ * 返回值：标签文案。
+ */
+const recentLevelLabel = (index: number) => {
+  if (index === 0) {
+    return "最近";
+  }
+  return "通关";
+};
 </script>
 
 <template>
@@ -83,13 +95,26 @@ const mapNodes = computed(() => {
 
     <section v-if="!loading && !error" class="learning-map-main card">
       <div class="learning-map-recent">
-        <span class="learning-map-recent-label">最近通过</span>
-        <ul v-if="recentPassedLevels.length > 0" class="learning-map-recent-list">
-          <li v-for="item in recentPassedLevels" :key="item.levelId">
-            <RouterLink :to="`/practice/${item.levelId}`">{{ item.title }}</RouterLink>
-          </li>
-        </ul>
-        <span v-else class="learning-map-recent-empty">暂无通关记录</span>
+        <div class="home-main-kpis learning-map-recent-kpis">
+          <template v-if="displayRecentLevels.length > 0">
+            <RouterLink
+              v-for="(item, index) in displayRecentLevels"
+              :key="item.levelId"
+              :to="`/practice/${item.levelId}`"
+              class="home-main-kpi home-main-kpi-link"
+            >
+              <em>{{ recentLevelLabel(index) }}</em>
+              <strong>
+                {{ item.title }}
+                <template v-if="index === 2 && recentPassedLevels.length > 3"> +{{ recentPassedLevels.length - 3 }}</template>
+              </strong>
+            </RouterLink>
+          </template>
+          <span v-else class="home-main-kpi">
+            <em>最近通过</em>
+            <strong>暂无</strong>
+          </span>
+        </div>
       </div>
 
       <div class="topic-lane-grid learning-map-cards">
