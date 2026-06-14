@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import type { LevelSummary } from "../types";
 import type { LevelPresentation } from "../utils/levelPresentation";
 import { kindIconMap } from "../utils/levelPresentation";
@@ -16,12 +17,17 @@ const props = defineProps<{
 
 /** 对应技能图标组件 */
 const KindIcon = kindIconMap[props.presentation.kind];
-/** 是否已全部通关 */
-const isDone = props.totalCount > 0 && props.completedCount >= props.totalCount;
-/** 进度文案，如 0/1 */
-const progressLabel = `${props.completedCount}/${props.totalCount}`;
+
+/** 是否已全部通关，需用 computed 响应异步加载的通关数据 */
+const isDone = computed(() => props.totalCount > 0 && props.completedCount >= props.totalCount);
+
+/** 进度文案，如 0/1 或 1/1 */
+const progressLabel = computed(() => `${props.completedCount}/${props.totalCount}`);
+
 /** 卡片简短说明：开放关卡用主题描述，未开放用轻提示 */
-const cardHint = props.level ? props.presentation.topicDesc : props.presentation.lockedHint;
+const cardHint = computed(() =>
+  props.level ? props.presentation.topicDesc : props.presentation.lockedHint,
+);
 </script>
 
 <template>
