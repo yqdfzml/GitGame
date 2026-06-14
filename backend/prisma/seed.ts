@@ -137,18 +137,17 @@ async function main() {
       });
     }
 
-    // 追加几条演示动态，让首页播报区有内容
-    const extraLevels = await prisma.level.findMany({
-      where: { courseId: "mvp", sortOrder: { in: [2, 3, 6] } },
-      orderBy: { sortOrder: "asc" },
-    });
-    const extraSeeds = ALL_LEVELS.filter((level) => [2, 3, 6].includes(level.sortOrder));
+    // 追加几条演示动态，让首页播报区有内容（按标题匹配，避免 sortOrder 重排后错位）
+    const demoExtraTitles = ["空仓起手", "山门初开", "灵气扰动"];
+    const extraSeeds = ALL_LEVELS.filter((level) => demoExtraTitles.includes(level.title));
     const extraOffsetsMinutes = [18, 42, 95];
 
-    for (let index = 0; index < extraLevels.length; index += 1) {
-      const level = extraLevels[index];
-      const levelSeed = extraSeeds.find((item) => item.sortOrder === level.sortOrder);
-      if (!levelSeed) {
+    for (let index = 0; index < extraSeeds.length; index += 1) {
+      const levelSeed = extraSeeds[index];
+      const level = await prisma.level.findFirst({
+        where: { courseId: "mvp", title: levelSeed.title, status: "PUBLISHED" },
+      });
+      if (!level) {
         continue;
       }
 
@@ -159,7 +158,8 @@ async function main() {
         continue;
       }
 
-      const completedAt = new Date(Date.now() - extraOffsetsMinutes[index] * 60 * 1000);
+      const offsetMinutes = extraOffsetsMinutes[index] ?? 60;
+      const completedAt = new Date(Date.now() - offsetMinutes * 60 * 1000);
       const demoAttempt = await prisma.attempt.create({
         data: {
           userId: demoUser.id,
