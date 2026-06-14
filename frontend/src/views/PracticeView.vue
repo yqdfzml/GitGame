@@ -163,7 +163,6 @@ const goReplay = () => {
   <div class="practice-page">
     <header class="practice-header">
       <div class="practice-header-main">
-        <span class="page-eyebrow">Practice</span>
         <h1 class="practice-title">{{ levelTitle || '练习' }}</h1>
       </div>
       <div v-if="judge" class="practice-meta">

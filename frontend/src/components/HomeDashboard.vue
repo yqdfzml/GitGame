@@ -35,11 +35,9 @@ onMounted(() => {
   <section class="home-dashboard card">
     <header class="home-dashboard-header">
       <div>
-        <span class="page-eyebrow">Live Arena</span>
         <h2 class="home-section-title">修行广场</h2>
         <p class="home-section-desc">实时查看排行榜与全服通关动态。</p>
       </div>
-      <span class="home-live-badge">实时播报</span>
     </header>
 
     <ActivityFeedPanel

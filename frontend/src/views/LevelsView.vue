@@ -81,9 +81,7 @@ const routePercent = computed(() => {
 <template>
   <section class="page-stack levels-page">
     <header class="page-header">
-      <span class="page-eyebrow">Levels</span>
       <h1 class="page-title page-title-serif">修炼路径</h1>
-      <p class="page-desc">按主题选择关卡，在终端输入 Git 命令完成目标。系统只检查最终仓库状态。</p>
     </header>
 
     <div v-if="loading" class="loading-state">

@@ -94,7 +94,6 @@ const badgesByCategory = computed(() => {
 <template>
   <section class="page-stack achievements-page">
     <header class="page-header">
-      <span class="page-eyebrow">Achievements</span>
       <h1 class="page-title page-title-serif">修炼徽章</h1>
       <p class="page-desc">主线称号、命令专精、结果导向、流派修炼、高阶技法与掌握表现，记录你的 Git 修行之路。</p>
     </header>
@@ -122,7 +121,6 @@ const badgesByCategory = computed(() => {
         <div class="achievements-rank-block">
           <span class="achievements-label">段位</span>
           <strong>{{ badgeData.rank.name }}</strong>
-          <span class="achievements-rank-en">{{ badgeData.rank.label }}</span>
         </div>
         <div class="achievements-progress-block">
           <span class="achievements-label">徽章进度</span>

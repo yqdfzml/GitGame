@@ -54,7 +54,6 @@ const createAndPublish = () => {
 <template>
   <div>
     <header class="page-header">
-      <span class="page-eyebrow">Admin</span>
       <h1 class="page-title">管理后台</h1>
       <p class="page-desc">创建、编辑和发布关卡（需管理员权限）</p>
     </header>

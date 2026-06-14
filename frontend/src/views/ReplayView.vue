@@ -30,7 +30,6 @@ onMounted(() => {
 <template>
   <div>
     <header class="page-header">
-      <span class="page-eyebrow">Replay</span>
       <h1 class="page-title">通关复盘</h1>
       <p class="page-desc">回顾本次练习的全部命令历史</p>
     </header>

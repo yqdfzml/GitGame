@@ -51,11 +51,6 @@ onMounted(() => {
     });
 });
 
-/** 本章节已通关数 */
-const completedCount = computed(() =>
-  chapterLevels.value.filter((level) => completedLevelIds.value.includes(level.id)).length,
-);
-
 /**
  * 判断关卡是否已通关。
  * 功能：根据用户通关记录标记完成状态。
@@ -69,9 +64,7 @@ const isLevelDone = (levelId: string): boolean => completedLevelIds.value.includ
   <section class="page-stack chapter-levels-page">
     <header class="page-header">
       <RouterLink to="/levels" class="back-link">← 修炼路径</RouterLink>
-      <span class="page-eyebrow">{{ presentation.chapterLabel }}</span>
-      <h1 class="page-title page-title-serif">{{ presentation.topicLabel }}</h1>
-      <p class="page-desc">{{ presentation.skillLabel }} · {{ completedCount }}/{{ chapterLevels.length }} 关已通关</p>
+      <h1 class="page-title page-title-serif">{{ presentation.chapterLabel }}</h1>
     </header>
 
     <div v-if="loading" class="loading-state">

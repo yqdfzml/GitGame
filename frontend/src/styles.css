@@ -169,7 +169,11 @@ a:hover { color: var(--accent-hover); }
   padding: 36px 28px 64px;
 }
 
-.page-header { margin-bottom: 32px; }
+.page-header {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 32px;
+}
 
 .page-eyebrow {
   display: inline-block;
@@ -677,11 +681,14 @@ a:hover { color: var(--accent-hover); }
 
 /* ── 章节关卡列表页 ── */
 .back-link {
-  display: inline-block;
-  margin-bottom: 8px;
+  display: block;
   font-size: 0.85rem;
   color: var(--text-muted);
   text-decoration: none;
+}
+
+.chapter-levels-page .page-header {
+  gap: 16px;
 }
 
 .back-link:hover {
@@ -925,7 +932,6 @@ a:hover { color: var(--accent-hover); }
   min-height: 36px;
 }
 .practice-header-main { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
-.practice-header-main .page-eyebrow { margin-bottom: 0; }
 .practice-title {
   font-size: 1.25rem;
   font-weight: 700;
@@ -1310,13 +1316,6 @@ a:hover { color: var(--accent-hover); }
 }
 .achievements-active-title { font-size: 1.1rem; }
 .achievements-active-title.muted { color: var(--text-muted); font-size: 0.95rem; }
-.achievements-rank-en {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.72rem;
-  color: var(--text-faint);
-  font-family: var(--font-mono);
-}
 .badge-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
