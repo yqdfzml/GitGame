@@ -12,6 +12,7 @@ import { HomeModule } from "./home/home.module";
 import { JudgeModule } from "./judge/judge.module";
 import { LeaderboardModule } from "./leaderboard/leaderboard.module";
 import { LevelsModule } from "./levels/levels.module";
+import { PointsModule } from "./points/points.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
 
@@ -26,6 +27,7 @@ import { UsersModule } from "./users/users.module";
     BadgesModule,
     UsersModule,
     LevelsModule,
+    PointsModule,
     AttemptsModule,
     GitEngineModule,
     JudgeModule,

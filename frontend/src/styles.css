@@ -788,6 +788,116 @@ a:hover { color: var(--accent-hover); }
   border: 1px solid rgba(242, 189, 75, 0.25);
 }
 
+.level-list-locked {
+  cursor: default;
+}
+
+.level-list-locked:hover {
+  background: transparent;
+}
+
+.level-lock-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.level-unlock-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.level-unlock-btn {
+  font-size: 0.75rem;
+  padding: 6px 12px;
+}
+
+.level-unlock-free {
+  font-size: 0.75rem;
+  color: var(--accent-2);
+}
+
+.level-unlock-error {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.check-in-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.check-in-main {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.check-in-balance,
+.check-in-streak {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.check-in-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.check-in-value {
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+.check-in-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.check-in-tip {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.check-in-loading {
+  color: var(--text-muted);
+}
+
+.levels-balance {
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.practice-locked-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 480px;
+}
+
+.practice-locked-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.practice-locked-desc {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .empty-chapter {
   display: flex;
   flex-direction: column;

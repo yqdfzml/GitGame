@@ -6,7 +6,7 @@
  */
 
 import { clearAuthUser, saveAuthUser } from "./authStorage";
-import type { AuthUser } from "../types";
+import type { AuthUser, LevelSummary, LevelUnlockResult, PointWalletSummary } from "../types";
 
 /** API 基础路径，开发环境走 Vite 同源代理 */
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -114,15 +114,25 @@ export const authApi = {
 
 /** 关卡 API */
 export const levelsApi = {
-  list: () => request<import("./types").LevelSummary[]>("/levels"),
+  list: () => request<LevelSummary[]>("/levels"),
   get: (id: string) =>
     request<{
       id: string;
       title: string;
       description: string;
-      initialState: import("./types").RepoState;
+      initialState: import("../types").RepoState;
       goalHints: string[];
+      unlockCost: number;
+      unlockStatus: import("../types").LevelUnlockStatus;
+      canStart: boolean;
     }>(`/levels/${id}`),
+  unlock: (id: string) => request<LevelUnlockResult>(`/levels/${id}/unlock`, { method: "POST" }),
+};
+
+/** 积分 API */
+export const pointsApi = {
+  summary: () => request<PointWalletSummary>("/points/me"),
+  checkIn: () => request<PointWalletSummary>("/points/check-in", { method: "POST" }),
 };
 
 /** 练习 API */

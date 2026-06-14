@@ -38,6 +38,8 @@ const completed = ref(false);
 const stepCount = ref(0);
 /** 错误信息 */
 const error = ref("");
+/** 是否为关卡未解锁错误 */
+const lockedError = ref(false);
 /** 命令输入框 DOM 引用，用于命令执行后恢复焦点 */
 const commandInputRef = ref<HTMLInputElement | null>(null);
 /** 终端输出区域 DOM 引用，用于命令执行后滚到底部 */
@@ -84,6 +86,11 @@ onMounted(() => {
   levelsApi.get(levelId).then((level) => {
     levelTitle.value = level.title;
     levelDescription.value = level.description;
+  }).catch((err: Error) => {
+    if (err.message.includes("未解锁")) {
+      lockedError.value = true;
+    }
+    error.value = err.message;
   });
 
   attemptsApi.create(levelId).then((attempt) => {
@@ -97,6 +104,9 @@ onMounted(() => {
     scrollTerminalToBottom();
     focusCommandInput();
   }).catch((err: Error) => {
+    if (err.message.includes("未解锁")) {
+      lockedError.value = true;
+    }
     error.value = err.message;
   });
 });
@@ -173,7 +183,13 @@ const goReplay = () => {
       </div>
     </header>
 
-    <p v-if="error" class="error-msg practice-error">{{ error }}</p>
+    <div v-if="lockedError" class="card practice-locked-card">
+      <h2 class="practice-locked-title">关卡未解锁</h2>
+      <p class="practice-locked-desc">请先前往关卡页消耗积分解锁，或完成每日签到积累积分。</p>
+      <RouterLink to="/levels" class="btn-primary">返回关卡页</RouterLink>
+    </div>
+
+    <p v-else-if="error" class="error-msg practice-error">{{ error }}</p>
 
     <div v-if="completed && judge" class="success-banner practice-success-banner">
       <span class="success-banner-icon">✓</span>

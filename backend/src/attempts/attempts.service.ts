@@ -9,6 +9,7 @@ import { GitEngineService } from "../git-engine/git-engine.service";
 import { JudgeService } from "../judge/judge.service";
 import { LevelsService } from "../levels/levels.service";
 import { BadgesService } from "../badges/badges.service";
+import { PointsService } from "../points/points.service";
 import type {
   LevelConstraints,
   LevelGoal,
@@ -34,6 +35,7 @@ export class AttemptsService {
     private readonly judge: JudgeService,
     private readonly levelsService: LevelsService,
     private readonly badgesService: BadgesService,
+    private readonly pointsService: PointsService,
   ) {}
 
   /**
@@ -47,6 +49,8 @@ export class AttemptsService {
     if (!level) {
       throw new NotFoundException("关卡不存在或未发布");
     }
+
+    await this.pointsService.assertLevelStartable(userId, levelId);
 
     const initialState = cloneRepoState(fromPrismaJson<RepoState>(level.initialState));
     const attempt = await this.prisma.attempt.create({

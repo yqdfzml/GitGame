@@ -6,6 +6,9 @@ export interface AuthUser {
   role: string;
 }
 
+/** 关卡解锁状态 */
+export type LevelUnlockStatus = "free" | "unlocked" | "completed" | "locked";
+
 /** 关卡摘要 */
 export interface LevelSummary {
   id: string;
@@ -15,6 +18,27 @@ export interface LevelSummary {
   description: string;
   difficulty: string;
   sortOrder: number;
+  unlockCost: number;
+  unlockStatus: LevelUnlockStatus;
+  canStart: boolean;
+}
+
+/** 积分钱包摘要 */
+export interface PointWalletSummary {
+  balance: number;
+  totalEarned: number;
+  totalSpent: number;
+  currentStreak: number;
+  longestStreak: number;
+  checkedInToday: boolean;
+  lastCheckInDate: string | null;
+}
+
+/** 关卡解锁结果 */
+export interface LevelUnlockResult {
+  unlockStatus: LevelUnlockStatus;
+  unlockCost: number;
+  canStart: boolean;
 }
 
 /** 判题差距项 */

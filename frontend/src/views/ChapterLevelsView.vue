@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
-import { levelsApi, usersApi } from "../api/client";
-import type { LevelSummary } from "../types";
+import { levelsApi, pointsApi } from "../api/client";
+import CheckInPanel from "../components/CheckInPanel.vue";
+import LevelUnlockButton from "../components/LevelUnlockButton.vue";
+import type { LevelSummary, PointWalletSummary } from "../types";
 import {
   difficultyLabel,
   getLevelPresentation,
@@ -19,14 +21,23 @@ const presentation = computed(() => getLevelPresentation(chapterId));
 const ChapterIcon = computed(() => kindIconMap[presentation.value.kind]);
 /** 本章节关卡列表 */
 const chapterLevels = ref<LevelSummary[]>([]);
-/** 已通关关卡 id */
-const completedLevelIds = ref<string[]>([]);
+/** 当前积分余额 */
+const pointBalance = ref(0);
 /** 加载中 */
 const loading = ref(true);
 /** 错误信息 */
 const error = ref("");
 
-onMounted(() => {
+/**
+ * 加载章节关卡与解锁状态。
+ * 功能：过滤当前章节并按 sortOrder 排序。
+ * 参数：无。
+ * 返回值：无。
+ */
+const loadChapterLevels = () => {
+  loading.value = true;
+  error.value = "";
+
   levelsApi
     .list()
     .then((data) => {
@@ -40,24 +51,37 @@ onMounted(() => {
     .finally(() => {
       loading.value = false;
     });
-
-  usersApi
-    .stats()
-    .then((stats) => {
-      completedLevelIds.value = stats.completedLevelIds;
-    })
-    .catch(() => {
-      completedLevelIds.value = [];
-    });
-});
+};
 
 /**
- * 判断关卡是否已通关。
- * 功能：根据用户通关记录标记完成状态。
- * 参数：levelId - 关卡 id。
- * 返回值：是否已通关。
+ * 同步积分余额。
+ * 功能：签到或解锁后刷新余额。
+ * 参数：wallet - 最新钱包摘要。
+ * 返回值：无。
  */
-const isLevelDone = (levelId: string): boolean => completedLevelIds.value.includes(levelId);
+const handleWalletUpdated = (wallet: PointWalletSummary) => {
+  pointBalance.value = wallet.balance;
+};
+
+/**
+ * 解锁成功后刷新列表与余额。
+ * 功能：重新拉取关卡 unlockStatus。
+ * 参数：无。
+ * 返回值：无。
+ */
+const handleLevelUnlocked = () => {
+  loadChapterLevels();
+  pointsApi
+    .summary()
+    .then((wallet) => {
+      pointBalance.value = wallet.balance;
+    })
+    .catch(() => {
+      // 解锁后余额刷新失败时不阻断列表刷新
+    });
+};
+
+onMounted(loadChapterLevels);
 </script>
 
 <template>
@@ -66,6 +90,8 @@ const isLevelDone = (levelId: string): boolean => completedLevelIds.value.includ
       <RouterLink to="/levels" class="back-link">← 修炼路径</RouterLink>
       <h1 class="page-title page-title-serif">{{ presentation.chapterLabel }}</h1>
     </header>
+
+    <CheckInPanel @updated="handleWalletUpdated" />
 
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner" />
@@ -82,9 +108,10 @@ const isLevelDone = (levelId: string): boolean => completedLevelIds.value.includ
     <ul v-if="!loading && !error && chapterLevels.length > 0" class="level-list card">
       <li v-for="(level, index) in chapterLevels" :key="level.id" class="level-list-item">
         <RouterLink
+          v-if="level.canStart"
           :to="`/practice/${level.id}`"
           class="level-list-link"
-          :class="{ done: isLevelDone(level.id) }"
+          :class="{ done: level.unlockStatus === 'completed' }"
         >
           <span class="level-list-index">{{ index + 1 }}</span>
           <span class="level-list-body">
@@ -93,10 +120,29 @@ const isLevelDone = (levelId: string): boolean => completedLevelIds.value.includ
           </span>
           <span class="level-list-meta">
             <span class="level-difficulty">{{ difficultyLabel(level.difficulty) }}</span>
-            <span v-if="isLevelDone(level.id)" class="level-done-badge">已完成</span>
+            <span v-if="level.unlockStatus === 'completed'" class="level-done-badge">已完成</span>
             <span v-else class="level-go-badge">开始</span>
           </span>
         </RouterLink>
+
+        <div v-else class="level-list-link level-list-locked">
+          <span class="level-list-index">{{ index + 1 }}</span>
+          <span class="level-list-body">
+            <strong class="level-list-title">{{ level.title }}</strong>
+            <span class="level-list-desc">{{ level.description }}</span>
+          </span>
+          <span class="level-list-meta">
+            <span class="level-difficulty">{{ difficultyLabel(level.difficulty) }}</span>
+            <span class="level-lock-badge">已锁定</span>
+            <LevelUnlockButton
+              :level-id="level.id"
+              :unlock-cost="level.unlockCost"
+              :unlock-status="level.unlockStatus"
+              :balance="pointBalance"
+              @unlocked="handleLevelUnlocked"
+            />
+          </span>
+        </div>
       </li>
     </ul>
   </section>

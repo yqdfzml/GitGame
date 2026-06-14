@@ -1,25 +1,29 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import type { RepoState } from "../git-engine/repo-state.types";
 import { fromPrismaJson } from "../common/json.util";
+import { PointsService } from "../points/points.service";
 
 /**
  * 关卡服务。
- * 功能：查询已发布关卡列表和详情。
- * 参数：levelId - 关卡主键。
+ * 功能：查询已发布关卡列表和详情，并附带解锁状态。
+ * 参数：levelId - 关卡主键；userId - 可选当前用户。
  * 返回值：关卡 DTO。
  */
 @Injectable()
 export class LevelsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pointsService: PointsService,
+  ) {}
 
   /**
    * 列出所有已发布关卡。
-   * 功能：供前端课程/关卡列表页使用。
-   * 参数：无。
+   * 功能：供前端课程/关卡列表页使用，附带解锁状态。
+   * 参数：userId - 可选当前用户 id。
    * 返回值：关卡摘要数组。
    */
-  async listPublishedLevels() {
+  async listPublishedLevels(userId?: bigint) {
     const levels = await this.prisma.level.findMany({
       where: { status: "PUBLISHED" },
       orderBy: [{ courseId: "asc" }, { sortOrder: "asc" }],
@@ -35,30 +39,49 @@ export class LevelsService {
       },
     });
 
-    return levels.map((level) => ({
-      id: level.id.toString(),
-      courseId: level.courseId,
-      chapterId: level.chapterId,
-      title: level.title,
-      description: level.description,
-      difficulty: level.difficulty,
-      sortOrder: level.sortOrder,
-      publishedAt: level.publishedAt,
-    }));
+    const unlockStateMap = await this.pointsService.buildUnlockStateMap(userId);
+
+    return levels.map((level) => {
+      const levelIdText = level.id.toString();
+      const unlockState = unlockStateMap.get(levelIdText) ?? {
+        unlockStatus: "locked" as const,
+        unlockCost: 0,
+        canStart: false,
+      };
+
+      return {
+        id: levelIdText,
+        courseId: level.courseId,
+        chapterId: level.chapterId,
+        title: level.title,
+        description: level.description,
+        difficulty: level.difficulty,
+        sortOrder: level.sortOrder,
+        publishedAt: level.publishedAt,
+        unlockCost: unlockState.unlockCost,
+        unlockStatus: unlockState.unlockStatus,
+        canStart: unlockState.canStart,
+      };
+    });
   }
 
   /**
    * 获取已发布关卡详情。
-   * 功能：返回 initialState 供练习页初始化，goal 仅返回描述性 hint。
-   * 参数：levelId - 关卡 id。
+   * 功能：未解锁关卡返回 403，不泄露 initialState。
+   * 参数：levelId - 关卡 id；userId - 当前用户 id，未登录时仅前 3 关可访问。
    * 返回值：关卡详情（不含完整 goal 答案）。
    */
-  async getPublishedLevel(levelId: bigint) {
+  async getPublishedLevel(levelId: bigint, userId?: bigint) {
     const level = await this.prisma.level.findFirst({
       where: { id: levelId, status: "PUBLISHED" },
     });
     if (!level) {
       throw new NotFoundException("关卡不存在或未发布");
+    }
+
+    const unlockState = await this.pointsService.getUnlockState(userId, levelId);
+    if (!unlockState.canStart) {
+      throw new ForbiddenException("关卡未解锁，请先消耗积分解锁");
     }
 
     const initialState = fromPrismaJson<RepoState>(level.initialState);
@@ -73,7 +96,20 @@ export class LevelsService {
       difficulty: level.difficulty,
       initialState,
       goalHints: buildGoalHints(goal),
+      unlockCost: unlockState.unlockCost,
+      unlockStatus: unlockState.unlockStatus,
+      canStart: unlockState.canStart,
     };
+  }
+
+  /**
+   * 积分解锁关卡。
+   * 功能：委托 PointsService 扣积分并写入解锁记录。
+   * 参数：userId - 用户 id；levelId - 关卡 id。
+   * 返回值：解锁后的关卡状态。
+   */
+  unlockLevel(userId: bigint, levelId: bigint) {
+    return this.pointsService.unlockLevel(userId, levelId);
   }
 
   /**

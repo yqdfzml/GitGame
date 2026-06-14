@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { OptionalJwtAuthGuard } from "./guards/optional-jwt-auth.guard";
 import { AdminGuard } from "./guards/admin.guard";
 
 /** 认证模块 */
@@ -18,7 +19,7 @@ import { AdminGuard } from "./guards/admin.guard";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, AdminGuard],
-  exports: [AuthService, JwtModule, JwtAuthGuard, AdminGuard],
+  providers: [AuthService, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard],
+  exports: [AuthService, JwtModule, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard],
 })
 export class AuthModule {}

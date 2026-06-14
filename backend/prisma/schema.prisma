@@ -35,6 +35,11 @@ enum AttemptStatus {
   ABANDONED
 }
 
+enum PointLedgerReason {
+  CHECK_IN
+  UNLOCK_LEVEL
+}
+
 model User {
   id           BigInt     @id @default(autoincrement())
   email        String     @unique @db.VarChar(255)
@@ -51,6 +56,10 @@ model User {
   leaderboardEntries LeaderboardEntry[]
   refreshTokens      RefreshToken[]
   badges             UserBadge[]
+  pointWallet        UserPointWallet?
+  dailyCheckIns      DailyCheckIn[]
+  pointLedgers       PointLedger[]
+  levelUnlocks       LevelUnlock[]
 
   @@index([status])
   @@map("users")
@@ -89,6 +98,7 @@ model Level {
 
   attempts     Attempt[]
   levelResults LevelResult[]
+  levelUnlocks LevelUnlock[]
 
   @@index([courseId])
   @@index([difficulty])
@@ -194,4 +204,70 @@ model UserBadge {
   @@unique([userId, badgeId])
   @@index([userId])
   @@map("user_badges")
+}
+
+/** 用户积分钱包 */
+model UserPointWallet {
+  id              BigInt    @id @default(autoincrement())
+  userId          BigInt    @unique @map("user_id")
+  balance         Int       @default(0)
+  totalEarned     Int       @default(0) @map("total_earned")
+  totalSpent      Int       @default(0) @map("total_spent")
+  currentStreak   Int       @default(0) @map("current_streak")
+  longestStreak   Int       @default(0) @map("longest_streak")
+  lastCheckInDate DateTime? @map("last_check_in_date") @db.Date
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_point_wallets")
+}
+
+/** 每日签到记录 */
+model DailyCheckIn {
+  id            BigInt   @id @default(autoincrement())
+  userId        BigInt   @map("user_id")
+  checkInDate   DateTime @map("check_in_date") @db.Date
+  pointsAwarded Int      @map("points_awarded")
+  streakDay     Int      @map("streak_day")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, checkInDate])
+  @@index([userId])
+  @@map("daily_check_ins")
+}
+
+/** 积分流水 */
+model PointLedger {
+  id           BigInt            @id @default(autoincrement())
+  userId       BigInt            @map("user_id")
+  delta        Int
+  balanceAfter Int               @map("balance_after")
+  reason       PointLedgerReason
+  levelId      BigInt?           @map("level_id")
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("point_ledgers")
+}
+
+/** 关卡积分解锁记录 */
+model LevelUnlock {
+  id         BigInt   @id @default(autoincrement())
+  userId     BigInt   @map("user_id")
+  levelId    BigInt   @map("level_id")
+  cost       Int
+  unlockedAt DateTime @default(now()) @map("unlocked_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, levelId])
+  @@index([userId])
+  @@map("level_unlocks")
 }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { levelsApi, usersApi } from "../api/client";
+import { levelsApi } from "../api/client";
+import CheckInPanel from "../components/CheckInPanel.vue";
 import LevelChallengeCard from "../components/LevelChallengeCard.vue";
-import type { LevelSummary } from "../types";
+import type { LevelSummary, PointWalletSummary } from "../types";
 import {
   getLevelPresentation,
   TOPIC_CHAPTER_IDS,
@@ -11,14 +12,23 @@ import {
 
 /** 关卡列表 */
 const levels = ref<LevelSummary[]>([]);
-/** 已通关关卡 id 列表 */
-const completedLevelIds = ref<string[]>([]);
+/** 当前积分余额 */
+const pointBalance = ref(0);
 /** 加载中 */
 const loading = ref(true);
 /** 错误信息 */
 const error = ref("");
 
-onMounted(() => {
+/**
+ * 加载关卡列表。
+ * 功能：从后端获取带解锁状态的关卡摘要。
+ * 参数：无。
+ * 返回值：无。
+ */
+const loadLevels = () => {
+  loading.value = true;
+  error.value = "";
+
   levelsApi
     .list()
     .then((data) => {
@@ -30,16 +40,19 @@ onMounted(() => {
     .finally(() => {
       loading.value = false;
     });
+};
 
-  usersApi
-    .stats()
-    .then((stats) => {
-      completedLevelIds.value = stats.completedLevelIds;
-    })
-    .catch(() => {
-      completedLevelIds.value = [];
-    });
-});
+/**
+ * 同步积分余额。
+ * 功能：签到面板更新后刷新本地余额展示。
+ * 参数：wallet - 最新钱包摘要。
+ * 返回值：无。
+ */
+const handleWalletUpdated = (wallet: PointWalletSummary) => {
+  pointBalance.value = wallet.balance;
+};
+
+onMounted(loadLevels);
 
 /**
  * 修炼路径主题卡片数据。
@@ -53,9 +66,7 @@ const topicCards = computed(() => {
     const chapterLevels = levels.value
       .filter((level) => level.chapterId === chapterId)
       .sort((a, b) => a.sortOrder - b.sortOrder);
-    const completedCount = chapterLevels.filter((level) =>
-      completedLevelIds.value.includes(level.id),
-    ).length;
+    const completedCount = chapterLevels.filter((level) => level.unlockStatus === "completed").length;
     const totalCount = chapterLevels.length;
 
     return {
@@ -69,7 +80,9 @@ const topicCards = computed(() => {
 });
 
 /** 已通关关卡数 */
-const completedCount = computed(() => completedLevelIds.value.length);
+const completedCount = computed(() =>
+  levels.value.filter((level) => level.unlockStatus === "completed").length,
+);
 
 /** 全路径通关百分比 */
 const routePercent = computed(() => {
@@ -92,8 +105,11 @@ const routePercent = computed(() => {
     <p v-if="error" class="error-msg">{{ error }}</p>
 
     <template v-if="!loading && !error">
+      <CheckInPanel @updated="handleWalletUpdated" />
+
       <div class="levels-strip card">
         <span>{{ completedCount }}/{{ levels.length }} 关已通关</span>
+        <span v-if="pointBalance > 0" class="levels-balance">积分 {{ pointBalance }}</span>
         <div class="progress-track levels-strip-track" aria-label="全路径进度">
           <div :style="{ width: `${routePercent}%` }" />
         </div>
