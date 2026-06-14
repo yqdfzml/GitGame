@@ -77,6 +77,18 @@ const router = createRouter({
           component: () => import("../views/admin/AdminLevelsView.vue"),
           meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "关卡管理" },
         },
+        {
+          path: "users",
+          name: "admin-users",
+          component: () => import("../views/admin/AdminUsersView.vue"),
+          meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "用户管理" },
+        },
+        {
+          path: "users/:id",
+          name: "admin-user-detail",
+          component: () => import("../views/admin/AdminUserDetailView.vue"),
+          meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "用户详情" },
+        },
       ],
     },
   ],

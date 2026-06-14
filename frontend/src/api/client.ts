@@ -13,6 +13,11 @@ import type {
   AdminLevelItem,
   AdminLevelListFilters,
   AdminLevelSortResult,
+  AdminRevokeSessionsResult,
+  AdminUserActionResult,
+  AdminUserDetail,
+  AdminUserListFilters,
+  AdminUserListResult,
 } from "../types/admin";
 import type { AuthUser, LevelSummary, LevelUnlockResult, PointWalletSummary } from "../types";
 
@@ -298,4 +303,65 @@ export const adminApi = {
     id: string,
     data: { courseId?: string; chapterId?: string; sortOrder?: number },
   ) => request<AdminLevelSortResult>(`/admin/levels/${id}/sort`, { method: "PATCH", body: data }),
+};
+
+/** 管理端用户 API */
+export const adminUsersApi = {
+  /**
+   * 分页列出用户。
+   * 功能：支持搜索与角色、状态筛选。
+   * 参数：filters - 筛选与分页条件。
+   * 返回值：分页用户列表。
+   */
+  listUsers: (filters: Partial<AdminUserListFilters> = {}) => {
+    const params = new URLSearchParams();
+    if (filters.search) {
+      params.set("search", filters.search);
+    }
+    if (filters.role) {
+      params.set("role", filters.role);
+    }
+    if (filters.status) {
+      params.set("status", filters.status);
+    }
+    if (filters.page) {
+      params.set("page", String(filters.page));
+    }
+    if (filters.pageSize) {
+      params.set("pageSize", String(filters.pageSize));
+    }
+    const query = params.toString();
+    return request<AdminUserListResult>(query ? `/admin/users?${query}` : "/admin/users");
+  },
+  /**
+   * 获取用户详情。
+   * 功能：返回运营排查所需的用户快照。
+   * 参数：id - 用户 id。
+   * 返回值：用户详情。
+   */
+  getUser: (id: string) => request<AdminUserDetail>(`/admin/users/${id}`),
+  /**
+   * 更新用户状态。
+   * 功能：启用或禁用账号。
+   * 参数：id - 用户 id；status - 新状态。
+   * 返回值：更新后的用户摘要。
+   */
+  updateStatus: (id: string, status: "ACTIVE" | "DISABLED") =>
+    request<AdminUserActionResult>(`/admin/users/${id}/status`, { method: "PATCH", body: { status } }),
+  /**
+   * 更新用户角色。
+   * 功能：调整 USER / ADMIN。
+   * 参数：id - 用户 id；role - 新角色。
+   * 返回值：更新后的用户摘要。
+   */
+  updateRole: (id: string, role: "USER" | "ADMIN") =>
+    request<AdminUserActionResult>(`/admin/users/${id}/role`, { method: "PATCH", body: { role } }),
+  /**
+   * 撤销用户登录态。
+   * 功能：作废全部 refresh token。
+   * 参数：id - 用户 id。
+   * 返回值：撤销数量。
+   */
+  revokeSessions: (id: string) =>
+    request<AdminRevokeSessionsResult>(`/admin/users/${id}/revoke-sessions`, { method: "POST" }),
 };

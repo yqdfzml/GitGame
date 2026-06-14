@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { ArrowLeft, BookOpenCheck, LayoutDashboard } from "lucide-vue-next";
+import { ArrowLeft, BookOpenCheck, LayoutDashboard, Users } from "lucide-vue-next";
 
 /** 当前路由，用于高亮侧边栏 */
 const route = useRoute();
@@ -10,6 +10,7 @@ const route = useRoute();
 const navItems = [
   { to: "/admin/dashboard", label: "总览", icon: LayoutDashboard },
   { to: "/admin/levels", label: "关卡管理", icon: BookOpenCheck },
+  { to: "/admin/users", label: "用户管理", icon: Users },
 ];
 
 /**

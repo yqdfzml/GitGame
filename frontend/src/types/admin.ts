@@ -77,3 +77,87 @@ export interface AdminLevelSortResult {
   chapterId: string | null;
   sortOrder: number;
 }
+
+/** 管理端用户列表项 */
+export interface AdminUserListItem {
+  id: string;
+  email: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: "USER" | "ADMIN";
+  status: "ACTIVE" | "DISABLED";
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+/** 管理端用户列表分页结果 */
+export interface AdminUserListResult {
+  items: AdminUserListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 管理端用户列表筛选 */
+export interface AdminUserListFilters {
+  search: string;
+  role: string;
+  status: string;
+  page: number;
+  pageSize: number;
+}
+
+/** 管理端用户 attempt 摘要 */
+export interface AdminUserAttemptItem {
+  id: string;
+  levelId: string;
+  levelTitle: string;
+  status: string;
+  stepCount: number;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+/** 管理端用户详情 */
+export interface AdminUserDetail {
+  id: string;
+  email: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: "USER" | "ADMIN";
+  status: "ACTIVE" | "DISABLED";
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  stats: import("./index").UserStats;
+  wallet: {
+    balance: number;
+    totalEarned: number;
+    totalSpent: number;
+    currentStreak: number;
+    longestStreak: number;
+  } | null;
+  badges: {
+    unlockedCount: number;
+    totalCount: number;
+    activeTitle: import("./index").ActiveTitle | null;
+    rank: import("./index").RankInfo;
+    items: import("./index").BadgeItem[];
+  };
+  recentAttempts: AdminUserAttemptItem[];
+  activeSessionCount: number;
+}
+
+/** 用户操作结果 */
+export interface AdminUserActionResult {
+  id: string;
+  email: string;
+  displayName: string;
+  role: "USER" | "ADMIN";
+  status: "ACTIVE" | "DISABLED";
+}
+
+/** 撤销会话结果 */
+export interface AdminRevokeSessionsResult {
+  revokedCount: number;
+}

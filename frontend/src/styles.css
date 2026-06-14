@@ -2850,6 +2850,168 @@ a:hover { color: var(--accent-hover); }
   }
 }
 
+/* ── 用户管理 ── */
+.admin-users-toolbar {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-users-table {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-users-data-table {
+  width: 100%;
+}
+
+.admin-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.admin-status-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+}
+
+.admin-status-tag.ok {
+  color: var(--accent-2);
+  background: var(--success-soft);
+}
+
+.admin-status-tag.warn {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.admin-table-btn {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+}
+
+.admin-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.admin-table-pagination {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-user-detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-user-profile {
+  padding: 16px;
+}
+
+.admin-user-profile-head {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.admin-user-profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.admin-user-profile-meta,
+.admin-user-empty-hint {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.admin-user-info-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-user-info-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.84rem;
+}
+
+.admin-user-info-list dt {
+  color: var(--text-muted);
+}
+
+.admin-user-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-user-stats-panel {
+  padding: 16px;
+}
+
+.admin-user-stats-panel h3 {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+}
+
+.admin-user-stats-panel p {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.admin-user-badge-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  display: grid;
+  gap: 4px;
+}
+
+.admin-user-attempts {
+  padding: 16px;
+}
+
+.admin-user-attempts h3 {
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1100px) {
+  .admin-users-toolbar,
+  .admin-user-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── 复盘时间线 ── */
 .replay-summary {
   display: flex;

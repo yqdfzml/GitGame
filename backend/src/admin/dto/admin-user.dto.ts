@@ -1,0 +1,40 @@
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
+import { UserRole, UserStatus } from "@prisma/client";
+
+/** 更新用户状态 DTO */
+export class UpdateUserStatusDto {
+  @IsEnum(UserStatus)
+  status!: UserStatus;
+}
+
+/** 更新用户角色 DTO */
+export class UpdateUserRoleDto {
+  @IsEnum(UserRole)
+  role!: UserRole;
+}
+
+/** 用户列表分页查询 DTO */
+export class AdminUserListQueryDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number;
+}
