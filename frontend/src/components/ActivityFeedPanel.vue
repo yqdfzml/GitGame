@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Award, CheckCircle2, Sparkles } from "lucide-vue-next";
 import type { HomeActivityItem } from "../types";
 
 const props = defineProps<{
@@ -10,18 +9,24 @@ const props = defineProps<{
   loading: boolean;
   /** 错误信息 */
   error: string;
-  /** 是否显示面板头部 */
-  showHeader?: boolean;
 }>();
 
-/** 首页展示的最近动态 */
-const visibleActivities = computed(() => {
-  return props.activities.slice(0, 10);
+/**
+ * 滚动播报条目（复制两份，实现无缝循环）。
+ * 功能：把原始动态列表拼接成两倍长度，供 CSS 动画循环播放。
+ * 参数：无（读取 props.activities）。
+ * 返回值：用于滚动的条目数组。
+ */
+const marqueeItems = computed(() => {
+  if (props.activities.length === 0) {
+    return [];
+  }
+  return [...props.activities, ...props.activities];
 });
 
 /**
  * 格式化相对时间。
- * 功能：把 ISO 时间转成短格式相对时间。
+ * 功能：把 ISO 时间转成「刚刚 / 3 分钟前」等文案。
  * 参数：isoTime - ISO 时间字符串。
  * 返回值：相对时间文案。
  */
@@ -32,85 +37,62 @@ const formatRelativeTime = (isoTime: string) => {
     return "刚刚";
   }
   if (diffMinutes < 60) {
-    return `${diffMinutes}m`;
+    return `${diffMinutes} 分钟前`;
   }
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours}h`;
+    return `${diffHours} 小时前`;
   }
   const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d`;
+  return `${diffDays} 天前`;
 };
 
 /**
- * 判断是否为徽章解锁动态。
- * 功能：区分时间线样式与图标。
+ * 获取动态类型标签文案。
+ * 功能：区分通关与徽章解锁。
  * 参数：type - 动态类型。
- * 返回值：是否为徽章类事件。
+ * 返回值：标签文字。
  */
-const isBadgeEvent = (type: HomeActivityItem["type"]) => {
-  return type === "badge_unlock";
+const activityTypeLabel = (type: HomeActivityItem["type"]) => {
+  if (type === "badge_unlock") {
+    return "徽章";
+  }
+  return "通关";
 };
 </script>
 
 <template>
-  <div class="sect-feed-panel">
-    <header v-if="showHeader !== false" class="sect-feed-head">
-      <div class="sect-feed-head-icon activity">
-        <Sparkles aria-hidden="true" />
-      </div>
-      <div class="sect-feed-head-text">
-        <h3 class="sect-feed-title">宗门动态</h3>
-        <span class="sect-feed-subtitle">徽章解锁 · 关卡通关</span>
-      </div>
-      <span class="sect-feed-live">
-        <span class="sect-feed-live-dot" />
-        实时
-      </span>
-    </header>
+  <div class="activity-marquee-bar">
+    <span class="activity-marquee-label">
+      <span class="activity-marquee-live-dot" />
+      通关动态
+    </span>
 
-    <div v-if="loading" class="loading-state sect-feed-loading">
-      <div class="loading-spinner" />
-      <span>加载中...</span>
+    <div v-if="loading" class="activity-marquee-status">
+      <div class="loading-spinner activity-marquee-spinner" />
+      <span>加载动态中...</span>
     </div>
 
-    <p v-else-if="error" class="error-msg">{{ error }}</p>
+    <p v-else-if="error" class="activity-marquee-status activity-marquee-error">{{ error }}</p>
 
-    <ul v-else class="sect-feed-timeline">
-      <li
-        v-for="item in visibleActivities"
-        :key="item.id"
-        class="sect-feed-item"
-        :class="isBadgeEvent(item.type) ? 'badge' : 'clear'"
-      >
-        <div class="sect-feed-rail" />
+    <div v-else-if="activities.length === 0" class="activity-marquee-status">
+      暂无动态
+    </div>
 
-        <div class="sect-feed-icon-wrap">
-          <Award v-if="isBadgeEvent(item.type)" aria-hidden="true" class="sect-feed-icon" />
-          <CheckCircle2 v-else aria-hidden="true" class="sect-feed-icon" />
-        </div>
-
-        <div class="sect-feed-body">
-          <p v-if="isBadgeEvent(item.type)" class="sect-feed-line">
-            <strong>{{ item.displayName }}</strong>
-            解锁
-            <em>{{ item.badgeName }}</em>
-          </p>
-          <p v-else class="sect-feed-line">
-            <strong>{{ item.displayName }}</strong>
-            通关
-            <em>{{ item.levelTitle }}</em>
-            <span v-if="item.score !== null" class="sect-feed-score">+{{ item.score }}</span>
-          </p>
-          <span class="sect-feed-tag" :class="isBadgeEvent(item.type) ? 'badge' : 'clear'">
-            {{ isBadgeEvent(item.type) ? "徽章" : "通关" }}
-          </span>
-        </div>
-
-        <time class="sect-feed-time">{{ formatRelativeTime(item.happenedAt) }}</time>
-      </li>
-
-      <li v-if="visibleActivities.length === 0" class="sect-feed-empty">暂无动态</li>
-    </ul>
+    <div v-else class="activity-marquee-viewport">
+      <ul class="activity-marquee-track">
+        <li
+          v-for="(item, index) in marqueeItems"
+          :key="`${item.id}-${index}`"
+          class="activity-marquee-item"
+        >
+          <span class="activity-feed-dot" :class="item.type" />
+          <strong>{{ item.displayName }}</strong>
+          <span class="activity-feed-tag">{{ activityTypeLabel(item.type) }}</span>
+          <span class="activity-marquee-message">{{ item.message }}</span>
+          <span class="activity-marquee-time">{{ formatRelativeTime(item.happenedAt) }}</span>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>

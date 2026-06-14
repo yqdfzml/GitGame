@@ -185,17 +185,20 @@ const canContinue = computed(() => {
       </div>
 
       <section class="home-dashboard-secondary">
-        <div class="home-dashboard-block home-dashboard-block--activity">
+        <div class="home-dashboard-block">
           <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />
         </div>
 
-        <div class="home-dashboard-block home-dashboard-block--rank home-dashboard-leaderboard">
+        <div class="home-dashboard-block home-dashboard-leaderboard">
+          <div class="home-dashboard-block-head">
+            <h3>排行榜</h3>
+            <RouterLink to="/leaderboard" class="home-section-link">完整榜单</RouterLink>
+          </div>
           <LeaderboardPanel
             :entries="leaderboard"
-            :preview-limit="5"
+            :preview-limit="8"
             :loading="false"
             :error="''"
-            more-href="/leaderboard"
           />
         </div>
       </section>
