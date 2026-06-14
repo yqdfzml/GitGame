@@ -1,5 +1,11 @@
 /** 徽章分类 */
-export type BadgeCategory = "title" | "command" | "result";
+export type BadgeCategory =
+  | "title"
+  | "command"
+  | "result"
+  | "workflow"
+  | "technique"
+  | "mastery";
 
 /** 视觉档位：1 朴素 / 2 能量 / 3 空间 / 4 法相 */
 export type BadgeVisualTier = 1 | 2 | 3 | 4;
@@ -317,11 +323,246 @@ export const RESULT_BADGES: BadgeDefinition[] = [
   },
 ];
 
+/** 6 个流派修炼徽章 */
+export const WORKFLOW_BADGES: BadgeDefinition[] = [
+  {
+    id: "workflow_stash_clear",
+    category: "workflow",
+    name: "藏锋入袋",
+    description: "通关 stash 章节任意关卡",
+    ability: "掌握贮藏变更与临时切换工作流",
+    iconKey: "stash-pocket",
+    color: "#7a8a9a",
+    visualTier: 2,
+  },
+  {
+    id: "workflow_tag_archive",
+    category: "workflow",
+    name: "立碑记名",
+    description: "通关含 requiredTags 目标的关卡",
+    ability: "用 tag 标记版本里程碑",
+    iconKey: "tag-monument",
+    color: "#e8a838",
+    visualTier: 2,
+  },
+  {
+    id: "workflow_cherry_pick",
+    category: "workflow",
+    name: "摘星渡法",
+    description: "通关 cherry-pick 章节任意关卡",
+    ability: "摘取提交并移植到目标分支",
+    iconKey: "cherry-star",
+    color: "#8b6fd4",
+    visualTier: 2,
+  },
+  {
+    id: "workflow_rebase",
+    category: "workflow",
+    name: "移脉重铸",
+    description: "通关含 rebase 路径的关卡",
+    ability: "用 rebase 整理线性历史",
+    iconKey: "rebase-vein",
+    color: "#c9782a",
+    visualTier: 3,
+  },
+  {
+    id: "workflow_debug",
+    category: "workflow",
+    name: "追因问道",
+    description: "通关 debug 章节任意关卡",
+    ability: "追溯历史、二分定位与 reflog 恢复",
+    iconKey: "debug-trail",
+    color: "#4a6fa5",
+    visualTier: 3,
+  },
+  {
+    id: "workflow_all_chapters",
+    category: "workflow",
+    name: "百脉初通",
+    description: "每个已发布章节至少通关 1 关",
+    ability: "覆盖全部 Git 修炼路径",
+    iconKey: "all-veins",
+    color: "#2fb388",
+    visualTier: 3,
+  },
+];
+
+/** 8 个高阶技法徽章 */
+export const TECHNIQUE_BADGES: BadgeDefinition[] = [
+  {
+    id: "tech_stash_save",
+    category: "technique",
+    name: "临时收功",
+    description: "成功使用 git stash 并最终通关",
+    ability: "在切换任务前贮藏未完成变更",
+    iconKey: "stash-save",
+    color: "#7a8a9a",
+    visualTier: 2,
+  },
+  {
+    id: "tech_stash_recover",
+    category: "technique",
+    name: "藏而不失",
+    description: "通关 attempt 中使用 stash pop 或 stash apply",
+    ability: "恢复贮藏的工作区变更",
+    iconKey: "stash-recover",
+    color: "#5eb8d4",
+    visualTier: 2,
+  },
+  {
+    id: "tech_tag",
+    category: "technique",
+    name: "版本立碑",
+    description: "通关 attempt 中使用 git tag",
+    ability: "为重要 commit 打标签",
+    iconKey: "tag-mark",
+    color: "#e8a838",
+    visualTier: 2,
+  },
+  {
+    id: "tech_cherry_pick",
+    category: "technique",
+    name: "摘印入主",
+    description: "通关 attempt 中使用 git cherry-pick",
+    ability: "将指定提交复制到当前分支",
+    iconKey: "cherry-seal",
+    color: "#8b6fd4",
+    visualTier: 3,
+  },
+  {
+    id: "tech_rebase",
+    category: "technique",
+    name: "重排因果",
+    description: "通关 attempt 中使用 git rebase",
+    ability: "重放提交以整理分支历史",
+    iconKey: "rebase-order",
+    color: "#c9782a",
+    visualTier: 3,
+  },
+  {
+    id: "tech_rebase_continue",
+    category: "technique",
+    name: "断劫续脉",
+    description: "rebase 冲突后使用 git rebase --continue 并通关",
+    ability: "解决 rebase 冲突后继续重放",
+    iconKey: "rebase-continue",
+    color: "#d94e2d",
+    visualTier: 3,
+  },
+  {
+    id: "tech_reflog",
+    category: "technique",
+    name: "回光照影",
+    description: "通关 attempt 中使用 git reflog",
+    ability: "查看引用日志找回丢失提交",
+    iconKey: "reflog-light",
+    color: "#4a6fa5",
+    visualTier: 3,
+  },
+  {
+    id: "tech_bisect",
+    category: "technique",
+    name: "二分问道",
+    description: "通关 attempt 中使用 git bisect",
+    ability: "二分搜索定位问题提交",
+    iconKey: "bisect-half",
+    color: "#9b7bd4",
+    visualTier: 3,
+  },
+];
+
+/** 8 个掌握表现徽章 */
+export const MASTERY_BADGES: BadgeDefinition[] = [
+  {
+    id: "mastery_workspace_clean_5",
+    category: "mastery",
+    name: "明镜五照",
+    description: "5 个不同关卡通关时 working tree clean",
+    ability: "稳定保持工作区洁净",
+    iconKey: "clean-five",
+    color: "#dff7ee",
+    visualTier: 2,
+  },
+  {
+    id: "mastery_low_steps_3",
+    category: "mastery",
+    name: "三笔成局",
+    description: "3 个不同关卡用不超过 5 条命令通关",
+    ability: "以最少命令达成目标",
+    iconKey: "low-steps",
+    color: "#e8a838",
+    visualTier: 2,
+  },
+  {
+    id: "mastery_score_300",
+    category: "mastery",
+    name: "道行三百",
+    description: "累计分数达到 300",
+    ability: "持续稳定通关积累得分",
+    iconKey: "score-300",
+    color: "#5eb8d4",
+    visualTier: 2,
+  },
+  {
+    id: "mastery_score_600",
+    category: "mastery",
+    name: "六百功德",
+    description: "累计分数达到 600",
+    ability: "高分通关形成稳定修行",
+    iconKey: "score-600",
+    color: "#3a9fb8",
+    visualTier: 3,
+  },
+  {
+    id: "mastery_no_fail_5",
+    category: "mastery",
+    name: "五关无尘",
+    description: "连续 5 次通关 attempt 全部命令成功",
+    ability: "连续无失误完成挑战",
+    iconKey: "no-fail-five",
+    color: "#4a6fa5",
+    visualTier: 3,
+  },
+  {
+    id: "mastery_recovery_3",
+    category: "mastery",
+    name: "三劫归真",
+    description: "3 次不同通关 attempt 中先失败后通关",
+    ability: "从失误中修正并达成目标",
+    iconKey: "recovery-three",
+    color: "#2fb388",
+    visualTier: 3,
+  },
+  {
+    id: "mastery_multi_path_3",
+    category: "mastery",
+    name: "万法同归",
+    description: "3 个不同关卡存在两种不同命令序列通关",
+    ability: "同一目标多种解法皆可达成",
+    iconKey: "multi-path-three",
+    color: "#9b7bd4",
+    visualTier: 3,
+  },
+  {
+    id: "mastery_full_clear_plus",
+    category: "mastery",
+    name: "Git 真君",
+    description: "全关卡通关且累计分数达到 600",
+    ability: "全通高难路径并保持高评分",
+    iconKey: "full-clear-plus",
+    color: "#f2bd4b",
+    visualTier: 4,
+  },
+];
+
 /** 全部徽章定义 */
 export const ALL_BADGES: BadgeDefinition[] = [
   ...TITLE_BADGES,
   ...COMMAND_BADGES,
   ...RESULT_BADGES,
+  ...WORKFLOW_BADGES,
+  ...TECHNIQUE_BADGES,
+  ...MASTERY_BADGES,
 ];
 
 /** 段位阶梯 */

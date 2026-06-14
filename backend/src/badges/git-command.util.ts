@@ -65,3 +65,60 @@ export function buildCommandFingerprint(
 ): string {
   return commands.map((item) => `${item.success ? "1" : "0"}:${item.command.trim()}`).join("|");
 }
+
+/** 命令记录最小结构，供 stash / rebase 判定复用 */
+type CommandRecord = { command: string; success: boolean };
+
+/**
+ * 判断是否在通关 attempt 中成功执行 git stash 保存。
+ * 功能：排除 pop / apply 等恢复类子命令，只统计贮藏操作。
+ * 参数：commands - 单局命令记录。
+ * 返回值：是否命中。
+ */
+export function hasStashSave(commands: CommandRecord[]): boolean {
+  return commands.some((item) => {
+    if (!item.success) {
+      return false;
+    }
+    const trimmed = item.command.trim().toLowerCase();
+    if (!/^git\s+stash(\s|$)/.test(trimmed)) {
+      return false;
+    }
+    if (/^git\s+stash\s+(pop|apply|list|show|drop|clear|branch)\b/.test(trimmed)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * 判断是否在通关 attempt 中成功执行 stash pop 或 stash apply。
+ * 功能：用于技法徽章「藏而不失」判定。
+ * 参数：commands - 单局命令记录。
+ * 返回值：是否命中。
+ */
+export function hasStashRecover(commands: CommandRecord[]): boolean {
+  return commands.some((item) => {
+    if (!item.success) {
+      return false;
+    }
+    const trimmed = item.command.trim().toLowerCase();
+    return /^git\s+stash\s+(pop|apply)\b/.test(trimmed);
+  });
+}
+
+/**
+ * 判断是否在通关 attempt 中成功执行 git rebase --continue。
+ * 功能：用于技法徽章「断劫续脉」判定。
+ * 参数：commands - 单局命令记录。
+ * 返回值：是否命中。
+ */
+export function hasRebaseContinue(commands: CommandRecord[]): boolean {
+  return commands.some((item) => {
+    if (!item.success) {
+      return false;
+    }
+    const trimmed = item.command.trim().toLowerCase();
+    return /^git\s+rebase(\s+.*)?\s+--continue\b/.test(trimmed) || /^git\s+rebase\s+--continue\b/.test(trimmed);
+  });
+}

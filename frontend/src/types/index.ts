@@ -114,10 +114,19 @@ export interface RankInfo {
   label: string;
 }
 
+/** 徽章分类 */
+export type BadgeCategory =
+  | "title"
+  | "command"
+  | "result"
+  | "workflow"
+  | "technique"
+  | "mastery";
+
 /** 徽章条目 */
 export interface BadgeItem {
   id: string;
-  category: "title" | "command" | "result";
+  category: BadgeCategory;
   name: string;
   description: string;
   ability: string;
