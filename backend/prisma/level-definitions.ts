@@ -162,7 +162,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       ...makeRepoWithCommit("main", "s5e6f7a", "base", { "app.js": "v1" }),
       workingTree: { "app.js": { content: "v2", status: "modified" }, "junk.txt": { content: "垃圾", status: "untracked" } },
     },
-    goal: { fileContents: { "app.js": "v2" }, indexEmpty: true, currentBranch: "main" },
+    goal: { fileContents: { "app.js": "v2" }, filesAbsentFromHead: ["junk.txt"], indexEmpty: true, currentBranch: "main" },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
   },
 
@@ -211,7 +211,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       head: { type: "branch", ref: "hotfix" },
       workingTree: { "app.js": { content: "feature-fix", status: "modified" } },
     },
-    goal: { currentBranch: "feature", workingTreeClean: true, fileContents: { "app.js": "feature-fix" }, branchHeads: { main: "b4e5f6a" } },
+    goal: { currentBranch: "feature", workingTreeClean: true, fileContents: { "app.js": "feature-fix" }, branchHeads: { main: "b4e5f6a", hotfix: "b4e5f6a" } },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 25 },
   },
   {
@@ -224,7 +224,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       head: { type: "branch", ref: "main" },
       workingTree: { "app.js": { content: "base", status: "unchanged" }, "main.txt": { content: "m1", status: "modified" } },
     },
-    goal: { currentBranch: "feature", workingTreeClean: true, fileContents: { "feature.txt": "f1" }, branchContains: [{ branch: "main", commit: "b5f6a7b" }] },
+    goal: { currentBranch: "feature", workingTreeClean: true, fileContents: { "feature.txt": "f1" }, branchFileContents: { main: { "main.txt": "m1" } }, branchContains: [{ branch: "main", commit: "b5f6a7b" }] },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
   },
 
@@ -290,7 +290,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "main03", feature: "feat03" }, head: { type: "branch", ref: "main" },
       workingTree: { "config.json": { content: '{"port":3000,"env":"main"}', status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { currentBranch: "main", workingTreeClean: true, indexEmpty: true, noConflicts: true, mergeCommitRequired: true, fileContents: { "config.json": '{"port":3000,"env":"feature"}' } },
+    goal: { currentBranch: "main", workingTreeClean: true, indexEmpty: true, noConflicts: true, mergeCommitRequired: true, branchMerged: [{ source: "feature", target: "main" }], fileContents: { "config.json": '{"port":3000,"env":"feature"}' } },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 40 },
   },
   {
@@ -307,7 +307,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "config.json": { content: "main-v", status: "unchanged" }, "readme.md": { content: "hi", status: "unchanged" } },
       index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { currentBranch: "main", workingTreeClean: true, noConflicts: true, fileContents: { "config.json": "feat-v", "readme.md": "hello" } },
+    goal: { currentBranch: "main", workingTreeClean: true, indexEmpty: true, noConflicts: true, mergeCommitRequired: true, branchMerged: [{ source: "feature", target: "main" }], fileContents: { "config.json": "feat-v", "readme.md": "hello" } },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 40 },
   },
 
@@ -344,7 +344,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "bad1" }, head: { type: "branch", ref: "main" },
       workingTree: { "app.js": { content: "v1", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { fileContents: { "app.js": "v2" }, workingTreeClean: true, indexEmpty: true, commitsExist: ["g01"] },
+    goal: { fileContents: { "app.js": "v2" }, workingTreeClean: true, indexEmpty: true, commitsExist: ["g01"], branchNotContains: [{ branch: "main", commit: "bad1" }] },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
   },
   {
@@ -359,7 +359,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "b02" }, head: { type: "branch", ref: "main" },
       workingTree: { "config.json": { content: '{"debug":true}', status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { fileContents: { "config.json": '{"debug":false}' }, workingTreeClean: true, commitsExist: ["g02", "b02"] },
+    goal: { fileContents: { "config.json": '{"debug":false}' }, workingTreeClean: true, commitsExist: ["g02", "b02"], branchContains: [{ branch: "main", commit: "b02" }] },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
   },
   {
@@ -467,7 +467,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "cp1base", feature: "fix01" }, head: { type: "branch", ref: "main" },
       workingTree: { "app.js": { content: "main", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { currentBranch: "main", workingTreeClean: true, fileContents: { "app.js": "fixed" }, branchContains: [{ branch: "main", commit: "cp1base" }] },
+    goal: { currentBranch: "main", workingTreeClean: true, fileContents: { "app.js": "fixed" }, branchContains: [{ branch: "main", commit: "cp1base" }], branchNotContains: [{ branch: "main", commit: "fix01" }] },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
   },
   {
@@ -483,7 +483,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "cp2base", feature: "fix02" }, head: { type: "branch", ref: "main" },
       workingTree: { "app.js": { content: "main", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { fileContents: { "app.js": "fixed" }, commitsExist: ["cp2base", "bad02"], branchContains: [{ branch: "main", commit: "cp2base" }] },
+    goal: { fileContents: { "app.js": "fixed" }, commitsExist: ["cp2base", "bad02"], branchContains: [{ branch: "main", commit: "cp2base" }], branchNotContains: [{ branch: "main", commit: "bad02" }, { branch: "main", commit: "fix02" }] },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
   },
   {
@@ -499,7 +499,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "rb1main", feature: "rb1feat" }, head: { type: "branch", ref: "feature" },
       workingTree: { "app.js": { content: "feat-v", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { currentBranch: "feature", fileContents: { "app.js": "feat-v" }, branchContains: [{ branch: "feature", commit: "rb1main" }] },
+    goal: { currentBranch: "feature", fileContents: { "app.js": "feat-v" }, branchContains: [{ branch: "feature", commit: "rb1main" }], branchNotContains: [{ branch: "feature", commit: "rb1feat" }] },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
   },
   {
@@ -516,7 +516,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "sq4" }, head: { type: "branch", ref: "main" },
       workingTree: { "app.js": { content: "v3", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { fileContents: { "app.js": "v3" }, commitsExist: ["sq1"], branchContains: [{ branch: "main", commit: "sq1" }] },
+    goal: { currentBranch: "main", fileContents: { "app.js": "v3" }, workingTreeClean: true, indexEmpty: true, commitsExist: ["sq1"], branchContains: [{ branch: "main", commit: "sq1" }], branchNotContains: [{ branch: "main", commit: "sq2" }, { branch: "main", commit: "sq3" }, { branch: "main", commit: "sq4" }] },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
   },
   {
@@ -532,7 +532,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "rb2main", feature: "rb2feat" }, head: { type: "branch", ref: "feature" },
       workingTree: { "app.js": { content: "feat-version", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { currentBranch: "feature", fileContents: { "app.js": "feat-version" }, branchContains: [{ branch: "feature", commit: "rb2main" }], noConflicts: true, workingTreeClean: true },
+    goal: { currentBranch: "feature", fileContents: { "app.js": "feat-version" }, branchContains: [{ branch: "feature", commit: "rb2main" }], branchNotContains: [{ branch: "feature", commit: "rb2feat" }], noConflicts: true, workingTreeClean: true },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 40 },
   },
 
@@ -550,7 +550,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       branches: { main: "d36h" }, head: { type: "branch", ref: "main" },
       workingTree: { "app.js": { content: "broken", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
-    goal: { fileContents: { "app.js": "ok" }, workingTreeClean: true, commitsExist: ["d36g", "d36b", "d36h"] },
+    goal: { fileContents: { "app.js": "ok" }, workingTreeClean: true, commitsExist: ["d36g", "d36b", "d36h"], branchContains: [{ branch: "main", commit: "d36h" }] },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
   },
   {
@@ -623,8 +623,12 @@ export const ALL_LEVELS: LevelSeed[] = [
     goal: {
       fileContents: { "app.js": "v1", "version.txt": "2.0" },
       requiredTags: { "v2.0": "d40fix" },
+      currentBranch: "main",
       workingTreeClean: true,
       noConflicts: true,
+      mergeCommitRequired: true,
+      branchMerged: [{ source: "hotfix", target: "main" }],
+      branchContains: [{ branch: "main", commit: "d40bad" }],
       commitsExist: ["d40base", "d40bad"],
     },
     constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 50 },

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GitEngineService } from "../src/git-engine/git-engine.service";
 import type { RepoState } from "../src/git-engine/repo-state.types";
 import { JudgeService } from "../src/judge/judge.service";
+import { ALL_LEVELS } from "../prisma/level-definitions";
 
 const gitEngine = new GitEngineService();
 const judge = new JudgeService();
@@ -190,6 +191,73 @@ describe("JudgeService", () => {
     const result = judge.evaluate(baseState, goal, { baseScore: 100 }, 0);
     expect(result.passed).toBe(false);
     expect(result.gaps.length).toBeGreaterThan(0);
+  });
+
+  it("untrackedFiles 要求文件未入暂存区且未进入 HEAD", () => {
+    const state: RepoState = {
+      ...baseState,
+      workingTree: {
+        ...baseState.workingTree,
+        "loose.txt": { content: "tmp", status: "untracked" },
+      },
+      index: { "loose.txt": "tmp" },
+    };
+
+    const result = judge.evaluate(
+      state,
+      { untrackedFiles: ["loose.txt"] },
+      { baseScore: 100 },
+      1,
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.gaps.some((gap) => gap.key === "untrackedFiles:loose.txt")).toBe(true);
+  });
+
+  it("超过 maxSteps 时不允许通关", () => {
+    const result = judge.evaluate(
+      baseState,
+      { fileContents: { "a.txt": "hello" } },
+      { baseScore: 100, maxSteps: 1 },
+      2,
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.gaps.some((gap) => gap.key === "maxSteps")).toBe(true);
+  });
+});
+
+describe("关卡判题回归", () => {
+  it("所有种子关卡初始状态都不应直接通关", () => {
+    const initialPassed = ALL_LEVELS.filter((level) => {
+      const state = JSON.parse(JSON.stringify(level.initialState)) as RepoState;
+      return judge.evaluate(state, level.goal, level.constraints, 0).passed;
+    });
+
+    expect(initialPassed.map((level) => level.sortOrder)).toEqual([]);
+  });
+
+  it("纯净快照：git add . 提交 junk.txt 时不应通关", () => {
+    const level = ALL_LEVELS.find((item) => item.sortOrder === 10);
+    expect(level).toBeDefined();
+
+    const addAll = gitEngine.executeCommand("git add .", level!.initialState);
+    const commitAll = gitEngine.executeCommand('git commit -m "demo"', addAll.state);
+    const result = judge.evaluate(commitAll.state, level!.goal, level!.constraints, 2);
+
+    expect(result.passed).toBe(false);
+    expect(result.gaps.some((gap) => gap.key === "filesAbsentFromHead:junk.txt")).toBe(true);
+  });
+
+  it("纯净快照：只提交 app.js 时应通关", () => {
+    const level = ALL_LEVELS.find((item) => item.sortOrder === 10);
+    expect(level).toBeDefined();
+
+    const addApp = gitEngine.executeCommand("git add app.js", level!.initialState);
+    const commitApp = gitEngine.executeCommand('git commit -m "demo"', addApp.state);
+    const result = judge.evaluate(commitApp.state, level!.goal, level!.constraints, 2);
+
+    expect(result.passed).toBe(true);
   });
 });
 

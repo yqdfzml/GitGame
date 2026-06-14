@@ -131,10 +131,16 @@ export interface LevelGoal {
   currentBranch?: string;
   /** 指定分支应包含的 commit id */
   branchContains?: Array<{ branch: string; commit: string }>;
+  /** 指定分支不应包含的 commit id */
+  branchNotContains?: Array<{ branch: string; commit: string }>;
   /** 分支指针必须指向的 commit id */
   branchHeads?: Record<string, string>;
+  /** 指定分支 HEAD 提交中的期望文件内容 */
+  branchFileContents?: Record<string, Record<string, string>>;
   /** HEAD 提交中期望的文件内容 */
   fileContents?: Record<string, string>;
+  /** HEAD 提交中不应存在的文件 */
+  filesAbsentFromHead?: string[];
   /** 工作区中期望的文件内容 */
   workingTreeContents?: Record<string, string>;
   /** 必须保持未跟踪状态的文件路径 */

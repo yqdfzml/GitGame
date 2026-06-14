@@ -68,6 +68,25 @@ export class JudgeService {
       }
     }
 
+    // 2a. 检查分支是否不包含指定 commit
+    if (goal.branchNotContains) {
+      for (const item of goal.branchNotContains) {
+        const tip = state.branches[item.branch];
+        if (!tip) {
+          gaps.push({ key: "branchNotContains", message: `分支 '${item.branch}' 不存在` });
+          continue;
+        }
+        if (!isAncestor(state, item.commit, tip) && tip !== item.commit) {
+          satisfied.push(`branchNotContains:${item.branch}:${item.commit}`);
+        } else {
+          gaps.push({
+            key: "branchNotContains",
+            message: `分支 '${item.branch}' 不应包含 commit '${item.commit}'`,
+          });
+        }
+      }
+    }
+
     // 2b. 检查分支指针是否指向指定 commit
     if (goal.branchHeads) {
       for (const [branch, expectedCommit] of Object.entries(goal.branchHeads)) {
@@ -87,6 +106,29 @@ export class JudgeService {
       }
     }
 
+    // 2c. 检查指定分支 HEAD 提交中的文件内容
+    if (goal.branchFileContents) {
+      for (const [branch, expectedFiles] of Object.entries(goal.branchFileContents)) {
+        const branchTip = state.branches[branch];
+        const branchFiles = branchTip ? state.commits[branchTip]?.files ?? {} : null;
+        if (!branchFiles) {
+          gaps.push({ key: "branchFileContents", message: `分支 '${branch}' 不存在` });
+          continue;
+        }
+        for (const [path, expected] of Object.entries(expectedFiles)) {
+          const actual = branchFiles[path];
+          if (actual === expected) {
+            satisfied.push(`branchFileContents:${branch}:${path}`);
+          } else {
+            gaps.push({
+              key: `branchFileContents:${branch}:${path}`,
+              message: `分支 '${branch}' 的 '${path}' 内容不符合目标`,
+            });
+          }
+        }
+      }
+    }
+
     // 3. 检查 HEAD 提交中的文件内容
     if (goal.fileContents) {
       const headId = getHeadCommitId(state);
@@ -99,6 +141,22 @@ export class JudgeService {
           gaps.push({
             key: `fileContents:${path}`,
             message: `提交历史中 '${path}' 内容不符合目标`,
+          });
+        }
+      }
+    }
+
+    // 3a. 检查 HEAD 提交中不应存在的文件
+    if (goal.filesAbsentFromHead) {
+      const headId = getHeadCommitId(state);
+      const headFiles = headId ? state.commits[headId]?.files ?? {} : {};
+      for (const path of goal.filesAbsentFromHead) {
+        if (headFiles[path] === undefined) {
+          satisfied.push(`filesAbsentFromHead:${path}`);
+        } else {
+          gaps.push({
+            key: `filesAbsentFromHead:${path}`,
+            message: `提交历史中不应包含 '${path}'`,
           });
         }
       }
@@ -125,7 +183,10 @@ export class JudgeService {
       refreshWorkingTreeStatus(state);
       for (const path of goal.untrackedFiles) {
         const file = state.workingTree[path];
-        if (file && (file.status === "untracked" || file.status === "added")) {
+        const isAbsentFromHead = getHeadCommitId(state)
+          ? state.commits[getHeadCommitId(state)!]?.files[path] === undefined
+          : true;
+        if (file && file.status === "untracked" && state.index[path] === undefined && isAbsentFromHead) {
           satisfied.push(`untrackedFiles:${path}`);
         } else {
           gaps.push({
@@ -284,7 +345,15 @@ export class JudgeService {
     const baseScore = constraints.baseScore ?? 100;
     const stepPenalty = constraints.stepPenalty ?? 1;
 
-    // 14. 最少步数约束：观察型关卡要求玩家至少执行一次命令
+    // 14. 最大步数约束：超过关卡步数上限不能通关
+    if (gaps.length === 0 && constraints.maxSteps !== undefined && stepCount > constraints.maxSteps) {
+      gaps.push({
+        key: "maxSteps",
+        message: `请在 ${constraints.maxSteps} 步内完成关卡`,
+      });
+    }
+
+    // 15. 最少步数约束：观察型关卡要求玩家至少执行一次命令
     if (gaps.length === 0 && constraints.minSteps !== undefined && stepCount < constraints.minSteps) {
       gaps.push({
         key: "minSteps",

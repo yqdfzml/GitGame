@@ -167,6 +167,12 @@ const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
       targets.push(`提交后 ${path} 需达到目标内容`);
     }
   }
+  if (goal.filesAbsentFromHead) {
+    targets.push("指定文件不能进入提交历史");
+  }
+  if (goal.branchFileContents) {
+    targets.push("指定分支需要包含目标文件内容");
+  }
   if (goal.workingTreeContents) {
     for (const path of Object.keys(goal.workingTreeContents as Record<string, string>)) {
       targets.push(`工作区 ${path} 需达到目标内容`);
@@ -200,6 +206,9 @@ const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
   }
   if (goal.branchContains) {
     targets.push("指定分支需要包含目标提交");
+  }
+  if (goal.branchNotContains) {
+    targets.push("指定分支不能包含错误提交");
   }
   return targets;
 };
