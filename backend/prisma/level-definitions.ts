@@ -216,7 +216,7 @@ export const ALL_LEVELS: LevelSeed[] = [
   },
   {
     courseId: "mvp", chapterId: "branch", title: "双脉并行", sortOrder: 15,
-    description: "先在 main 提交 main.txt 为 m1，再到 feature 新建 feature.txt 为 f1 并提交。",
+    description: "先在 main 提交工作区中已修改的 main.txt，再到 feature 新建 feature.txt（内容为 f1）并提交。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "b5f6a7b", "init", { "app.js": "base", "main.txt": "m0" }),
@@ -246,7 +246,7 @@ export const ALL_LEVELS: LevelSeed[] = [
   },
   {
     courseId: "mvp", chapterId: "merge", title: "双亲之印", sortOrder: 17,
-    description: "工作区已有 main.txt（内容 main only），在 main 提交；再到 feature 新建 feature.txt（内容 feature only）并提交；最后回到 main 合并，两边文件均保留。",
+    description: "工作区已有 main.txt，在 main 提交；再到 feature 新建 feature.txt（内容为 feature only）并提交；最后回到 main 合并，两边文件均保留。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       ...makeRepoWithCommit("main", "base01", "init", { "readme.md": "hi" }),

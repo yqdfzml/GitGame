@@ -2013,27 +2013,34 @@ a:hover { color: var(--accent-hover); }
   padding: 10px 20px 14px;
   height: calc(100vh - var(--topbar-h));
   overflow: hidden;
+  overflow-x: clip;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .practice-page {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overflow-x: clip;
 }
 
 .practice-layout {
   flex: 1;
   min-height: 0;
   min-width: 0;
+  max-width: 100%;
   display: grid;
-  grid-template-columns: minmax(340px, 1.18fr) minmax(260px, 0.82fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: 14px;
   align-items: stretch;
   overflow: hidden;
+  overflow-x: clip;
 }
 
 .practice-layout > * {
@@ -2044,7 +2051,16 @@ a:hover { color: var(--accent-hover); }
 .practice-sidebar,
 .terminal-panel {
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
+  overflow-x: clip;
+}
+
+.practice-sidebar .card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 @media (max-width: 960px) {
   .main-content:has(.practice-page) {
@@ -2080,19 +2096,41 @@ a:hover { color: var(--accent-hover); }
   grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
   gap: 12px;
   flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: clamp(248px, 32vh, 292px);
   max-height: 292px;
   min-height: 0;
   overflow: hidden;
+  overflow-x: clip;
 }
 
 .practice-panel-goal {
   flex: 1;
   min-height: 0;
   min-width: 0;
+  max-width: 100%;
   padding: 10px 12px;
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overflow-x: clip;
+}
+
+.practice-panel-goal > .panel-title {
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
+.practice-panel-goal .goal-feedback-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .practice-panel-compact {
@@ -2123,6 +2161,8 @@ a:hover { color: var(--accent-hover); }
 .practice-panel-compact .commit-node {
   padding: 6px 8px;
   margin-bottom: 2px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .practice-panel-compact .file-item {
@@ -2139,6 +2179,10 @@ a:hover { color: var(--accent-hover); }
   font-size: 0.8rem;
   line-height: 1.45;
   color: var(--text-muted);
+  min-width: 0;
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .practice-panel-goal .goal-target-list {
@@ -2152,19 +2196,23 @@ a:hover { color: var(--accent-hover); }
 
 .practice-panel-goal .goal-target-list li {
   padding: 6px 8px;
-  font-size: 0.72rem;
-  line-height: 1.35;
+  font-size: 0.68rem;
+  line-height: 1.4;
   color: var(--text-muted);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 6px;
   min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
 @media (max-width: 960px) {
-  .practice-panel-goal .goal-target-list {
+  .practice-panel-goal .goal-target-list,
+  .practice-panel-goal .gap-list,
+  .practice-panel-goal .satisfied-list {
     grid-template-columns: 1fr;
   }
 }
@@ -2172,6 +2220,8 @@ a:hover { color: var(--accent-hover); }
 .practice-panel-goal .goal-progress {
   margin-bottom: 8px;
   padding: 8px 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .practice-panel-goal .progress-ring {
@@ -2187,6 +2237,8 @@ a:hover { color: var(--accent-hover); }
 
 .practice-panel-goal .goal-progress-text {
   font-size: 0.8rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .practice-panel-goal .hint-list {
@@ -2201,9 +2253,11 @@ a:hover { color: var(--accent-hover); }
 .practice-panel-goal .gap-item {
   padding: 6px 8px;
   margin-bottom: 0;
-  font-size: 0.75rem;
-  line-height: 1.35;
+  font-size: 0.72rem;
+  line-height: 1.4;
   min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
@@ -2211,17 +2265,31 @@ a:hover { color: var(--accent-hover); }
 .practice-panel-goal .satisfied-item {
   padding: 6px 8px;
   margin-bottom: 0;
-  font-size: 0.75rem;
-  line-height: 1.35;
+  font-size: 0.72rem;
+  line-height: 1.4;
   min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
-/* 目标反馈：待完成 / 已达成 两列排布，避免单条过宽撑出横向滚动 */
+/* 目标反馈：待完成 / 已达成 两列排布，禁止横向撑开 */
 .practice-panel-goal .goal-feedback {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.practice-panel-goal .gap-list,
+.practice-panel-goal .satisfied-list,
+.practice-panel-goal .goal-target-list {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .practice-panel-goal .gap-list,
@@ -2233,13 +2301,6 @@ a:hover { color: var(--accent-hover); }
 
 .practice-panel-goal .gap-list .empty-hint {
   grid-column: 1 / -1;
-}
-
-@media (max-width: 960px) {
-  .practice-panel-goal .gap-list,
-  .practice-panel-goal .satisfied-list {
-    grid-template-columns: 1fr;
-  }
 }
 
 .meta-chip {
@@ -2254,9 +2315,12 @@ a:hover { color: var(--accent-hover); }
 .terminal-panel {
   padding: 0;
   overflow: hidden;
+  overflow-x: clip;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   max-height: 100%;
   height: 100%;
 }

@@ -3,6 +3,12 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { RepoState } from "../git-engine/repo-state.types";
 import { fromPrismaJson } from "../common/json.util";
 import { PointsService } from "../points/points.service";
+import {
+  formatBranchFileTarget,
+  formatFileContentTarget,
+  formatWorkingTreeContentTarget,
+  isFilePreseededInWorkingTree,
+} from "../judge/judge-messages";
 import { getLevelLearningHints, type LevelGoalHintsBundle } from "./level-hints";
 
 /**
@@ -96,7 +102,7 @@ export class LevelsService {
       description: level.description,
       difficulty: level.difficulty,
       initialState,
-      goalHints: buildLevelHints(goal, level.sortOrder),
+      goalHints: buildLevelHints(goal, level.sortOrder, initialState),
       unlockCost: unlockState.unlockCost,
       unlockStatus: unlockState.unlockStatus,
       canStart: unlockState.canStart,
@@ -132,26 +138,32 @@ export class LevelsService {
  * 参数：goal - 关卡目标 JSON；sortOrder - 关卡排序号。
  * 返回值：分层提示对象。
  */
-const buildLevelHints = (goal: Record<string, unknown>, sortOrder: number): LevelGoalHintsBundle => {
+const buildLevelHints = (
+  goal: Record<string, unknown>,
+  sortOrder: number,
+  initialState: RepoState,
+): LevelGoalHintsBundle => {
   const learning = getLevelLearningHints(sortOrder);
   return {
     concepts: learning.concepts,
     directions: learning.directions,
     keyPoints: learning.keyPoints,
-    targets: buildGoalTargets(goal),
+    targets: buildGoalTargets(goal, initialState),
   };
 };
 
 /**
  * 从 goal 生成通关目标 checklist。
- * 功能：让用户知道要达成什么；文件类目标需写明路径与内容，避免「目标内容」等模糊表述。
- * 参数：goal - 关卡目标 JSON。
+ * 功能：让用户知道要达成什么；开局工作区已有的内容不再写出，避免与 commit 备注混淆。
+ * 参数：goal - 关卡目标 JSON；initialState - 开局仓库快照。
  * 返回值：目标提示字符串数组。
  */
-const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
+const buildGoalTargets = (goal: Record<string, unknown>, initialState: RepoState): string[] => {
   const targets: string[] = [];
   /** 关卡最终应在的分支，用于 fileContents 文案 */
   const goalBranch = typeof goal.currentBranch === "string" ? goal.currentBranch : null;
+  /** 开局工作区，用于判断内容是否前置给出 */
+  const initialWorkingTree = initialState.workingTree;
 
   if (goal.branchMerged) {
     const merges = goal.branchMerged as Array<{ source: string; target: string }>;
@@ -173,27 +185,31 @@ const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
     const branchFiles = goal.branchFileContents as Record<string, Record<string, string>>;
     for (const [branch, files] of Object.entries(branchFiles)) {
       for (const [path, content] of Object.entries(files)) {
-        targets.push(`分支「${branch}」需提交「${path}」，内容为「${content}」`);
+        const preseeded = isFilePreseededInWorkingTree(initialWorkingTree, path, content);
+        targets.push(formatBranchFileTarget(branch, path, content, preseeded));
       }
     }
   }
   if (goal.fileContents) {
     for (const [path, content] of Object.entries(goal.fileContents as Record<string, string>)) {
-      if (goalBranch) {
-        targets.push(`分支「${goalBranch}」最终需包含「${path}」，内容为「${content}」`);
-      } else {
-        targets.push(`「${path}」最终内容应为「${content}」`);
-      }
+      const preseeded = isFilePreseededInWorkingTree(initialWorkingTree, path, content);
+      targets.push(formatFileContentTarget(path, content, goalBranch, preseeded));
     }
   }
   if (goal.workingTreeContents) {
     for (const [path, content] of Object.entries(goal.workingTreeContents as Record<string, string>)) {
-      targets.push(`工作区「${path}」需保持内容为「${content}」`);
+      const preseeded = isFilePreseededInWorkingTree(initialWorkingTree, path, content);
+      targets.push(formatWorkingTreeContentTarget(path, preseeded));
     }
   }
   if (goal.indexContents) {
     for (const [path, content] of Object.entries(goal.indexContents as Record<string, string>)) {
-      targets.push(`暂存区「${path}」内容应为「${content}」`);
+      const preseeded = isFilePreseededInWorkingTree(initialWorkingTree, path, content);
+      if (preseeded) {
+        targets.push(`暂存区需包含「${path}」（内容见工作区）`);
+      } else {
+        targets.push(`暂存区「${path}」内容应为「${content}」`);
+      }
     }
   }
   if (goal.stashContents) {

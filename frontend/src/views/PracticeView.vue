@@ -366,14 +366,16 @@ const goReplay = () => {
         </div>
         <div class="card practice-panel-goal">
           <p class="panel-title">目标反馈</p>
-          <GoalFeedback
-            :judge="judge"
-            :task-description="levelDescription"
-            :goal-targets="goalHints.targets"
-            :progress-pct="progressPct"
-            :initial-gap-count="initialGapCount"
-            :initial-satisfied-keys="initialSatisfiedKeys"
-          />
+          <div class="goal-feedback-body">
+            <GoalFeedback
+              :judge="judge"
+              :task-description="levelDescription"
+              :goal-targets="goalHints.targets"
+              :progress-pct="progressPct"
+              :initial-gap-count="initialGapCount"
+              :initial-satisfied-keys="initialSatisfiedKeys"
+            />
+          </div>
         </div>
       </div>
 

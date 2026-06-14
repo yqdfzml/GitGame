@@ -96,8 +96,11 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
   },
   15: {
     concepts: ["不同分支可以各自提交，形成并行开发的历史。"],
-    directions: ["先在 main 提交 main.txt，再切到 feature 新建并提交 feature.txt。"],
-    keyPoints: ["main 上 commit 后，switch feature，touch/echo 创建 feature.txt → git add → commit。"],
+    directions: ["先在 main 提交工作区中的 main.txt，再切到 feature 新建 feature.txt 并提交。"],
+    keyPoints: [
+      "main：git add main.txt → git commit（内容已在工作区）",
+      "feature：git switch feature → echo \"f1\" > feature.txt → add → commit",
+    ],
   },
   16: {
     concepts: ["快进合并（fast-forward）发生在 main 无新提交、feature 领先时，main 直接移到 feature。"],
@@ -108,9 +111,9 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
     concepts: ["两分支各有独立提交时，merge 会产生 merge commit（两个父提交），并合入双方各自新增的文件。"],
     directions: ["先在 main 提交 main.txt，再切到 feature 新建 feature.txt 并提交，最后回到 main 执行合并。"],
     keyPoints: [
-      "main：git add main.txt → git commit（工作区已是 main only）",
+      "main：git add main.txt → git commit（内容已在工作区）",
       "feature：git switch feature → echo \"feature only\" > feature.txt → add → commit",
-      "main：git switch main → git merge feature，合并后两文件内容均保留",
+      "main：git switch main → git merge feature，合并后两文件均保留",
     ],
   },
   18: {

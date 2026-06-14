@@ -1,14 +1,132 @@
+import type { RepoState } from "../git-engine/repo-state.types";
+
 /**
- * 生成判题差距项的可读提示。
- * 功能：把「内容不符合目标」类模糊文案改成可操作的步骤描述。
- * 参数：见各函数。
- * 返回值：展示给玩家的中文提示。
+ * 判断开局工作区是否已写好目标文件内容。
+ * 功能：用于通关条件文案，前置内容不再重复写出，避免与 commit 备注混淆。
+ * 参数：workingTree - 开局工作区；path - 文件路径；expectedContent - 目标内容。
+ * 返回值：是否已在工作区写好且待提交/未跟踪。
  */
+export const isFilePreseededInWorkingTree = (
+  workingTree: RepoState["workingTree"],
+  path: string,
+  expectedContent: string,
+): boolean => {
+  const file = workingTree[path];
+  if (!file) {
+    return false;
+  }
+  if (file.content !== expectedContent) {
+    return false;
+  }
+  return file.status === "modified" || file.status === "untracked";
+};
+
+/**
+ * 判断当前工作区是否已有目标文件内容。
+ * 功能：判题提示时，若玩家工作区内容已正确，只提示提交步骤。
+ * 参数：workingTree - 当前工作区；path - 文件路径；expectedContent - 目标内容。
+ * 返回值：工作区内容是否已符合目标。
+ */
+export const isWorkingTreeContentMatch = (
+  workingTree: RepoState["workingTree"],
+  path: string,
+  expectedContent: string,
+): boolean => {
+  return workingTree[path]?.content === expectedContent;
+};
+
+/**
+ * 分支提交文件目标的通关条件文案。
+ * 功能：前置内容只写「提交工作区文件」，新建文件才写出内容要求。
+ * 参数：branch - 分支名；path - 文件路径；content - 目标内容；preseeded - 开局是否已写好。
+ * 返回值：通关条件字符串。
+ */
+export const formatBranchFileTarget = (
+  branch: string,
+  path: string,
+  content: string,
+  preseeded: boolean,
+): string => {
+  if (preseeded) {
+    return `分支「${branch}」需提交工作区中的「${path}」`;
+  }
+  return `分支「${branch}」需创建并提交「${path}」，内容为「${content}」`;
+};
+
+/**
+ * 版本库文件目标的通关条件文案。
+ * 功能：前置内容不写具体字符串，避免误解为 commit message。
+ * 参数：path - 文件路径；content - 目标内容；branch - 目标分支；preseeded - 开局是否已写好。
+ * 返回值：通关条件字符串。
+ */
+export const formatFileContentTarget = (
+  path: string,
+  content: string,
+  branch: string | null,
+  preseeded: boolean,
+): string => {
+  const branchLabel = branch ?? "当前分支";
+  if (preseeded) {
+    return `分支「${branchLabel}」最终需包含已提交的「${path}」`;
+  }
+  if (branch) {
+    return `分支「${branchLabel}」最终需包含「${path}」，内容为「${content}」`;
+  }
+  return `「${path}」最终内容应为「${content}」`;
+};
+
+/**
+ * 工作区保持文件目标的通关条件文案。
+ * 功能：内容已在工作区时，不写具体字符串。
+ * 参数：path - 文件路径；preseeded - 开局是否已有目标内容。
+ * 返回值：通关条件字符串。
+ */
+export const formatWorkingTreeContentTarget = (path: string, preseeded: boolean): string => {
+  if (preseeded) {
+    return `工作区「${path}」需保持当前内容（勿提交或丢弃）`;
+  }
+  return `工作区「${path}」需保持指定内容（勿提交或丢弃）`;
+};
+
+/**
+ * 生成「需提交 / 需改内容」类判题提示。
+ * 功能：工作区已正确则只说需要提交；内容不对则明确写出要改成什么。
+ * 参数：branchLabel - 分支名；path - 文件路径；expected - 目标内容；workingTree - 工作区。
+ * 返回值：待完成提示文案。
+ */
+const buildFileCommitGapMessage = (
+  branchLabel: string,
+  path: string,
+  expected: string,
+  workingTree: RepoState["workingTree"],
+): string => {
+  /** 工作区里的文件条目 */
+  const wtFile = workingTree[path];
+  /** 工作区内容是否已符合目标 */
+  const wtMatched = wtFile?.content === expected;
+  /** 工作区是否存在该文件 */
+  const wtExists = wtFile !== undefined;
+  /** 分支位置描述 */
+  const branchPart = `分支「${branchLabel}」`;
+
+  // 工作区内容已正确，只差提交
+  if (wtMatched) {
+    return `在${branchPart}提交「${path}」`;
+  }
+
+  // 工作区有文件但内容不对，需先改再提交
+  if (wtExists) {
+    return `请将「${path}」的内容改为「${expected}」，在${branchPart}提交`;
+  }
+
+  // 工作区还没有这份文件，需新建
+  return `在${branchPart}创建「${path}」，内容为「${expected}」，然后提交`;
+};
 
 /**
  * 分支提交文件内容未达标时的提示。
- * 功能：区分「文件未提交」与「已提交但内容不对」两种情况。
- * 参数：branch - 分支名；path - 文件路径；actual - 该分支最新提交中的实际内容，undefined 表示文件不存在。
+ * 功能：区分「直接提交工作区」与「先改内容再提交」。
+ * 参数：branch - 分支名；path - 文件路径；actual - 分支最新提交中的实际内容；expected - 期望内容；workingTree - 当前工作区。
  * 返回值：待完成提示文案。
  */
 export const formatBranchFileContentGap = (
@@ -16,17 +134,15 @@ export const formatBranchFileContentGap = (
   path: string,
   actual: string | undefined,
   expected: string,
+  workingTree: RepoState["workingTree"],
 ): string => {
-  if (actual === undefined) {
-    return `请在分支「${branch}」创建「${path}」并提交，内容为「${expected}」`;
-  }
-  return `分支「${branch}」上「${path}」提交内容应为「${expected}」`;
+  return buildFileCommitGapMessage(branch, path, expected, workingTree);
 };
 
 /**
  * HEAD 提交文件内容未达标时的提示。
- * 功能：指明应在哪条分支的最新提交中包含该文件及目标内容。
- * 参数：path - 文件路径；actual - 当前 HEAD 提交中的实际内容；targetBranch - 目标分支名；expected - 期望内容。
+ * 功能：区分「直接提交工作区」与「先改内容再提交」。
+ * 参数：path - 文件路径；actual - HEAD 提交中的实际内容；targetBranch - 目标分支；expected - 期望内容；workingTree - 当前工作区。
  * 返回值：待完成提示文案。
  */
 export const formatFileContentGap = (
@@ -34,13 +150,10 @@ export const formatFileContentGap = (
   actual: string | undefined,
   targetBranch: string | null,
   expected: string,
+  workingTree: RepoState["workingTree"],
 ): string => {
-  /** 文案里使用的分支名，没有指定时用「当前分支」 */
   const branchLabel = targetBranch ?? "当前分支";
-  if (actual === undefined) {
-    return `分支「${branchLabel}」最新提交需包含「${path}」，内容为「${expected}」`;
-  }
-  return `分支「${branchLabel}」上「${path}」提交内容应为「${expected}」`;
+  return buildFileCommitGapMessage(branchLabel, path, expected, workingTree);
 };
 
 /**

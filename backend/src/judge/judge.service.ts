@@ -137,7 +137,7 @@ export class JudgeService {
           } else {
             gaps.push({
               key: `branchFileContents:${branch}:${path}`,
-              message: formatBranchFileContentGap(branch, path, actual, expected),
+              message: formatBranchFileContentGap(branch, path, actual, expected, state.workingTree),
             });
           }
         }
@@ -155,7 +155,7 @@ export class JudgeService {
         } else {
           gaps.push({
             key: `fileContents:${path}`,
-            message: formatFileContentGap(path, actual, goalBranch, expected),
+            message: formatFileContentGap(path, actual, goalBranch, expected, state.workingTree),
           });
         }
       }
