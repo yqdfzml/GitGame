@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BookOpenCheck, GitBranch, Medal, Shield, Trophy } from "lucide-vue-next";
+import { BookOpenCheck, GitBranch, Home, Medal, Shield, Trophy } from "lucide-vue-next";
 import { onMounted, ref, watch } from "vue";
 import { RouterLink, RouterView } from "vue-router";
 import { usersApi } from "./api/client";
@@ -61,14 +61,18 @@ watch(() => auth.isLoggedIn, loadUserTitle);
 <template>
   <div class="app-shell">
     <header class="topbar">
-      <RouterLink to="/levels" class="brand">
+      <RouterLink to="/" class="brand">
         <GitBranch class="brand-icon" aria-hidden="true" />
         <span>GitGame</span>
       </RouterLink>
       <nav class="nav-links">
+        <RouterLink to="/">
+          <Home aria-hidden="true" />
+          首页
+        </RouterLink>
         <RouterLink to="/levels">
           <BookOpenCheck aria-hidden="true" />
-          首页
+          关卡
         </RouterLink>
         <RouterLink to="/achievements">
           <Medal aria-hidden="true" />

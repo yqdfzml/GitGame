@@ -4,7 +4,11 @@ import { useAuthStore } from "../stores/auth";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: "/", redirect: "/levels" },
+    {
+      path: "/",
+      name: "home",
+      component: () => import("../views/HomeView.vue"),
+    },
     {
       path: "/login",
       name: "login",
@@ -76,11 +80,11 @@ router.beforeEach((to, _from, next) => {
     return;
   }
   if (to.meta.requiresAdmin && !auth.isAdmin) {
-    next({ name: "levels" });
+    next({ name: "home" });
     return;
   }
   if (to.meta.guest && auth.isLoggedIn) {
-    next({ name: "levels" });
+    next({ name: "home" });
     return;
   }
   next();

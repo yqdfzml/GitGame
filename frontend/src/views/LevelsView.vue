@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { levelsApi, usersApi } from "../api/client";
-import HomeDashboard from "../components/HomeDashboard.vue";
 import LevelChallengeCard from "../components/LevelChallengeCard.vue";
 import type { LevelSummary } from "../types";
 import {
@@ -81,45 +80,41 @@ const routePercent = computed(() => {
 
 <template>
   <section class="page-stack levels-page">
-    <HomeDashboard />
+    <header class="page-header">
+      <span class="page-eyebrow">Levels</span>
+      <h1 class="page-title page-title-serif">修炼路径</h1>
+      <p class="page-desc">按主题选择关卡，在终端输入 Git 命令完成目标。系统只检查最终仓库状态。</p>
+    </header>
 
-    <section class="home-section">
-      <header class="page-header">
-        <span class="page-eyebrow">Challenge</span>
-        <h1 class="page-title page-title-serif">我的挑战</h1>
-        <p class="page-desc">按主题选择关卡，在终端输入 Git 命令完成目标。系统只检查最终仓库状态。</p>
-      </header>
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner" />
+      <span>加载关卡中...</span>
+    </div>
 
-      <div v-if="loading" class="loading-state">
-        <div class="loading-spinner" />
-        <span>加载关卡中...</span>
+    <p v-if="error" class="error-msg">{{ error }}</p>
+
+    <template v-if="!loading && !error">
+      <div class="levels-strip card">
+        <span>{{ completedCount }}/{{ levels.length }} 关已通关</span>
+        <div class="progress-track levels-strip-track" aria-label="全路径进度">
+          <div :style="{ width: `${routePercent}%` }" />
+        </div>
+        <strong>{{ routePercent }}%</strong>
       </div>
 
-      <p v-if="error" class="error-msg">{{ error }}</p>
-
-      <template v-if="!loading && !error">
-        <div class="levels-strip card">
-          <span>{{ completedCount }}/{{ levels.length }} 关已通关</span>
-          <div class="progress-track levels-strip-track" aria-label="全路径进度">
-            <div :style="{ width: `${routePercent}%` }" />
-          </div>
-          <strong>{{ routePercent }}%</strong>
+      <div class="topic-lane card">
+        <div class="topic-lane-grid">
+          <LevelChallengeCard
+            v-for="topic in topicCards"
+            :key="topic.chapterId"
+            :chapter-id="topic.chapterId"
+            :presentation="topic.presentation"
+            :level-count="topic.levelCount"
+            :completed-count="topic.completedCount"
+            :total-count="topic.totalCount"
+          />
         </div>
-
-        <div class="topic-lane card">
-          <div class="topic-lane-grid">
-            <LevelChallengeCard
-              v-for="topic in topicCards"
-              :key="topic.chapterId"
-              :chapter-id="topic.chapterId"
-              :presentation="topic.presentation"
-              :level-count="topic.levelCount"
-              :completed-count="topic.completedCount"
-              :total-count="topic.totalCount"
-            />
-          </div>
-        </div>
-      </template>
-    </section>
+      </div>
+    </template>
   </section>
 </template>
