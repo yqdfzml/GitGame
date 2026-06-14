@@ -30,6 +30,7 @@ onMounted(() => {
   <section class="page-stack">
     <header class="page-header">
       <h1 class="page-title">排行榜</h1>
+      <p class="page-desc">按累计获得总积分排序</p>
     </header>
 
     <div class="card">
