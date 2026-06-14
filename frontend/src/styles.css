@@ -601,16 +601,16 @@ a:hover { color: var(--accent-hover); }
 .sect-feed-item {
   position: relative;
   display: grid;
-  grid-template-columns: 28px 32px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 12px;
   align-items: start;
-  padding: 12px 18px 12px 22px;
+  padding: 12px 18px;
 }
 
 .sect-feed-rail {
   position: absolute;
-  left: 37px;
-  top: 36px;
+  left: 33px;
+  top: 44px;
   bottom: -12px;
   width: 2px;
   background: rgba(255, 255, 255, 0.06);
