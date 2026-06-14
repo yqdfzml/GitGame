@@ -129,7 +129,7 @@ export interface AdminUserDetail {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
-  stats: import("./index").UserStats;
+  stats: import("@shared/types").UserStats;
   wallet: {
     balance: number;
     totalEarned: number;
@@ -140,9 +140,9 @@ export interface AdminUserDetail {
   badges: {
     unlockedCount: number;
     totalCount: number;
-    activeTitle: import("./index").ActiveTitle | null;
-    rank: import("./index").RankInfo;
-    items: import("./index").BadgeItem[];
+    activeTitle: import("@shared/types").ActiveTitle | null;
+    rank: import("@shared/types").RankInfo;
+    items: import("@shared/types").BadgeItem[];
   };
   recentAttempts: AdminUserAttemptItem[];
   activeSessionCount: number;

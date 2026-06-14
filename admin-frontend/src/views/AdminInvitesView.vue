@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { adminInvitesApi } from "../../api/client";
-import AdminListState from "../../components/admin/AdminListState.vue";
-import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
-import type { AdminInviteListItem } from "../../types/admin";
+import { adminInvitesApi } from "../api/client";
+import AdminListState from "../components/admin/AdminListState.vue";
+import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
+import type { AdminInviteListItem } from "../types/admin";
 
 /** 邀请码列表 */
 const inviteList = ref<AdminInviteListItem[]>([]);

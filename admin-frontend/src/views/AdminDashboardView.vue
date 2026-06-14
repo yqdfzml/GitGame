@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { adminDashboardApi } from "../../api/client";
-import AdminListState from "../../components/admin/AdminListState.vue";
-import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
-import type { AdminDashboardOverview } from "../../types/admin";
+import { adminDashboardApi } from "../api/client";
+import AdminListState from "../components/admin/AdminListState.vue";
+import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
+import type { AdminDashboardOverview } from "../types/admin";
 
 /** Dashboard 数据 */
 const overview = ref<AdminDashboardOverview | null>(null);

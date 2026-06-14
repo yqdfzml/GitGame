@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { adminApi } from "../../api/client";
-import AdminListState from "../../components/admin/AdminListState.vue";
-import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
+import { adminApi } from "../api/client";
+import AdminListState from "../components/admin/AdminListState.vue";
+import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
 import type {
   AdminLevelFormData,
   AdminLevelItem,
   AdminLevelListFilters,
-} from "../../types/admin";
-import { TOPIC_CHAPTER_IDS } from "../../utils/levelPresentation";
+} from "../types/admin";
+import { TOPIC_CHAPTER_IDS } from "@shared/utils/levelPresentation";
 
 /** 默认表单模板 */
 const DEFAULT_FORM: AdminLevelFormData = {

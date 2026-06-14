@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { adminUsersApi } from "../../api/client";
-import AdminListState from "../../components/admin/AdminListState.vue";
-import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
-import type { AdminUserListFilters, AdminUserListItem } from "../../types/admin";
+import { adminUsersApi } from "../api/client";
+import AdminListState from "../components/admin/AdminListState.vue";
+import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
+import type { AdminUserListFilters, AdminUserListItem } from "../types/admin";
 
 const router = useRouter();
 
@@ -62,7 +62,7 @@ const loadUserList = () => {
  * 返回值：无。
  */
 const goToDetail = (userId: string) => {
-  router.push({ name: "admin-user-detail", params: { id: userId } });
+  router.push({ name: "user-detail", params: { id: userId } });
 };
 
 /**

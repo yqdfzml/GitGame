@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --parallel -r dev",
     "dev:frontend": "pnpm --filter gitgame-frontend dev",
+    "dev:admin": "pnpm --filter gitgame-admin dev",
     "dev:backend": "pnpm --filter gitgame-backend dev",
     "build": "pnpm -r build",
     "test": "pnpm --filter gitgame-backend test",

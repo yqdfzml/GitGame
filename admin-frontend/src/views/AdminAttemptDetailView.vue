@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { adminAttemptsApi } from "../../api/client";
-import AdminListState from "../../components/admin/AdminListState.vue";
-import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
-import type { AdminAttemptDetail } from "../../types/admin";
+import { adminAttemptsApi } from "../api/client";
+import AdminListState from "../components/admin/AdminListState.vue";
+import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
+import type { AdminAttemptDetail } from "../types/admin";
 
 const route = useRoute();
 const router = useRouter();
@@ -60,8 +60,10 @@ const formatDateTime = (value: string | null) => {
  * 参数：无。
  * 返回值：无。
  */
+/** 玩家端地址 */
+const playerBaseUrl = import.meta.env.VITE_PLAYER_URL ?? "http://localhost:5173";
 const goToReplay = () => {
-  router.push({ name: "replay", params: { attemptId } });
+  window.open(`${playerBaseUrl}/replay/${attemptId}`, "_blank");
 };
 
 /**
@@ -74,7 +76,7 @@ const goToUser = () => {
   if (!attemptDetail.value) {
     return;
   }
-  router.push({ name: "admin-user-detail", params: { id: attemptDetail.value.user.id } });
+  router.push({ name: "user-detail", params: { id: attemptDetail.value.user.id } });
 };
 
 /**
@@ -84,7 +86,7 @@ const goToUser = () => {
  * 返回值：无。
  */
 const backToList = () => {
-  router.push({ name: "admin-attempts" });
+  router.push({ name: "attempts" });
 };
 
 /** 状态中文映射 */

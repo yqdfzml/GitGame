@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { adminAttemptsApi } from "../../api/client";
-import AdminListState from "../../components/admin/AdminListState.vue";
-import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
-import type { AdminAttemptListFilters, AdminAttemptListItem } from "../../types/admin";
+import { adminAttemptsApi } from "../api/client";
+import AdminListState from "../components/admin/AdminListState.vue";
+import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
+import type { AdminAttemptListFilters, AdminAttemptListItem } from "../types/admin";
 
 const route = useRoute();
 const router = useRouter();
@@ -65,7 +65,7 @@ const loadAttemptList = () => {
  * 返回值：无。
  */
 const goToDetail = (attemptId: string) => {
-  router.push({ name: "admin-attempt-detail", params: { id: attemptId } });
+  router.push({ name: "attempt-detail", params: { id: attemptId } });
 };
 
 /**

@@ -2572,10 +2572,37 @@ a:hover { color: var(--accent-hover); }
   position: sticky;
   top: 0;
   z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
   background: rgba(18, 16, 14, 0.9);
   backdrop-filter: blur(10px);
+}
+
+.admin-shell-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-shell-user {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.admin-shell-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.admin-shell-logout svg {
+  width: 14px;
+  height: 14px;
 }
 
 .admin-shell-topbar h2 {

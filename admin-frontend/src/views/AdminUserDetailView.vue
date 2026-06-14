@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { adminUsersApi } from "../../api/client";
-import AdminListState from "../../components/admin/AdminListState.vue";
-import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
-import type { AdminUserDetail } from "../../types/admin";
+import { adminUsersApi } from "../api/client";
+import AdminListState from "../components/admin/AdminListState.vue";
+import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
+import type { AdminUserDetail } from "../types/admin";
 
 const route = useRoute();
 const router = useRouter();
@@ -186,8 +186,10 @@ const revokeSessions = () => {
  * 参数：attemptId - attempt id。
  * 返回值：无。
  */
+/** 玩家端地址 */
+const playerBaseUrl = import.meta.env.VITE_PLAYER_URL ?? "http://localhost:5173";
 const goToReplay = (attemptId: string) => {
-  router.push({ name: "replay", params: { attemptId } });
+  window.open(`${playerBaseUrl}/replay/${attemptId}`, "_blank");
 };
 
 /**
@@ -197,7 +199,7 @@ const goToReplay = (attemptId: string) => {
  * 返回值：无。
  */
 const backToList = () => {
-  router.push({ name: "admin-users" });
+  router.push({ name: "users" });
 };
 
 onMounted(() => {

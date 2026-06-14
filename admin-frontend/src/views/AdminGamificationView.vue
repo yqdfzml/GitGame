@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { adminGamificationApi } from "../../api/client";
-import AdminListState from "../../components/admin/AdminListState.vue";
-import AdminPageHeader from "../../components/admin/AdminPageHeader.vue";
+import { adminGamificationApi } from "../api/client";
+import AdminListState from "../components/admin/AdminListState.vue";
+import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
 import type {
   AdminBadgeDefinitionItem,
   AdminLeaderboardItem,
   AdminLedgerListResult,
   AdminUnlockListItem,
   AdminWalletListItem,
-} from "../../types/admin";
+} from "../types/admin";
 
 /** 积分钱包列表 */
 const walletList = ref<AdminWalletListItem[]>([]);

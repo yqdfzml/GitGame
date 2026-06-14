@@ -5,13 +5,14 @@
 数据库变更 自动进行迁移
 ## 开发命令
 
-- 根目录 `pnpm dev` — 同时启动前后端
+- 根目录 `pnpm dev` — 同时启动玩家端、管理后台与 API
+- `pnpm dev:frontend` — 玩家端 Vue3 Vite (port 5173)
+- `pnpm dev:admin` — 管理后台独立应用 (port 5174)
 - `pnpm dev:backend` — NestJS API (port 3000)
-- `pnpm dev:frontend` — Vue3 Vite (port 5173)
 - `pnpm db:migrate` / `pnpm db:seed` — 数据库迁移与种子
 - Docker: `docker compose up -d`
 
 ## 演示账号
 
 - 用户: demo@gitgame.local / demo123
-- 管理员: admin@gitgame.local / admin123
+- 管理员: admin@gitgame.local / admin123（登录管理后台 http://localhost:5174）

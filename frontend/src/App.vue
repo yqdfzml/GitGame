@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { BookOpenCheck, ChevronDown, GitBranch, Home, Medal, Shield, Trophy } from "lucide-vue-next";
+import { BookOpenCheck, ChevronDown, GitBranch, Home, Medal, Trophy } from "lucide-vue-next";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { RouterLink, RouterView, useRoute } from "vue-router";
+import { RouterLink, RouterView } from "vue-router";
 import { usersApi } from "./api/client";
 import { useAuthStore } from "./stores/auth";
 import { usePointsStore } from "./stores/points";
 import type { ActiveTitle } from "./types";
 
 const auth = useAuthStore();
-/** 当前路由，用于判断是否进入后台独立布局 */
-const route = useRoute();
-/** 是否处于管理后台路由 */
-const isAdminRoute = computed(() => route.path.startsWith("/admin"));
 /** 积分钱包 Store，顶栏积分与其保持同步 */
 const pointsStore = usePointsStore();
 /** 当前主线称号，用于顶栏展示 */
@@ -128,8 +124,7 @@ const handleDocumentClick = (event: MouseEvent) => {
 </script>
 
 <template>
-  <RouterView v-if="isAdminRoute" />
-  <div v-else class="app-shell">
+  <div class="app-shell">
     <header class="topbar">
       <RouterLink to="/" class="brand">
         <GitBranch class="brand-icon" aria-hidden="true" />
@@ -151,10 +146,6 @@ const handleDocumentClick = (event: MouseEvent) => {
         <RouterLink to="/leaderboard">
           <Trophy aria-hidden="true" />
           排行榜
-        </RouterLink>
-        <RouterLink v-if="auth.isAdmin" to="/admin/dashboard">
-          <Shield aria-hidden="true" />
-          管理
         </RouterLink>
       </nav>
       <div class="user-area">

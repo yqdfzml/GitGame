@@ -8,6 +8,34 @@ importers:
 
   .: {}
 
+  admin-frontend:
+    dependencies:
+      lucide-vue-next:
+        specifier: ^0.561.0
+        version: 0.561.0(vue@3.5.38(typescript@5.9.3))
+      pinia:
+        specifier: ^3.0.3
+        version: 3.0.4(typescript@5.9.3)(vue@3.5.38(typescript@5.9.3))
+      vue:
+        specifier: ^3.5.22
+        version: 3.5.38(typescript@5.9.3)
+      vue-router:
+        specifier: ^4.5.1
+        version: 4.6.4(vue@3.5.38(typescript@5.9.3))
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.1
+        version: 6.0.7(vite@7.3.5(@types/node@25.9.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4))(vue@3.5.38(typescript@5.9.3))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.2.6
+        version: 7.3.5(@types/node@25.9.3)(jiti@2.7.0)(terser@5.48.0)(tsx@4.22.4)
+      vue-tsc:
+        specifier: ^3.0.7
+        version: 3.3.5(typescript@5.9.3)
+
   backend:
     dependencies:
       '@nestjs/common':
