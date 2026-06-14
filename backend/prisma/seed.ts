@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 /**
  * 数据库种子脚本。
- * 功能：创建管理员、演示用户和完整 40 个教学关卡。
+ * 功能：创建管理员、演示用户和完整 49 个教学关卡。
  * 参数：无（读取 DATABASE_URL 环境变量）。
  * 返回值：Promise<void>。
  */
@@ -57,11 +57,11 @@ async function main() {
   });
 
   for (const level of ALL_LEVELS) {
+    /** 按标题 upsert，保留用户历史 levelId */
     const existing = await prisma.level.findFirst({
       where: {
         courseId: level.courseId,
-        chapterId: level.chapterId,
-        sortOrder: level.sortOrder,
+        title: level.title,
       },
     });
     const levelData = {
@@ -84,12 +84,11 @@ async function main() {
     }
   }
 
-  // 下架不在 40 关列表中的旧 mvp 关卡（例如旧 sortOrder 重复项）
-  const validKeys = new Set(ALL_LEVELS.map((l) => `${l.chapterId}:${l.sortOrder}`));
+  // 下架不在当前路线中的旧 mvp 关卡
+  const validTitles = new Set(ALL_LEVELS.map((l) => l.title));
   const publishedMvp = await prisma.level.findMany({ where: { courseId: "mvp", status: "PUBLISHED" } });
   for (const old of publishedMvp) {
-    const key = `${old.chapterId}:${old.sortOrder}`;
-    if (!validKeys.has(key)) {
+    if (!validTitles.has(old.title)) {
       await prisma.level.update({ where: { id: old.id }, data: { status: "DRAFT" } });
     }
   }

@@ -246,9 +246,14 @@ export class BadgesService {
 
     const clearedChapterIds: string[] = [];
     for (const result of levelResults) {
-      const chapterId = levelChapterMap.get(result.levelId);
+      const rawChapterId = levelChapterMap.get(result.levelId);
+      const chapterId = normalizeChapterId(rawChapterId ?? null);
       if (chapterId && !clearedChapterIds.includes(chapterId)) {
         clearedChapterIds.push(chapterId);
+      }
+      /** 旧章节 id 也保留，供 hasClearedChapter 等效判定 */
+      if (rawChapterId && rawChapterId !== chapterId && !clearedChapterIds.includes(rawChapterId)) {
+        clearedChapterIds.push(rawChapterId);
       }
     }
 

@@ -250,6 +250,22 @@ const buildGoalTargets = (goal: Record<string, unknown>, initialState: RepoState
   if (goal.commitsExist) {
     targets.push("需保留指定的历史提交");
   }
+  if (goal.configContents) {
+    for (const key of Object.keys(goal.configContents as Record<string, string>)) {
+      targets.push(`需设置 git config ${key}`);
+    }
+  }
+  if (goal.initialized) {
+    targets.push("需完成 git init 初始化仓库");
+  }
+  if (goal.remoteTracking) {
+    for (const ref of Object.keys(goal.remoteTracking as Record<string, string>)) {
+      targets.push(`远程跟踪分支 ${ref} 需指向正确提交`);
+    }
+  }
+  if (goal.remoteMainSynced) {
+    targets.push("push 后 origin/main 应与本地 main 同步");
+  }
 
   return targets;
 };

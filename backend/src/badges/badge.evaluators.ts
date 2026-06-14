@@ -1,4 +1,5 @@
 import type { LevelGoal } from "../git-engine/repo-state.types";
+import { hasClearedChapter } from "./chapter-migration";
 import {
   buildCommandFingerprint,
   countSuccessfulSubcommand,
@@ -64,15 +65,15 @@ export function isBadgeUnlocked(badgeId: string, context: BadgeEvalContext): boo
     case "title_02":
       return completedCount >= 2;
     case "title_03":
-      return context.clearedChapterIds.includes("workspace");
+      return hasClearedChapter(context.clearedChapterIds, "snapshot");
     case "title_04":
-      return context.clearedChapterIds.includes("branch");
+      return hasClearedChapter(context.clearedChapterIds, "branch");
     case "title_05":
-      return context.clearedChapterIds.includes("merge");
+      return hasClearedChapter(context.clearedChapterIds, "merge");
     case "title_06":
-      return context.clearedChapterIds.includes("undo");
+      return hasClearedChapter(context.clearedChapterIds, "undo");
     case "title_07":
-      return context.clearedChapterIds.includes("snapshot");
+      return hasClearedChapter(context.clearedChapterIds, "workspace");
     case "title_08":
       return hasHistoryCommandInCompletedAttempt(context);
     case "title_09":
@@ -92,7 +93,7 @@ export function isBadgeUnlocked(badgeId: string, context: BadgeEvalContext): boo
     case "cmd_merge":
       return hasChapterCommandPass(context, "merge", ["merge"]);
     case "cmd_conflict":
-      return context.clearedChapterIds.includes("merge");
+      return hasClearedChapter(context.clearedChapterIds, "merge");
     case "cmd_undo":
       return hasChapterCommandPass(context, "undo", ["reset", "revert", "restore"]);
     case "cmd_restore":
@@ -114,15 +115,15 @@ export function isBadgeUnlocked(badgeId: string, context: BadgeEvalContext): boo
     case "result_all_clear":
       return context.publishedLevelCount > 0 && completedCount >= context.publishedLevelCount;
     case "workflow_stash_clear":
-      return context.clearedChapterIds.includes("stash");
+      return hasClearedChapter(context.clearedChapterIds, "undo");
     case "workflow_tag_archive":
       return hasRequiredTagsLevelPass(context);
     case "workflow_cherry_pick":
-      return context.clearedChapterIds.includes("cherry-pick");
+      return hasClearedChapter(context.clearedChapterIds, "advanced");
     case "workflow_rebase":
       return hasRebasePathPass(context);
     case "workflow_debug":
-      return context.clearedChapterIds.includes("debug");
+      return hasClearedChapter(context.clearedChapterIds, "advanced");
     case "workflow_all_chapters":
       return hasAllChaptersCleared(context);
     case "tech_stash_save":
@@ -401,7 +402,7 @@ function hasAllChaptersCleared(context: BadgeEvalContext): boolean {
     return false;
   }
   for (const chapterId of context.publishedChapterIds) {
-    if (!context.clearedChapterIds.includes(chapterId)) {
+    if (!hasClearedChapter(context.clearedChapterIds, chapterId)) {
       return false;
     }
   }

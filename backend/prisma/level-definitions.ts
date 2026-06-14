@@ -60,8 +60,26 @@ export const makeRepoWithCommit = (
   reflog: [],
 });
 
-/** 完整 40 关定义 */
-export const ALL_LEVELS: LevelSeed[] = [
+/** 未初始化的空目录，供 git init 关卡使用 */
+export const uninitializedRepoBase = (): RepoState => ({
+  initialized: false,
+  commits: {},
+  branches: {},
+  head: { type: "branch", ref: "main" },
+  workingTree: {},
+  index: {},
+  conflicts: {},
+  stash: [],
+  tags: {},
+  reflog: [],
+  config: {},
+  remotes: {},
+  remoteTracking: {},
+  cloneSources: {},
+});
+
+/** 原有 40 关内容（chapterId / sortOrder 由路线表覆盖） */
+const LEGACY_LEVELS: LevelSeed[] = [
   // ══ 第 1 章：初入仓境（5 关）sortOrder 1-5 ══
   {
     courseId: "mvp", chapterId: "workspace", title: "山门初开", sortOrder: 1,
@@ -655,3 +673,391 @@ export const ALL_LEVELS: LevelSeed[] = [
     constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 50 },
   },
 ];
+
+/** 新增关卡：setup / snapshot-diff / history / remote */
+const NEW_LEVEL_SEEDS: LevelSeed[] = [
+  {
+    courseId: "mvp",
+    chapterId: "setup",
+    title: "署名立传",
+    sortOrder: 0,
+    description: "提交会记录作者信息。设置 user.name 与 user.email，为后续 commit 做准备。",
+    difficulty: Difficulty.BEGINNER,
+    initialState: {
+      ...makeRepoWithCommit("main", "setup01", "init", { "README.md": "# hi" }),
+      config: {},
+    },
+    goal: {
+      configContents: {
+        "user.name": "GitGame Player",
+        "user.email": "player@gitgame.local",
+      },
+    },
+    constraints: { baseScore: 30, stepPenalty: 1, maxSteps: 10, minSteps: 2 },
+  },
+  {
+    courseId: "mvp",
+    chapterId: "setup",
+    title: "空仓起手",
+    sortOrder: 0,
+    description: "当前目录还不是 Git 仓库。执行 git init，创建 main 分支与空版本库。",
+    difficulty: Difficulty.BEGINNER,
+    initialState: uninitializedRepoBase(),
+    goal: {
+      initialized: true,
+      branchHeads: { main: "" },
+      workingTreeClean: true,
+      indexEmpty: true,
+    },
+    constraints: { baseScore: 30, stepPenalty: 1, maxSteps: 10, minSteps: 1 },
+  },
+  {
+    courseId: "mvp",
+    chapterId: "snapshot",
+    title: "先看再选",
+    sortOrder: 0,
+    description: "app.js 与 notes.txt 都有改动。先用 git diff 看清差异，再只暂存 app.js。",
+    difficulty: Difficulty.BEGINNER,
+    initialState: {
+      ...makeRepoWithCommit("main", "diff01", "base", { "app.js": "v1", "notes.txt": "old" }),
+      workingTree: {
+        "app.js": { content: "v2", status: "modified" },
+        "notes.txt": { content: "new note", status: "modified" },
+      },
+    },
+    goal: {
+      indexContents: { "app.js": "v2" },
+      workingTreeContents: { "app.js": "v2", "notes.txt": "new note" },
+    },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15, minSteps: 2 },
+  },
+  {
+    courseId: "mvp",
+    chapterId: "history",
+    title: "史海钩沉",
+    sortOrder: 0,
+    description: "历史中有三次提交，其中一条 message 为 feature api。用 git log 与 git show 观察，本关不要改动仓库状态。",
+    difficulty: Difficulty.BEGINNER,
+    initialState: {
+      commits: {
+        h1: { id: "h1", message: "init", parents: [], files: { "app.js": "v0" }, timestamp: 1 },
+        h2: { id: "h2", message: "feature api", parents: ["h1"], files: { "app.js": "v1" }, timestamp: 2 },
+        h3: { id: "h3", message: "fix typo", parents: ["h2"], files: { "app.js": "v1" }, timestamp: 3 },
+      },
+      branches: { main: "h3" },
+      head: { type: "branch", ref: "main" },
+      workingTree: { "app.js": { content: "v1", status: "unchanged" } },
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+    },
+    goal: {
+      branchHeads: { main: "h3" },
+      workingTreeClean: true,
+      indexEmpty: true,
+    },
+    constraints: { baseScore: 30, stepPenalty: 1, maxSteps: 10, minSteps: 2 },
+  },
+  {
+    courseId: "mvp",
+    chapterId: "remote",
+    title: "引泉入户",
+    sortOrder: 0,
+    description: "从 https://gitgame.local/demo.git 克隆远程仓库，得到 README.md 与 origin 远程。",
+    difficulty: Difficulty.INTERMEDIATE,
+    initialState: {
+      initialized: false,
+      commits: {},
+      branches: {},
+      head: { type: "branch", ref: "main" },
+      workingTree: {},
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+      config: {},
+      remotes: {},
+      remoteTracking: {},
+      cloneSources: {
+        "https://gitgame.local/demo.git": {
+          url: "https://gitgame.local/demo.git",
+          branches: { main: "r1c1" },
+          commits: {
+            r1c1: {
+              id: "r1c1",
+              message: "initial",
+              parents: [],
+              files: { "README.md": "# Demo" },
+              timestamp: 1,
+            },
+          },
+        },
+      },
+    },
+    goal: {
+      initialized: true,
+      fileContents: { "README.md": "# Demo" },
+      workingTreeClean: true,
+      indexEmpty: true,
+      remoteTracking: { "origin/main": "r1c1" },
+      remoteBranchHeads: { "origin/main": "r1c1" },
+    },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15, minSteps: 1 },
+  },
+  {
+    courseId: "mvp",
+    chapterId: "remote",
+    title: "遥脉可查",
+    sortOrder: 0,
+    description: "本地已关联 origin。用 git remote -v 确认远程 URL，本关只观察不修改仓库。",
+    difficulty: Difficulty.INTERMEDIATE,
+    initialState: {
+      ...makeRepoWithCommit("main", "r2local", "local", { "app.js": "local" }),
+      remotes: {
+        origin: {
+          url: "https://gitgame.local/upstream.git",
+          branches: { main: "r2remote" },
+          commits: {
+            r2remote: {
+              id: "r2remote",
+              message: "remote",
+              parents: [],
+              files: { "app.js": "remote" },
+              timestamp: 1,
+            },
+          },
+        },
+      },
+      remoteTracking: { "origin/main": "r2local" },
+    },
+    goal: {
+      branchHeads: { main: "r2local" },
+      workingTreeClean: true,
+      indexEmpty: true,
+    },
+    constraints: { baseScore: 30, stepPenalty: 1, maxSteps: 10, minSteps: 1 },
+  },
+  {
+    courseId: "mvp",
+    chapterId: "remote",
+    title: "只取不并",
+    sortOrder: 0,
+    description: "origin/main 领先本地 main。git fetch 更新远程跟踪分支，但不要合并到本地 main。",
+    difficulty: Difficulty.INTERMEDIATE,
+    initialState: {
+      commits: {
+        r3base: { id: "r3base", message: "base", parents: [], files: { "app.js": "v1" }, timestamp: 1 },
+        r3new: { id: "r3new", message: "remote work", parents: ["r3base"], files: { "app.js": "v2" }, timestamp: 2 },
+      },
+      branches: { main: "r3base" },
+      head: { type: "branch", ref: "main" },
+      workingTree: { "app.js": { content: "v1", status: "unchanged" } },
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+      remotes: {
+        origin: {
+          url: "https://gitgame.local/upstream.git",
+          branches: { main: "r3new" },
+          commits: {
+            r3base: { id: "r3base", message: "base", parents: [], files: { "app.js": "v1" }, timestamp: 1 },
+            r3new: { id: "r3new", message: "remote work", parents: ["r3base"], files: { "app.js": "v2" }, timestamp: 2 },
+          },
+        },
+      },
+      remoteTracking: { "origin/main": "r3base" },
+    },
+    goal: {
+      branchHeads: { main: "r3base" },
+      remoteTracking: { "origin/main": "r3new" },
+      workingTreeContents: { "app.js": "v1" },
+      workingTreeClean: true,
+    },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15, minSteps: 1 },
+  },
+  {
+    courseId: "mvp",
+    chapterId: "remote",
+    title: "拉取合流",
+    sortOrder: 0,
+    description: "本地 main 落后 origin/main。git pull 把远端 v2 合入本地 main。",
+    difficulty: Difficulty.INTERMEDIATE,
+    initialState: {
+      commits: {
+        r4base: { id: "r4base", message: "base", parents: [], files: { "app.js": "v1" }, timestamp: 1 },
+        r4new: { id: "r4new", message: "remote work", parents: ["r4base"], files: { "app.js": "v2" }, timestamp: 2 },
+      },
+      branches: { main: "r4base" },
+      head: { type: "branch", ref: "main" },
+      workingTree: { "app.js": { content: "v1", status: "unchanged" } },
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+      remotes: {
+        origin: {
+          url: "https://gitgame.local/upstream.git",
+          branches: { main: "r4new" },
+          commits: {
+            r4base: { id: "r4base", message: "base", parents: [], files: { "app.js": "v1" }, timestamp: 1 },
+            r4new: { id: "r4new", message: "remote work", parents: ["r4base"], files: { "app.js": "v2" }, timestamp: 2 },
+          },
+        },
+      },
+      remoteTracking: { "origin/main": "r4base" },
+    },
+    goal: {
+      branchHeads: { main: "r4new" },
+      fileContents: { "app.js": "v2" },
+      workingTreeClean: true,
+      remoteTracking: { "origin/main": "r4new" },
+    },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20, minSteps: 1 },
+  },
+  {
+    courseId: "mvp",
+    chapterId: "remote",
+    title: "拒推送先合",
+    sortOrder: 0,
+    description: "本地与 origin 已分叉。先 pull 合入远端 remote.txt，再 push 使 origin/main 与本地一致。",
+    difficulty: Difficulty.INTERMEDIATE,
+    initialState: {
+      commits: {
+        r5shared: { id: "r5shared", message: "shared", parents: [], files: { "app.js": "v1" }, timestamp: 1 },
+        r5local: { id: "r5local", message: "local work", parents: ["r5shared"], files: { "app.js": "v1", "local.txt": "l" }, timestamp: 2 },
+        r5remote: { id: "r5remote", message: "remote work", parents: ["r5shared"], files: { "app.js": "v1", "remote.txt": "r" }, timestamp: 3 },
+      },
+      branches: { main: "r5local" },
+      head: { type: "branch", ref: "main" },
+      workingTree: {
+        "app.js": { content: "v1", status: "unchanged" },
+        "local.txt": { content: "l", status: "unchanged" },
+      },
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+      remotes: {
+        origin: {
+          url: "https://gitgame.local/upstream.git",
+          branches: { main: "r5remote" },
+          commits: {
+            r5shared: { id: "r5shared", message: "shared", parents: [], files: { "app.js": "v1" }, timestamp: 1 },
+            r5local: { id: "r5local", message: "local work", parents: ["r5shared"], files: { "app.js": "v1", "local.txt": "l" }, timestamp: 2 },
+            r5remote: { id: "r5remote", message: "remote work", parents: ["r5shared"], files: { "app.js": "v1", "remote.txt": "r" }, timestamp: 3 },
+          },
+        },
+      },
+      remoteTracking: { "origin/main": "r5remote" },
+    },
+    goal: {
+      fileContents: { "app.js": "v1", "local.txt": "l", "remote.txt": "r" },
+      workingTreeClean: true,
+      mergeCommitRequired: true,
+      remoteMainSynced: true,
+    },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30, minSteps: 2 },
+  },
+];
+
+/** 路线条目：按 Pro Git 顺序重排 chapterId 与 sortOrder */
+interface LevelRouteEntry {
+  sortOrder: number;
+  chapterId: string;
+  /** 复用 LEGACY_LEVELS 时用标题匹配 */
+  legacyTitle?: string;
+  /** 新增关卡时用标题匹配 NEW_LEVEL_SEEDS */
+  newTitle?: string;
+}
+
+/** 49 关修炼路线（9 章） */
+const LEVEL_ROUTE: LevelRouteEntry[] = [
+  { sortOrder: 1, chapterId: "setup", newTitle: "署名立传" },
+  { sortOrder: 2, chapterId: "setup", newTitle: "空仓起手" },
+  { sortOrder: 3, chapterId: "workspace", legacyTitle: "山门初开" },
+  { sortOrder: 4, chapterId: "workspace", legacyTitle: "灵气扰动" },
+  { sortOrder: 5, chapterId: "workspace", legacyTitle: "暂存之门" },
+  { sortOrder: 6, chapterId: "workspace", legacyTitle: "三境分明" },
+  { sortOrder: 7, chapterId: "workspace", legacyTitle: "明镜无尘" },
+  { sortOrder: 8, chapterId: "snapshot", newTitle: "先看再选" },
+  { sortOrder: 9, chapterId: "snapshot", legacyTitle: "第一枚灵印" },
+  { sortOrder: 10, chapterId: "snapshot", legacyTitle: "只取所需" },
+  { sortOrder: 11, chapterId: "snapshot", legacyTitle: "暂存与未暂存" },
+  { sortOrder: 12, chapterId: "snapshot", legacyTitle: "错改回正" },
+  { sortOrder: 13, chapterId: "snapshot", legacyTitle: "纯净快照" },
+  { sortOrder: 14, chapterId: "history", newTitle: "史海钩沉" },
+  { sortOrder: 15, chapterId: "branch", legacyTitle: "另开一脉" },
+  { sortOrder: 16, chapterId: "branch", legacyTitle: "身在何处" },
+  { sortOrder: 17, chapterId: "branch", legacyTitle: "分支独修" },
+  { sortOrder: 18, chapterId: "branch", legacyTitle: "错路回头" },
+  { sortOrder: 19, chapterId: "branch", legacyTitle: "双脉并行" },
+  { sortOrder: 20, chapterId: "merge", legacyTitle: "顺水合流" },
+  { sortOrder: 21, chapterId: "merge", legacyTitle: "双亲之印" },
+  { sortOrder: 22, chapterId: "merge", legacyTitle: "同文相争" },
+  { sortOrder: 23, chapterId: "merge", legacyTitle: "冲突调和" },
+  { sortOrder: 24, chapterId: "merge", legacyTitle: "合而不乱" },
+  { sortOrder: 25, chapterId: "remote", newTitle: "引泉入户" },
+  { sortOrder: 26, chapterId: "remote", newTitle: "遥脉可查" },
+  { sortOrder: 27, chapterId: "remote", newTitle: "只取不并" },
+  { sortOrder: 28, chapterId: "remote", newTitle: "拉取合流" },
+  { sortOrder: 29, chapterId: "remote", newTitle: "拒推送先合" },
+  { sortOrder: 30, chapterId: "undo", legacyTitle: "撤回暂存" },
+  { sortOrder: 31, chapterId: "undo", legacyTitle: "抹去误改" },
+  { sortOrder: 32, chapterId: "undo", legacyTitle: "重做一印" },
+  { sortOrder: 33, chapterId: "undo", legacyTitle: "公开补过" },
+  { sortOrder: 34, chapterId: "undo", legacyTitle: "错误归位" },
+  { sortOrder: 35, chapterId: "undo", legacyTitle: "临时收功" },
+  { sortOrder: 36, chapterId: "undo", legacyTitle: "急救主线" },
+  { sortOrder: 37, chapterId: "undo", legacyTitle: "藏而不失" },
+  { sortOrder: 38, chapterId: "advanced", legacyTitle: "立碑记名" },
+  { sortOrder: 39, chapterId: "advanced", legacyTitle: "版本归档" },
+  { sortOrder: 40, chapterId: "advanced", legacyTitle: "摘一颗星" },
+  { sortOrder: 41, chapterId: "advanced", legacyTitle: "错峰移植" },
+  { sortOrder: 42, chapterId: "advanced", legacyTitle: "追上主脉" },
+  { sortOrder: 43, chapterId: "advanced", legacyTitle: "整理三印" },
+  { sortOrder: 44, chapterId: "advanced", legacyTitle: "移植解冲突" },
+  { sortOrder: 45, chapterId: "advanced", legacyTitle: "追溯因果" },
+  { sortOrder: 46, chapterId: "advanced", legacyTitle: "二分问道" },
+  { sortOrder: 47, chapterId: "advanced", legacyTitle: "失足可返" },
+  { sortOrder: 48, chapterId: "advanced", legacyTitle: "断线续命" },
+  { sortOrder: 49, chapterId: "advanced", legacyTitle: "终局试炼" },
+];
+
+/**
+ * 按路线表组装最终关卡列表。
+ * 功能：保留现有关卡目标与初始状态，只更新 chapterId 与 sortOrder。
+ * 参数：无。
+ * 返回值：排序后的 LevelSeed 数组。
+ */
+const buildAllLevels = (): LevelSeed[] => {
+  return LEVEL_ROUTE.map((entry) => {
+    const title = entry.legacyTitle ?? entry.newTitle;
+    if (!title) {
+      throw new Error(`路线条目 sortOrder=${entry.sortOrder} 缺少标题`);
+    }
+
+    const source = entry.legacyTitle
+      ? LEGACY_LEVELS.find((level) => level.title === entry.legacyTitle)
+      : NEW_LEVEL_SEEDS.find((level) => level.title === entry.newTitle);
+
+    if (!source) {
+      throw new Error(`找不到关卡「${title}」的定义`);
+    }
+
+    return {
+      ...source,
+      chapterId: entry.chapterId,
+      sortOrder: entry.sortOrder,
+    };
+  });
+};
+
+/** 完整 49 关定义（9 章 Pro Git 路线） */
+export const ALL_LEVELS: LevelSeed[] = buildAllLevels();

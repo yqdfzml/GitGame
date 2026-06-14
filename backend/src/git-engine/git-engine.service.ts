@@ -7,6 +7,7 @@ import {
   collectCommitsAfter,
   createCommit,
   findMergeBase,
+  formatDiff,
   formatLog,
   formatStatus,
   getHeadCommitId,
@@ -24,6 +25,14 @@ import {
   writeWorkingTreeFile,
   touchWorkingTreeFile,
 } from "./git-engine.utils";
+import {
+  applyCloneSource,
+  isRepoInitialized,
+  mergeRemoteIntoCurrentBranch,
+  notInitializedMessage,
+  runFetch,
+  runPush,
+} from "./git-engine.remote";
 
 /**
  * Git 虚拟状态机服务。
@@ -99,6 +108,18 @@ export class GitEngineService {
     const subCommand = tokens[1];
     const state = cloneRepoState(currentState);
 
+    /** 未 init 时仅允许 config / init / clone */
+    const initFreeCommands = new Set(["config", "init", "clone"]);
+    if (!isRepoInitialized(state) && !initFreeCommands.has(subCommand)) {
+      const message = notInitializedMessage();
+      return {
+        success: false,
+        output: message,
+        feedback: message,
+        state: currentState,
+      };
+    }
+
     try {
       switch (subCommand) {
         case "status":
@@ -115,6 +136,8 @@ export class GitEngineService {
           return this.handleSwitch(state, tokens.slice(2));
         case "log":
           return this.handleLog(state);
+        case "diff":
+          return this.handleDiff(state, tokens.slice(2));
         case "merge":
           return this.handleMerge(state, tokens.slice(2));
         case "reset":
@@ -137,6 +160,20 @@ export class GitEngineService {
           return this.handleRebase(state, tokens.slice(2));
         case "bisect":
           return this.handleBisect(state, tokens.slice(2));
+        case "config":
+          return this.handleConfig(state, tokens.slice(2));
+        case "init":
+          return this.handleInit(state, tokens.slice(2));
+        case "clone":
+          return this.handleClone(state, tokens.slice(2));
+        case "remote":
+          return this.handleRemote(state, tokens.slice(2));
+        case "fetch":
+          return this.handleFetch(state, tokens.slice(2));
+        case "pull":
+          return this.handlePull(state, tokens.slice(2));
+        case "push":
+          return this.handlePush(state, tokens.slice(2));
         default:
           return {
             success: false,
@@ -160,6 +197,228 @@ export class GitEngineService {
   private handleStatus(state: RepoState): CommandResult {
     const output = formatStatus(state);
     return { success: true, output, feedback: "已显示当前仓库状态", state };
+  }
+
+  /**
+   * 处理 git diff，只读展示工作区或暂存区改动。
+   * 功能：帮助玩家在 add 前观察变更。
+   * 参数：state - 仓库；args - diff 参数。
+   * 返回值：CommandResult。
+   */
+  private handleDiff(state: RepoState, args: string[]): CommandResult {
+    const cached = args.includes("--cached") || args.includes("--staged");
+    const output = formatDiff(state, cached);
+    const feedback = output ? "已显示文件差异" : "没有可显示的差异";
+    return { success: true, output, feedback, state };
+  }
+
+  /**
+   * 处理 git config，读写本地配置项。
+   * 功能：设置 user.name / user.email 等。
+   * 参数：state - 仓库；args - config 参数。
+   * 返回值：CommandResult。
+   */
+  private handleConfig(state: RepoState, args: string[]): CommandResult {
+    if (!state.config) {
+      state.config = {};
+    }
+
+    if (args.includes("--list") || args.length === 0) {
+      const lines = Object.entries(state.config).map(([key, value]) => `${key}=${value}`);
+      return {
+        success: true,
+        output: lines.join("\n"),
+        feedback: "已列出配置项",
+        state,
+      };
+    }
+
+    const positional = args.filter((item) => !item.startsWith("-"));
+    if (positional.length < 2) {
+      const message = "用法: git config <key> <value>";
+      return { success: false, output: message, feedback: message, state };
+    }
+
+    const configKey = positional[0];
+    const configValue = positional[1];
+    state.config[configKey] = configValue;
+    return {
+      success: true,
+      output: "",
+      feedback: `已设置 ${configKey}`,
+      state,
+    };
+  }
+
+  /**
+   * 处理 git init，创建空仓库与 main 分支。
+   * 功能：setup 关卡教学用。
+   * 参数：state - 仓库；args - init 参数（忽略）。
+   * 返回值：CommandResult。
+   */
+  private handleInit(state: RepoState, _args: string[]): CommandResult {
+    if (isRepoInitialized(state)) {
+      const message = "Reinitialized existing Git repository";
+      return { success: true, output: message, feedback: "已重新初始化仓库", state };
+    }
+
+    state.initialized = true;
+    state.commits = {};
+    state.branches = { main: "" };
+    state.head = { type: "branch", ref: "main" };
+    state.workingTree = {};
+    state.index = {};
+    state.conflicts = {};
+    state.stash = [];
+    state.tags = {};
+    state.reflog = [];
+    state.remotes = {};
+    state.remoteTracking = {};
+
+    return {
+      success: true,
+      output: "Initialized empty Git repository",
+      feedback: "已初始化空仓库，当前在 main 分支",
+      state,
+    };
+  }
+
+  /**
+   * 处理 git clone，从 cloneSources 复制远程快照到本地。
+   * 功能：remote 章节第一关。
+   * 参数：state - 仓库；args - clone 参数。
+   * 返回值：CommandResult。
+   */
+  private handleClone(state: RepoState, args: string[]): CommandResult {
+    const positional = args.filter((item) => !item.startsWith("-"));
+    if (positional.length === 0) {
+      const message = "用法: git clone <url> [目录]";
+      return { success: false, output: message, feedback: message, state };
+    }
+
+    const cloneUrl = positional[0];
+    const source = state.cloneSources?.[cloneUrl];
+    if (!source) {
+      const message = `找不到远程仓库 '${cloneUrl}'`;
+      return { success: false, output: message, feedback: message, state };
+    }
+
+    applyCloneSource(state, source, "origin");
+    return {
+      success: true,
+      output: `Cloning into '.'...\n完成。`,
+      feedback: "克隆完成，已创建 origin 远程与 main 分支",
+      state,
+    };
+  }
+
+  /**
+   * 处理 git remote，列出或添加远程。
+   * 功能：remote -v 查看 URL。
+   * 参数：state - 仓库；args - remote 参数。
+   * 返回值：CommandResult。
+   */
+  private handleRemote(state: RepoState, args: string[]): CommandResult {
+    if (!state.remotes) {
+      state.remotes = {};
+    }
+
+    if (args.length === 0 || args.includes("-v") || args.includes("--verbose")) {
+      const lines: string[] = [];
+      for (const [name, remote] of Object.entries(state.remotes)) {
+        lines.push(`${name}\t${remote.url} (fetch)`);
+        lines.push(`${name}\t${remote.url} (push)`);
+      }
+      return {
+        success: true,
+        output: lines.join("\n"),
+        feedback: "已列出远程仓库",
+        state,
+      };
+    }
+
+    if (args[0] === "add" && args.length >= 3) {
+      const remoteName = args[1];
+      const remoteUrl = args[2];
+      state.remotes[remoteName] = {
+        url: remoteUrl,
+        branches: {},
+        commits: {},
+      };
+      return {
+        success: true,
+        output: "",
+        feedback: `已添加远程 ${remoteName}`,
+        state,
+      };
+    }
+
+    const message = "用法: git remote -v 或 git remote add <name> <url>";
+    return { success: false, output: message, feedback: message, state };
+  }
+
+  /**
+   * 处理 git fetch，只更新远程跟踪分支。
+   * 功能：不修改当前工作区与本地分支。
+   * 参数：state - 仓库；args - fetch 参数。
+   * 返回值：CommandResult。
+   */
+  private handleFetch(state: RepoState, args: string[]): CommandResult {
+    const remoteName = args.find((item) => !item.startsWith("-")) ?? "origin";
+    try {
+      const output = runFetch(state, remoteName);
+      return { success: true, output, feedback: "fetch 完成，工作区未改动", state };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "fetch 失败";
+      return { success: false, output: message, feedback: message, state };
+    }
+  }
+
+  /**
+   * 处理 git pull，等价 fetch + merge 远程分支。
+   * 功能：整合远端更新到当前分支。
+   * 参数：state - 仓库；args - pull 参数。
+   * 返回值：CommandResult。
+   */
+  private handlePull(state: RepoState, args: string[]): CommandResult {
+    const positional = args.filter((item) => !item.startsWith("-"));
+    const remoteName = positional[0] ?? "origin";
+    const branchName = positional[1] ?? (state.head.type === "branch" ? state.head.ref : "main");
+    const remoteRef = `${remoteName}/${branchName}`;
+
+    try {
+      const fetchOutput = runFetch(state, remoteName);
+      const mergeOutput = mergeRemoteIntoCurrentBranch(state, remoteRef);
+      return {
+        success: true,
+        output: `${fetchOutput}\n${mergeOutput}`,
+        feedback: "pull 完成",
+        state,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "pull 失败";
+      return { success: false, output: message, feedback: message, state };
+    }
+  }
+
+  /**
+   * 处理 git push，同步本地分支到远程。
+   * 功能：远端领先时拒绝并提示先 pull。
+   * 参数：state - 仓库；args - push 参数。
+   * 返回值：CommandResult。
+   */
+  private handlePush(state: RepoState, args: string[]): CommandResult {
+    const positional = args.filter((item) => !item.startsWith("-"));
+    const remoteName = positional[0] ?? "origin";
+    const branchName = positional[1] ?? (state.head.type === "branch" ? state.head.ref : "main");
+
+    try {
+      const output = runPush(state, remoteName, branchName);
+      return { success: true, output, feedback: "push 成功", state };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "push 失败";
+      return { success: false, output: message, feedback: message, state };
+    }
   }
 
   /**

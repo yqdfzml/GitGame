@@ -43,6 +43,16 @@ export interface ConflictFile {
   theirs: string;
 }
 
+/** 远程仓库快照，供 clone / fetch / push 模拟 */
+export interface RemoteRepo {
+  /** 远程 URL，用于 clone 与 git remote -v */
+  url: string;
+  /** 远程分支名 -> commit id */
+  branches: Record<string, string>;
+  /** 远程仓库上的全部提交 */
+  commits: Record<string, CommitNode>;
+}
+
 /** stash 条目，保存被贮藏的工作区与暂存区快照 */
 export interface StashEntry {
   /** stash 引用 id，如 stash@{0} */
@@ -101,6 +111,16 @@ export interface RepoState {
     /** 已定位的首个不良 commit id */
     foundBadId?: string;
   };
+  /** 本地 git 配置项，如 user.name */
+  config?: Record<string, string>;
+  /** 是否已 git init；未初始化时除 init/config/clone 外命令应拒绝 */
+  initialized?: boolean;
+  /** 已配置的远程仓库 */
+  remotes?: Record<string, RemoteRepo>;
+  /** 远程跟踪分支，键如 origin/main */
+  remoteTracking?: Record<string, string>;
+  /** 可 clone 的远程源，键为 URL */
+  cloneSources?: Record<string, RemoteRepo>;
 }
 
 /** reflog 条目 */
@@ -167,6 +187,16 @@ export interface LevelGoal {
   bisectFound?: string;
   /** 分支必须不存在（用于验证误删分支已恢复等场景） */
   branchMustNotExist?: string[];
+  /** 仓库必须已完成 git init */
+  initialized?: boolean;
+  /** 期望的 git config 键值 */
+  configContents?: Record<string, string>;
+  /** 远程跟踪分支应指向的 commit id */
+  remoteTracking?: Record<string, string>;
+  /** 远程仓库分支应指向的 commit id，键如 origin/main */
+  remoteBranchHeads?: Record<string, string>;
+  /** origin/main 与本地 main 指向同一提交（push 后同步） */
+  remoteMainSynced?: boolean;
 }
 
 /** 关卡约束 */

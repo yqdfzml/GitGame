@@ -17,6 +17,21 @@ export const cloneRepoState = (state: RepoState): RepoState => {
   if (!cloned.reflog) {
     cloned.reflog = [];
   }
+  if (!cloned.config) {
+    cloned.config = {};
+  }
+  if (cloned.initialized === undefined) {
+    cloned.initialized = true;
+  }
+  if (!cloned.remotes) {
+    cloned.remotes = {};
+  }
+  if (!cloned.remoteTracking) {
+    cloned.remoteTracking = {};
+  }
+  if (!cloned.cloneSources) {
+    cloned.cloneSources = {};
+  }
   return cloned;
 };
 
@@ -523,6 +538,47 @@ export const formatLog = (state: RepoState, maxCount = 20): string => {
 };
 
 /**
+ * 格式化 git diff 输出（工作区相对 HEAD 或暂存区相对 HEAD）。
+ * 功能：只读展示改动，供 diff 关卡教学使用。
+ * 参数：state - 仓库状态；cached - true 时比较暂存区与 HEAD。
+ * 返回值：diff 文本，无改动时返回空字符串。
+ */
+export const formatDiff = (state: RepoState, cached = false): string => {
+  refreshWorkingTreeStatus(state);
+  const headFiles = getHeadFiles(state);
+  const lines: string[] = [];
+
+  if (cached) {
+    for (const [path, stagedContent] of Object.entries(state.index)) {
+      const headContent = headFiles[path] ?? "";
+      if (stagedContent !== headContent) {
+        lines.push(`diff --git a/${path} b/${path}`);
+        lines.push(`--- a/${path}`);
+        lines.push(`+++ b/${path}`);
+        lines.push(`- ${headContent}`);
+        lines.push(`+ ${stagedContent}`);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  for (const [path, file] of Object.entries(state.workingTree)) {
+    if (file.status === "modified" || file.status === "added") {
+      const headContent = headFiles[path] ?? "";
+      if (file.content !== headContent) {
+        lines.push(`diff --git a/${path} b/${path}`);
+        lines.push(`--- a/${path}`);
+        lines.push(`+++ b/${path}`);
+        lines.push(`- ${headContent}`);
+        lines.push(`+ ${file.content}`);
+      }
+    }
+  }
+
+  return lines.join("\n");
+};
+
+/**
  * 将工作区与暂存区重置为 HEAD 快照。
  * 功能：stash 贮藏后或 hard reset 时恢复干净工作区。
  * 参数：state - 仓库状态（会被原地修改）。
@@ -893,6 +949,14 @@ export const ALLOWED_GIT_COMMANDS = new Set([
   "reflog",
   "rebase",
   "bisect",
+  "diff",
+  "config",
+  "init",
+  "clone",
+  "remote",
+  "fetch",
+  "pull",
+  "push",
 ]);
 
 /**

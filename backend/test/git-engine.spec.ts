@@ -71,7 +71,7 @@ describe("GitEngineService", () => {
   });
 
   it("双脉并行：touch + echo 新建文件后可 commit 通关", () => {
-    const level = ALL_LEVELS.find((item) => item.sortOrder === 15);
+    const level = ALL_LEVELS.find((item) => item.title === "双脉并行");
     expect(level).toBeDefined();
 
     const addMain = gitEngine.executeCommand("git add main.txt", level!.initialState);
@@ -95,7 +95,7 @@ describe("GitEngineService", () => {
   });
 
   it("双脉并行：echo 新建文件后可 add 并 commit 通关", () => {
-    const level = ALL_LEVELS.find((item) => item.sortOrder === 15);
+    const level = ALL_LEVELS.find((item) => item.title === "双脉并行");
     expect(level).toBeDefined();
 
     const addMain = gitEngine.executeCommand("git add main.txt", level!.initialState);
@@ -324,8 +324,73 @@ describe("关卡判题回归", () => {
     expect(initialPassed.map((level) => level.sortOrder)).toEqual([]);
   });
 
+  it("空仓起手：git init 可通关", () => {
+    const level = ALL_LEVELS.find((item) => item.title === "空仓起手");
+    expect(level).toBeDefined();
+    const initResult = gitEngine.executeCommand("git init", level!.initialState);
+    const result = judge.evaluate(initResult.state, level!.goal, level!.constraints, 1);
+    expect(result.passed).toBe(true);
+  });
+
+  it("引泉入户：git clone 可通关", () => {
+    const level = ALL_LEVELS.find((item) => item.title === "引泉入户");
+    expect(level).toBeDefined();
+    const cloneResult = gitEngine.executeCommand(
+      "git clone https://gitgame.local/demo.git .",
+      level!.initialState,
+    );
+    const result = judge.evaluate(cloneResult.state, level!.goal, level!.constraints, 1);
+    expect(result.passed).toBe(true);
+  });
+
+  it("只取不并：fetch 不移动本地 main", () => {
+    const level = ALL_LEVELS.find((item) => item.title === "只取不并");
+    expect(level).toBeDefined();
+    const fetchResult = gitEngine.executeCommand("git fetch origin", level!.initialState);
+    expect(fetchResult.success).toBe(true);
+    expect(fetchResult.state.branches.main).toBe("r3base");
+    expect(fetchResult.state.remoteTracking?.["origin/main"]).toBe("r3new");
+    const result = judge.evaluate(fetchResult.state, level!.goal, level!.constraints, 1);
+    expect(result.passed).toBe(true);
+  });
+
+  it("拉取合流：pull 可快进本地 main", () => {
+    const level = ALL_LEVELS.find((item) => item.title === "拉取合流");
+    expect(level).toBeDefined();
+    const pullResult = gitEngine.executeCommand("git pull origin main", level!.initialState);
+    expect(pullResult.success).toBe(true);
+    const result = judge.evaluate(pullResult.state, level!.goal, level!.constraints, 1);
+    expect(result.passed).toBe(true);
+  });
+
+  it("拒推送先合：push 被拒后 pull 再 push 可通关", () => {
+    const level = ALL_LEVELS.find((item) => item.title === "拒推送先合");
+    expect(level).toBeDefined();
+    const pushFail = gitEngine.executeCommand("git push origin main", level!.initialState);
+    expect(pushFail.success).toBe(false);
+
+    const pullResult = gitEngine.executeCommand("git pull origin main", level!.initialState);
+    expect(pullResult.success).toBe(true);
+
+    const pushOk = gitEngine.executeCommand("git push origin main", pullResult.state);
+    expect(pushOk.success).toBe(true);
+
+    const result = judge.evaluate(pushOk.state, level!.goal, level!.constraints, 3);
+    expect(result.passed).toBe(true);
+  });
+
+  it("先看再选：diff 后 add 可通关", () => {
+    const level = ALL_LEVELS.find((item) => item.title === "先看再选");
+    expect(level).toBeDefined();
+    const diffResult = gitEngine.executeCommand("git diff", level!.initialState);
+    expect(diffResult.success).toBe(true);
+    const addResult = gitEngine.executeCommand("git add app.js", diffResult.state);
+    const result = judge.evaluate(addResult.state, level!.goal, level!.constraints, 2);
+    expect(result.passed).toBe(true);
+  });
+
   it("纯净快照：git add . 提交 junk.txt 时不应通关", () => {
-    const level = ALL_LEVELS.find((item) => item.sortOrder === 10);
+    const level = ALL_LEVELS.find((item) => item.title === "纯净快照");
     expect(level).toBeDefined();
 
     const addAll = gitEngine.executeCommand("git add .", level!.initialState);
@@ -337,7 +402,7 @@ describe("关卡判题回归", () => {
   });
 
   it("纯净快照：只提交 app.js 时应通关", () => {
-    const level = ALL_LEVELS.find((item) => item.sortOrder === 10);
+    const level = ALL_LEVELS.find((item) => item.title === "纯净快照");
     expect(level).toBeDefined();
 
     const addApp = gitEngine.executeCommand("git add app.js", level!.initialState);

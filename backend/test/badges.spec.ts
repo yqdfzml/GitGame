@@ -101,11 +101,13 @@ describe("git command helpers", () => {
 });
 
 describe("workflow badges", () => {
-  it("workflow_stash_clear 需要通关 stash 章节", () => {
+  it("workflow_stash_clear 需要通关 undo 章节（含 stash 关卡）", () => {
     const locked = makeContext();
-    const unlocked = makeContext({ clearedChapterIds: ["stash"] });
+    const unlocked = makeContext({ clearedChapterIds: ["undo"] });
+    const legacy = makeContext({ clearedChapterIds: ["stash"] });
     expect(isBadgeUnlocked("workflow_stash_clear", locked)).toBe(false);
     expect(isBadgeUnlocked("workflow_stash_clear", unlocked)).toBe(true);
+    expect(isBadgeUnlocked("workflow_stash_clear", legacy)).toBe(true);
   });
 
   it("workflow_tag_archive 需要通关含 requiredTags 的关卡", () => {

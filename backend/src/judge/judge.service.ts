@@ -106,7 +106,7 @@ export class JudgeService {
     if (goal.branchHeads) {
       for (const [branch, expectedCommit] of Object.entries(goal.branchHeads)) {
         const actualCommit = state.branches[branch];
-        if (!actualCommit) {
+        if (actualCommit === undefined) {
           gaps.push({ key: "branchHeads", message: `分支 '${branch}' 不存在` });
           continue;
         }
@@ -357,6 +357,81 @@ export class JudgeService {
             message: `分支 '${branchName}' 不应存在`,
           });
         }
+      }
+    }
+
+    // 14. 仓库必须已初始化
+    if (goal.initialized === true) {
+      if (state.initialized !== false && state.branches.main !== undefined) {
+        satisfied.push("initialized");
+      } else {
+        gaps.push({ key: "initialized", message: "仓库尚未 git init" });
+      }
+    }
+
+    // 15. git config 键值
+    if (goal.configContents) {
+      for (const [key, expected] of Object.entries(goal.configContents)) {
+        const actual = state.config?.[key];
+        if (actual === expected) {
+          satisfied.push(`configContents:${key}`);
+        } else {
+          gaps.push({
+            key: `configContents:${key}`,
+            message: `配置 '${key}' 应为 '${expected}'`,
+          });
+        }
+      }
+    }
+
+    // 16. 远程跟踪分支
+    if (goal.remoteTracking) {
+      for (const [ref, expectedCommit] of Object.entries(goal.remoteTracking)) {
+        const actual = state.remoteTracking?.[ref];
+        if (actual === expectedCommit) {
+          satisfied.push(`remoteTracking:${ref}`);
+        } else {
+          gaps.push({
+            key: `remoteTracking:${ref}`,
+            message: `远程跟踪 '${ref}' 应指向 '${expectedCommit}'`,
+          });
+        }
+      }
+    }
+
+    // 17. 远程仓库分支指针（remotes.origin/main 等）
+    if (goal.remoteBranchHeads) {
+      for (const [ref, expectedCommit] of Object.entries(goal.remoteBranchHeads)) {
+        const slashIndex = ref.indexOf("/");
+        if (slashIndex <= 0) {
+          gaps.push({ key: "remoteBranchHeads", message: `无效的远程引用 '${ref}'` });
+          continue;
+        }
+        const remoteName = ref.slice(0, slashIndex);
+        const branchName = ref.slice(slashIndex + 1);
+        const actual = state.remotes?.[remoteName]?.branches[branchName];
+        if (actual === expectedCommit) {
+          satisfied.push(`remoteBranchHeads:${ref}`);
+        } else {
+          gaps.push({
+            key: `remoteBranchHeads:${ref}`,
+            message: `远程 '${ref}' 应指向 '${expectedCommit}'`,
+          });
+        }
+      }
+    }
+
+    // 18. origin/main 与本地 main 同步
+    if (goal.remoteMainSynced) {
+      const localMain = state.branches.main;
+      const remoteMain = state.remotes?.origin?.branches.main;
+      if (localMain && remoteMain && localMain === remoteMain) {
+        satisfied.push("remoteMainSynced");
+      } else {
+        gaps.push({
+          key: "remoteMainSynced",
+          message: "origin/main 应与本地 main 指向同一提交",
+        });
       }
     }
 

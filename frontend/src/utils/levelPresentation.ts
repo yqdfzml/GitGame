@@ -4,33 +4,37 @@ import {
   CircleDot,
   GitBranch,
   GitCommitHorizontal,
+  Globe,
   History,
   Package,
   Search,
+  Settings,
   Sparkles,
 } from "lucide-vue-next";
 
 /** Git 技能类型，对应章节心智模型分类 */
 export type LevelKind =
+  | "setup"
   | "workspace"
   | "snapshot"
+  | "history"
   | "branch"
   | "merge"
+  | "remote"
   | "undo"
-  | "stash"
-  | "cherry-pick"
-  | "debug";
+  | "advanced";
 
-/** 修炼路径上的主题顺序，按 Git 心智模型递进 */
+/** 修炼路径上的主题顺序，按 Pro Git 心智模型递进 */
 export const TOPIC_CHAPTER_IDS = [
+  "setup",
   "workspace",
   "snapshot",
+  "history",
   "branch",
   "merge",
+  "remote",
   "undo",
-  "stash",
-  "cherry-pick",
-  "debug",
+  "advanced",
 ] as const;
 
 /** 主题章节 id */
@@ -54,32 +58,49 @@ export interface LevelPresentation {
 
 /** 技能类型 -> Lucide 图标组件 */
 export const kindIconMap: Record<LevelKind, Component> = {
+  setup: Settings,
   workspace: CircleDot,
   snapshot: GitCommitHorizontal,
+  history: History,
   branch: GitBranch,
   merge: BookOpenCheck,
-  undo: History,
-  stash: Package,
-  "cherry-pick": Sparkles,
-  debug: Search,
+  remote: Globe,
+  undo: Package,
+  advanced: Sparkles,
 };
 
 /** chapterId 到展示信息的映射 */
 const CHAPTER_PRESENTATION: Record<string, LevelPresentation> = {
+  setup: {
+    kind: "setup",
+    chapterLabel: "开坛筑基",
+    skillLabel: "config / init",
+    topicLabel: "首次配置",
+    topicDesc: "认识 Git、配置身份、初始化仓库",
+    lockedHint: "关卡开发中，敬请期待",
+  },
   workspace: {
     kind: "workspace",
-    chapterLabel: "初入仓境",
-    skillLabel: "工作区 / 暂存区 / HEAD",
-    topicLabel: "三境识别",
+    chapterLabel: "三境初识",
+    skillLabel: "status / 工作区状态",
+    topicLabel: "观察状态",
     topicDesc: "用 status 理解 working tree、index 与 HEAD",
     lockedHint: "关卡开发中，敬请期待",
   },
   snapshot: {
     kind: "snapshot",
     chapterLabel: "快照成印",
-    skillLabel: "add / commit / restore",
-    topicLabel: "快照提交",
-    topicDesc: "选择变更、暂存快照、写入历史",
+    skillLabel: "diff / add / commit",
+    topicLabel: "记录变更",
+    topicDesc: "先看 diff，再选择变更并写入历史",
+    lockedHint: "关卡开发中，敬请期待",
+  },
+  history: {
+    kind: "history",
+    chapterLabel: "史脉溯源",
+    skillLabel: "log / show",
+    topicLabel: "阅读历史",
+    topicDesc: "用 log 与 show 查找并理解提交",
     lockedHint: "关卡开发中，敬请期待",
   },
   branch: {
@@ -95,39 +116,31 @@ const CHAPTER_PRESENTATION: Record<string, LevelPresentation> = {
     chapterLabel: "合流破障",
     skillLabel: "merge / 冲突解决",
     topicLabel: "合并历史",
-    topicDesc: "合并分支历史，处理冲突",
+    topicDesc: "快进合并、merge commit 与冲突处理",
+    lockedHint: "关卡开发中，敬请期待",
+  },
+  remote: {
+    kind: "remote",
+    chapterLabel: "云脉协作",
+    skillLabel: "clone / fetch / pull / push",
+    topicLabel: "远程协作",
+    topicDesc: "与 origin 同步代码、处理 push 拒绝",
     lockedHint: "关卡开发中，敬请期待",
   },
   undo: {
     kind: "undo",
     chapterLabel: "回溯补过",
-    skillLabel: "reset / restore / revert",
-    topicLabel: "撤销与恢复",
-    topicDesc: "区分撤回暂存、恢复文件与撤销提交",
+    skillLabel: "restore / reset / revert / stash",
+    topicLabel: "撤销与贮藏",
+    topicDesc: "区分本地撤销、公开 revert 与 stash",
     lockedHint: "关卡开发中，敬请期待",
   },
-  stash: {
-    kind: "stash",
-    chapterLabel: "藏锋转身",
-    skillLabel: "stash / 临时切换",
-    topicLabel: "贮藏变更",
-    topicDesc: "中断工作流时保存与恢复本地修改",
-    lockedHint: "关卡开发中，敬请期待",
-  },
-  "cherry-pick": {
-    kind: "cherry-pick",
-    chapterLabel: "摘星移火",
-    skillLabel: "cherry-pick / rebase",
-    topicLabel: "历史移植",
-    topicDesc: "摘取提交、rebase 整理历史",
-    lockedHint: "关卡开发中，敬请期待",
-  },
-  debug: {
-    kind: "debug",
-    chapterLabel: "断案寻因",
-    skillLabel: "log / bisect / reflog",
-    topicLabel: "诊断恢复",
-    topicDesc: "追溯问题、二分定位、reflog 救回",
+  advanced: {
+    kind: "advanced",
+    chapterLabel: "摘星断案",
+    skillLabel: "tag / rebase / bisect / reflog",
+    topicLabel: "进阶技法",
+    topicDesc: "发布标记、历史整理、诊断与救回",
     lockedHint: "关卡开发中，敬请期待",
   },
 };
@@ -173,4 +186,34 @@ export const difficultyLabel = (difficulty: string): string => {
   if (difficulty === "INTERMEDIATE") return "进阶";
   if (difficulty === "ADVANCED") return "突破";
   return difficulty;
+};
+
+/** @deprecated 旧 debug 章节图标，兼容历史数据 */
+export const debugPresentationFallback: LevelPresentation = {
+  kind: "advanced",
+  chapterLabel: "断案寻因",
+  skillLabel: "log / bisect / reflog",
+  topicLabel: "诊断恢复",
+  topicDesc: "追溯问题、二分定位、reflog 救回",
+  lockedHint: "关卡开发中，敬请期待",
+};
+
+/** @deprecated 旧 cherry-pick 章节，映射到 advanced */
+export const cherryPickPresentationFallback: LevelPresentation = {
+  kind: "advanced",
+  chapterLabel: "摘星移火",
+  skillLabel: "cherry-pick / rebase",
+  topicLabel: "历史移植",
+  topicDesc: "摘取提交、rebase 整理历史",
+  lockedHint: "关卡开发中，敬请期待",
+};
+
+/** @deprecated 旧 stash 独立章节，映射到 undo */
+export const stashPresentationFallback: LevelPresentation = {
+  kind: "undo",
+  chapterLabel: "藏锋转身",
+  skillLabel: "stash / 临时切换",
+  topicLabel: "贮藏变更",
+  topicDesc: "中断工作流时保存与恢复本地修改",
+  lockedHint: "关卡开发中，敬请期待",
 };
