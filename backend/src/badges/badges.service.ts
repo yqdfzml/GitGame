@@ -9,6 +9,7 @@ import {
   type RankTierId,
 } from "./badge.definitions";
 import { isBadgeUnlocked, type BadgeEvalContext } from "./badge.evaluators";
+import { normalizeChapterId } from "./chapter-migration";
 
 /** 用户徽章 DTO */
 export interface UserBadgeDto {

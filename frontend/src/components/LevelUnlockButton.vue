@@ -40,9 +40,17 @@ const buttonLabel = computed(() => {
     return "解锁中...";
   }
   if (!canAfford.value) {
-    return `积分不足（需 ${props.unlockCost}）`;
+    return "";
   }
-  return `消耗 ${props.unlockCost} 积分解锁`;
+  return `${props.unlockCost} 积分解锁`;
+});
+
+/** 解锁还差多少积分，余额足够时为 0 */
+const pointsShortfall = computed(() => {
+  if (canAfford.value) {
+    return 0;
+  }
+  return props.unlockCost - props.balance;
 });
 
 /**
@@ -78,13 +86,21 @@ const handleUnlock = () => {
 <template>
   <div class="level-unlock-wrap">
     <button
-      v-if="unlockStatus === 'locked'"
-      class="btn-primary level-unlock-btn"
-      :disabled="!canAfford || unlocking"
+      v-if="unlockStatus === 'locked' && canAfford"
+      type="button"
+      class="level-unlock-action"
+      :disabled="unlocking"
       @click="handleUnlock"
     >
       {{ buttonLabel }}
     </button>
+    <span
+      v-else-if="unlockStatus === 'locked' && !canAfford"
+      class="level-unlock-shortage"
+      :title="`解锁需 ${unlockCost} 积分，当前 ${balance}`"
+    >
+      还差 {{ pointsShortfall }} 积分
+    </span>
     <span v-else-if="unlockStatus === 'free'" class="level-unlock-free">免费</span>
     <p v-if="error" class="error-msg level-unlock-error">{{ error }}</p>
   </div>

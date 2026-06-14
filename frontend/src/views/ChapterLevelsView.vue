@@ -119,9 +119,8 @@ onMounted(() => {
               <strong class="level-list-title">{{ level.title }}</strong>
               <span class="level-list-desc">{{ level.description }}</span>
             </span>
-            <span class="level-list-meta">
+            <span class="level-list-meta level-list-meta-locked">
               <span class="level-difficulty">{{ difficultyLabel(level.difficulty) }}</span>
-              <span class="ui-chip ui-chip-warn">{{ level.unlockCost }} 积分</span>
               <LevelUnlockButton
                 :level-id="level.id"
                 :unlock-cost="level.unlockCost"
