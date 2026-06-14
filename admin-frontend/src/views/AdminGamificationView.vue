@@ -49,6 +49,84 @@ const leaderboardError = ref("");
 const reasonLabelMap: Record<string, string> = {
   CHECK_IN: "签到",
   UNLOCK_LEVEL: "解锁关卡",
+  ADMIN_GRANT: "管理员赠送",
+};
+
+/** 赠送目标邮箱 */
+const grantEmail = ref("");
+/** 赠送积分数量 */
+const grantAmount = ref("");
+/** 是否正在赠送 */
+const granting = ref(false);
+/** 赠送操作反馈 */
+const grantMessage = ref("");
+/** 赠送反馈是否为错误 */
+const grantIsError = ref(false);
+
+/**
+ * 提交赠送积分。
+ * 功能：按邮箱定位用户并增加积分，成功后刷新钱包与流水。
+ * 参数：payload - 可选指定邮箱与数量，不传则用表单值。
+ * 返回值：无。
+ */
+const submitGrantPoints = (payload?: { email?: string; amount?: number }) => {
+  const email = payload?.email ?? grantEmail.value.trim();
+  const amount = payload?.amount ?? Number(grantAmount.value);
+
+  if (!email) {
+    grantMessage.value = "请填写用户邮箱";
+    grantIsError.value = true;
+    return;
+  }
+  if (!Number.isInteger(amount) || amount <= 0) {
+    grantMessage.value = "赠送积分必须是大于 0 的整数";
+    grantIsError.value = true;
+    return;
+  }
+
+  granting.value = true;
+  grantMessage.value = "";
+  grantIsError.value = false;
+
+  adminGamificationApi
+    .grantPoints({ email, amount })
+    .then((result) => {
+      grantMessage.value = `已向 ${result.userDisplayName} 赠送 ${result.amount} 积分，当前余额 ${result.balance}`;
+      grantIsError.value = false;
+      if (!payload) {
+        grantAmount.value = "";
+      }
+      loadWallets();
+      loadLedgers();
+    })
+    .catch((err: Error) => {
+      grantMessage.value = err.message;
+      grantIsError.value = true;
+    })
+    .finally(() => {
+      granting.value = false;
+    });
+};
+
+/**
+ * 从钱包列表快速赠送。
+ * 功能：预填邮箱并弹出确认，确认后执行赠送。
+ * 参数：wallet - 目标用户钱包。
+ * 返回值：无。
+ */
+const quickGrantFromWallet = (wallet: AdminWalletListItem) => {
+  grantEmail.value = wallet.userEmail;
+  const input = window.prompt(`向 ${wallet.userDisplayName} 赠送积分`, "10");
+  if (input === null) {
+    return;
+  }
+  const amount = Number(input);
+  if (!Number.isInteger(amount) || amount <= 0) {
+    grantMessage.value = "赠送积分必须是大于 0 的整数";
+    grantIsError.value = true;
+    return;
+  }
+  submitGrantPoints({ email: wallet.userEmail, amount });
 };
 
 /**
@@ -196,8 +274,28 @@ onMounted(() => {
   <section class="admin-gamification-page">
     <AdminPageHeader
       title="积分与徽章"
-      description="查看积分钱包、流水、解锁记录、徽章定义与排行榜。"
+      description="查看积分钱包、流水、解锁记录，并向用户赠送积分。"
     />
+
+    <section class="card admin-gamification-section">
+      <div class="admin-gamification-section-head">
+        <h3>赠送积分</h3>
+      </div>
+      <div class="admin-points-grant-form">
+        <label class="admin-points-grant-field">
+          <span>用户邮箱</span>
+          <input v-model="grantEmail" type="email" placeholder="demo@gitgame.local" />
+        </label>
+        <label class="admin-points-grant-field">
+          <span>赠送数量</span>
+          <input v-model="grantAmount" type="number" min="1" step="1" placeholder="10" />
+        </label>
+        <button class="btn-primary" :disabled="granting" @click="submitGrantPoints()">
+          {{ granting ? "赠送中..." : "确认赠送" }}
+        </button>
+      </div>
+      <p v-if="grantMessage" :class="grantIsError ? 'error-msg' : 'success-msg'">{{ grantMessage }}</p>
+    </section>
 
     <section class="card admin-gamification-section">
       <div class="admin-gamification-section-head">
@@ -256,6 +354,7 @@ onMounted(() => {
                 <th>累计获得</th>
                 <th>累计消耗</th>
                 <th>连签</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -268,6 +367,15 @@ onMounted(() => {
                 <td>{{ wallet.totalEarned }}</td>
                 <td>{{ wallet.totalSpent }}</td>
                 <td>{{ wallet.currentStreak }} / {{ wallet.longestStreak }}</td>
+                <td>
+                  <button
+                    class="btn-ghost admin-table-btn"
+                    :disabled="granting"
+                    @click="quickGrantFromWallet(wallet)"
+                  >
+                    赠送
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>

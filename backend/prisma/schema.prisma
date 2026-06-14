@@ -38,6 +38,7 @@ enum AttemptStatus {
 enum PointLedgerReason {
   CHECK_IN
   UNLOCK_LEVEL
+  ADMIN_GRANT
 }
 
 model User {

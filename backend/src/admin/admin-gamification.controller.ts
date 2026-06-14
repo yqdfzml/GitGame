@@ -1,7 +1,8 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
 import { AdminGuard } from "../auth/guards/admin.guard";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminGamificationService } from "./admin-gamification.service";
+import { GrantPointsDto } from "./dto/admin-points.dto";
 
 /** 管理端游戏化运营控制器 */
 @Controller("admin")
@@ -25,6 +26,21 @@ export class AdminGamificationController {
       search,
       page: page ? Number(page) : undefined,
       pageSize: pageSize ? Number(pageSize) : undefined,
+    });
+  }
+
+  /**
+   * 管理员赠送积分。
+   * 功能：给指定用户增加积分并记录流水。
+   * 参数：dto - userId 或 email 与赠送数量。
+   * 返回值：赠送后的钱包摘要。
+   */
+  @Post("points/grant")
+  grantPoints(@Body() dto: GrantPointsDto) {
+    return this.adminGamificationService.grantPoints({
+      userId: dto.userId,
+      email: dto.email,
+      amount: dto.amount,
     });
   }
 

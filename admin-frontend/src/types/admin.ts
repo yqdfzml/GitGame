@@ -336,6 +336,24 @@ export interface AdminWalletListResult {
   pageSize: number;
 }
 
+/** 管理员赠送积分请求 */
+export interface AdminGrantPointsPayload {
+  userId?: string;
+  email?: string;
+  amount: number;
+}
+
+/** 管理员赠送积分结果 */
+export interface AdminGrantPointsResult {
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  amount: number;
+  balance: number;
+  totalEarned: number;
+  totalSpent: number;
+}
+
 /** 积分流水分页结果 */
 export interface AdminLedgerListResult {
   items: Array<{

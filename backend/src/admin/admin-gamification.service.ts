@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { ALL_BADGES } from "../badges/badge.definitions";
 import { LeaderboardService } from "../leaderboard/leaderboard.service";
@@ -248,5 +248,64 @@ export class AdminGamificationService {
    */
   getLeaderboard(levelId?: bigint, limit = 50) {
     return this.leaderboardService.getLeaderboard(levelId, limit);
+  }
+
+  /**
+   * 管理员赠送积分。
+   * 功能：按 userId 或 email 定位用户，增加余额并写入流水。
+   * 参数：input - 目标用户标识与赠送数量。
+   * 返回值：赠送后的钱包摘要。
+   */
+  async grantPoints(input: { userId?: string; email?: string; amount: number }) {
+    if (!input.userId && !input.email) {
+      throw new BadRequestException("请提供 userId 或 email");
+    }
+
+    const user = input.userId
+      ? await this.prisma.user.findUnique({ where: { id: BigInt(input.userId) } })
+      : await this.prisma.user.findUnique({ where: { email: input.email } });
+
+    if (!user) {
+      throw new NotFoundException("用户不存在");
+    }
+
+    const userId = user.id;
+    const amount = input.amount;
+
+    return this.prisma.$transaction(async (tx) => {
+      const wallet = await tx.userPointWallet.upsert({
+        where: { userId },
+        create: { userId },
+        update: {},
+      });
+
+      const newBalance = wallet.balance + amount;
+      const updatedWallet = await tx.userPointWallet.update({
+        where: { userId },
+        data: {
+          balance: newBalance,
+          totalEarned: wallet.totalEarned + amount,
+        },
+      });
+
+      await tx.pointLedger.create({
+        data: {
+          userId,
+          delta: amount,
+          balanceAfter: newBalance,
+          reason: "ADMIN_GRANT",
+        },
+      });
+
+      return {
+        userId: userId.toString(),
+        userEmail: user.email,
+        userDisplayName: user.displayName,
+        amount,
+        balance: updatedWallet.balance,
+        totalEarned: updatedWallet.totalEarned,
+        totalSpent: updatedWallet.totalSpent,
+      };
+    });
   }
 }

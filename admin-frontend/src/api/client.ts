@@ -230,6 +230,11 @@ export const adminGamificationApi = {
     const query = params.toString();
     return request<AdminWalletListResult>(query ? `/admin/points/wallets?${query}` : "/admin/points/wallets");
   },
+  grantPoints: (data: import("../types/admin").AdminGrantPointsPayload) =>
+    request<import("../types/admin").AdminGrantPointsResult>("/admin/points/grant", {
+      method: "POST",
+      body: data,
+    }),
   listLedgers: (filters: { search?: string; userId?: string; page?: number; pageSize?: number } = {}) => {
     const params = new URLSearchParams();
     if (filters.search) params.set("search", filters.search);

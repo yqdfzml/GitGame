@@ -3129,6 +3129,28 @@ a:hover { color: var(--accent-hover); }
   min-width: 180px;
 }
 
+.admin-points-grant-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.admin-points-grant-field {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.admin-points-grant-field span {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.admin-points-grant-field input {
+  width: 100%;
+}
+
 .text-positive {
   color: var(--accent-2);
 }
