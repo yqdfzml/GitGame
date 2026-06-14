@@ -3,7 +3,8 @@ import { computed, onMounted, ref } from "vue";
 import { levelsApi } from "../api/client";
 import CheckInPanel from "../components/CheckInPanel.vue";
 import LevelChallengeCard from "../components/LevelChallengeCard.vue";
-import type { LevelSummary, PointWalletSummary } from "../types";
+import { usePointsStore } from "../stores/points";
+import type { LevelSummary } from "../types";
 import {
   getLevelPresentation,
   TOPIC_CHAPTER_IDS,
@@ -12,8 +13,8 @@ import {
 
 /** 关卡列表 */
 const levels = ref<LevelSummary[]>([]);
-/** 当前积分余额 */
-const pointBalance = ref(0);
+/** 积分钱包 Store，与签到面板、顶栏共享余额 */
+const pointsStore = usePointsStore();
 /** 加载中 */
 const loading = ref(true);
 /** 错误信息 */
@@ -43,16 +44,20 @@ const loadLevels = () => {
 };
 
 /**
- * 同步积分余额。
- * 功能：签到面板更新后刷新本地余额展示。
- * 参数：wallet - 最新钱包摘要。
+ * 签到成功后刷新页面数据。
+ * 功能：重新拉取关卡列表与积分钱包，保证余额展示一致。
+ * 参数：无。
  * 返回值：无。
  */
-const handleWalletUpdated = (wallet: PointWalletSummary) => {
-  pointBalance.value = wallet.balance;
+const handleCheckedIn = () => {
+  pointsStore.loadWallet();
+  loadLevels();
 };
 
 onMounted(loadLevels);
+
+/** 页面展示的积分余额 */
+const pointBalance = computed(() => pointsStore.balance);
 
 /**
  * 修炼路径主题卡片数据。
@@ -105,11 +110,11 @@ const routePercent = computed(() => {
     <p v-if="error" class="error-msg">{{ error }}</p>
 
     <template v-if="!loading && !error">
-      <CheckInPanel @updated="handleWalletUpdated" />
+      <CheckInPanel @checked-in="handleCheckedIn" />
 
       <div class="levels-strip card">
         <span>{{ completedCount }}/{{ levels.length }} 关已通关</span>
-        <span v-if="pointBalance > 0" class="levels-balance">积分 {{ pointBalance }}</span>
+        <span v-if="pointBalance !== null" class="levels-balance">积分 {{ pointBalance }}</span>
         <div class="progress-track levels-strip-track" aria-label="全路径进度">
           <div :style="{ width: `${routePercent}%` }" />
         </div>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
-import { levelsApi, pointsApi } from "../api/client";
+import { levelsApi } from "../api/client";
 import CheckInPanel from "../components/CheckInPanel.vue";
 import LevelUnlockButton from "../components/LevelUnlockButton.vue";
-import type { LevelSummary, PointWalletSummary } from "../types";
+import { usePointsStore } from "../stores/points";
+import type { LevelSummary } from "../types";
 import {
   difficultyLabel,
   getLevelPresentation,
@@ -21,8 +22,8 @@ const presentation = computed(() => getLevelPresentation(chapterId));
 const ChapterIcon = computed(() => kindIconMap[presentation.value.kind]);
 /** 本章节关卡列表 */
 const chapterLevels = ref<LevelSummary[]>([]);
-/** 当前积分余额 */
-const pointBalance = ref(0);
+/** 积分钱包 Store，解锁按钮与顶栏共用余额 */
+const pointsStore = usePointsStore();
 /** 加载中 */
 const loading = ref(true);
 /** 错误信息 */
@@ -54,32 +55,29 @@ const loadChapterLevels = () => {
 };
 
 /**
- * 同步积分余额。
- * 功能：签到或解锁后刷新余额。
- * 参数：wallet - 最新钱包摘要。
+ * 签到成功后刷新页面数据。
+ * 功能：重新拉取关卡列表与积分钱包。
+ * 参数：无。
  * 返回值：无。
  */
-const handleWalletUpdated = (wallet: PointWalletSummary) => {
-  pointBalance.value = wallet.balance;
+const handleCheckedIn = () => {
+  pointsStore.loadWallet();
+  loadChapterLevels();
 };
 
 /**
- * 解锁成功后刷新列表与余额。
- * 功能：重新拉取关卡 unlockStatus。
+ * 解锁成功后刷新列表与积分。
+ * 功能：重新拉取关卡 unlockStatus 与钱包余额。
  * 参数：无。
  * 返回值：无。
  */
 const handleLevelUnlocked = () => {
   loadChapterLevels();
-  pointsApi
-    .summary()
-    .then((wallet) => {
-      pointBalance.value = wallet.balance;
-    })
-    .catch(() => {
-      // 解锁后余额刷新失败时不阻断列表刷新
-    });
+  pointsStore.loadWallet();
 };
+
+/** 解锁按钮使用的当前积分余额 */
+const pointBalance = computed(() => pointsStore.balance ?? 0);
 
 onMounted(loadChapterLevels);
 </script>
@@ -91,7 +89,7 @@ onMounted(loadChapterLevels);
       <h1 class="page-title page-title-serif">{{ presentation.chapterLabel }}</h1>
     </header>
 
-    <CheckInPanel @updated="handleWalletUpdated" />
+    <CheckInPanel @checked-in="handleCheckedIn" />
 
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner" />

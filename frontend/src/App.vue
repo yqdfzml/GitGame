@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { BookOpenCheck, GitBranch, Home, Medal, Shield, Trophy } from "lucide-vue-next";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink, RouterView } from "vue-router";
-import { pointsApi, usersApi } from "./api/client";
+import { usersApi } from "./api/client";
 import { useAuthStore } from "./stores/auth";
+import { usePointsStore } from "./stores/points";
 import type { ActiveTitle } from "./types";
 
 const auth = useAuthStore();
+/** 积分钱包 Store，顶栏积分与其保持同步 */
+const pointsStore = usePointsStore();
 /** 当前主线称号，用于顶栏展示 */
 const activeTitle = ref<ActiveTitle | null>(null);
-/** 当前积分余额，用于顶栏展示 */
-const pointBalance = ref<number | null>(null);
 
 /**
  * 获取用户名首字母，用于头像占位。
@@ -45,35 +46,19 @@ const loadUserTitle = () => {
 };
 
 /**
- * 加载用户积分余额。
- * 功能：登录状态下请求钱包摘要并更新顶栏积分展示。
- * 参数：无。
- * 返回值：无。
- */
-const loadPointBalance = () => {
-  if (!auth.isLoggedIn) {
-    pointBalance.value = null;
-    return;
-  }
-  pointsApi
-    .summary()
-    .then((wallet) => {
-      pointBalance.value = wallet.balance;
-    })
-    .catch(() => {
-      pointBalance.value = null;
-    });
-};
-
-/**
  * 加载顶栏用户相关数据。
  * 功能：登录后同时刷新称号与积分。
  * 参数：无。
  * 返回值：无。
  */
 const loadUserHeader = () => {
+  if (!auth.isLoggedIn) {
+    activeTitle.value = null;
+    pointsStore.clearWallet();
+    return;
+  }
   loadUserTitle();
-  loadPointBalance();
+  pointsStore.loadWallet();
 };
 
 /**
@@ -90,6 +75,9 @@ const handleLogout = () => {
 
 onMounted(loadUserHeader);
 watch(() => auth.isLoggedIn, loadUserHeader);
+
+/** 顶栏展示的积分余额，来自 Store */
+const topbarBalance = computed(() => pointsStore.balance);
 </script>
 
 <template>
@@ -123,12 +111,12 @@ watch(() => auth.isLoggedIn, loadUserHeader);
       </nav>
       <div class="user-area">
         <RouterLink
-          v-if="pointBalance !== null"
+          v-if="topbarBalance !== null"
           to="/levels"
           class="topbar-points-chip"
           title="前往关卡页签到与解锁"
         >
-          积分 {{ pointBalance }}
+          积分 {{ topbarBalance }}
         </RouterLink>
         <span
           v-if="activeTitle"
