@@ -98,71 +98,66 @@ const canContinue = computed(() => {
 
     <template v-if="!loading && !error">
       <section class="home-main card">
-        <div class="home-main-head">
-          <template v-if="nextLevel">
-            <p class="home-main-eyebrow">
-              <span v-if="nextPresentation">{{ nextPresentation.chapterLabel }}</span>
-              <span v-if="nextPresentation" class="home-main-eyebrow-sep">·</span>
-              <span :class="canContinue ? 'is-ok' : 'is-warn'">
-                {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
-              </span>
-            </p>
+        <div class="home-main-body">
+          <div class="home-main-lead">
+            <template v-if="nextLevel">
+              <p class="home-main-eyebrow">
+                <span v-if="nextPresentation">{{ nextPresentation.chapterLabel }}</span>
+                <span v-if="nextPresentation" class="home-main-eyebrow-sep">·</span>
+                <span :class="canContinue ? 'is-ok' : 'is-warn'">
+                  {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
+                </span>
+              </p>
+              <h2 class="home-main-title">{{ nextLevel.title }}</h2>
+              <p v-if="nextPresentation" class="home-main-meta">{{ nextPresentation.skillLabel }}</p>
+            </template>
 
-            <div class="home-main-title-row">
-              <div class="home-main-title-wrap">
-                <h2 class="home-main-title">{{ nextLevel.title }}</h2>
-                <p v-if="nextPresentation" class="home-main-meta">{{ nextPresentation.skillLabel }}</p>
-              </div>
+            <template v-else>
+              <p class="home-main-eyebrow">
+                <span class="is-ok">主线完成</span>
+              </p>
+              <h2 class="home-main-title">全部通关</h2>
+            </template>
+          </div>
 
-              <div class="home-main-actions">
-                <RouterLink
-                  v-if="canContinue"
-                  :to="`/practice/${nextLevel.id}`"
-                  class="btn-primary home-main-cta"
-                >
-                  继续
-                </RouterLink>
-                <RouterLink
-                  v-else-if="nextLevel.chapterId"
-                  :to="`/levels/${nextLevel.chapterId}`"
-                  class="btn-primary home-main-cta"
-                >
-                  解锁
-                </RouterLink>
-                <RouterLink to="/levels" class="btn-ghost home-main-map">地图</RouterLink>
-              </div>
-            </div>
-          </template>
+          <div class="home-main-actions">
+            <template v-if="nextLevel">
+              <RouterLink
+                v-if="canContinue"
+                :to="`/practice/${nextLevel.id}`"
+                class="btn-primary home-main-cta"
+              >
+                继续
+              </RouterLink>
+              <RouterLink
+                v-else-if="nextLevel.chapterId"
+                :to="`/levels/${nextLevel.chapterId}`"
+                class="btn-primary home-main-cta"
+              >
+                解锁
+              </RouterLink>
+              <RouterLink to="/levels" class="btn-ghost home-main-map">地图</RouterLink>
+            </template>
+            <template v-else>
+              <RouterLink to="/achievements" class="btn-primary home-main-cta">成就</RouterLink>
+              <RouterLink to="/leaderboard" class="btn-ghost home-main-map">排行</RouterLink>
+            </template>
+          </div>
 
-          <template v-else>
-            <p class="home-main-eyebrow">
-              <span class="is-ok">主线完成</span>
-            </p>
+          <div class="home-main-split" />
 
-            <div class="home-main-title-row">
-              <div class="home-main-title-wrap">
-                <h2 class="home-main-title">全部通关</h2>
-                <p class="home-main-meta">主线关卡已全部完成，去成就页看看收获吧</p>
-              </div>
-
-              <div class="home-main-actions">
-                <RouterLink to="/achievements" class="btn-primary home-main-cta">成就</RouterLink>
-                <RouterLink to="/leaderboard" class="btn-ghost home-main-map">排行</RouterLink>
-              </div>
-            </div>
-          </template>
-        </div>
-
-        <div class="home-main-foot">
           <div class="home-main-progress">
             <div class="home-main-progress-top">
-              <span class="home-main-kpi-label">修行进度</span>
-              <span class="home-main-progress-num">{{ routeProgress.completed }}/{{ routeProgress.total }} · {{ routeProgress.percent }}%</span>
+              <span class="home-main-kpi-label">进度</span>
+              <span class="home-main-progress-num">{{ routeProgress.percent }}%</span>
             </div>
             <div class="progress-track home-main-progress-track">
               <div :style="{ width: `${routeProgress.percent}%` }" />
             </div>
+            <span class="home-main-progress-sub">{{ routeProgress.completed }}/{{ routeProgress.total }}</span>
           </div>
+
+          <div class="home-main-split" />
 
           <div class="home-main-kpis">
             <span class="home-main-kpi">
@@ -185,19 +180,21 @@ const canContinue = computed(() => {
         </div>
       </section>
 
-      <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />
+      <section class="home-dashboard-secondary">
+        <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />
 
-      <section class="home-dashboard-block home-dashboard-leaderboard">
-        <div class="home-dashboard-block-head">
-          <h3>排行榜</h3>
-          <RouterLink to="/leaderboard" class="home-section-link">完整榜单</RouterLink>
-        </div>
-        <LeaderboardPanel
-          :entries="leaderboard"
-          :preview-limit="8"
-          :loading="false"
-          :error="''"
-        />
+        <section class="home-dashboard-block home-dashboard-leaderboard">
+          <div class="home-dashboard-block-head">
+            <h3>排行榜</h3>
+            <RouterLink to="/leaderboard" class="home-section-link">完整榜单</RouterLink>
+          </div>
+          <LeaderboardPanel
+            :entries="leaderboard"
+            :preview-limit="8"
+            :loading="false"
+            :error="''"
+          />
+        </section>
       </section>
     </template>
   </section>
