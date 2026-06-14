@@ -44,6 +44,27 @@ export const findNextRecommendedLevel = (levels: LevelSummary[]): LevelSummary |
 };
 
 /**
+ * 查找当前关卡的下一关。
+ * 功能：按修炼路径顺序取紧邻的下一关，用于通关后跳转。
+ * 参数：currentLevelId - 当前关卡 id；levels - 关卡列表。
+ * 返回值：下一关摘要，已是最后一关时返回 null。
+ */
+export const findNextLevelAfter = (
+  currentLevelId: string,
+  levels: LevelSummary[],
+): LevelSummary | null => {
+  const sortedLevels = sortLevelsByPath(levels);
+  const currentIndex = sortedLevels.findIndex((level) => level.id === currentLevelId);
+  if (currentIndex === -1) {
+    return null;
+  }
+  if (currentIndex >= sortedLevels.length - 1) {
+    return null;
+  }
+  return sortedLevels[currentIndex + 1];
+};
+
+/**
  * 计算全路径通关进度。
  * 功能：统计已完成关卡数与百分比。
  * 参数：levels - 关卡列表。
