@@ -137,12 +137,20 @@ const trackBadges = computed(() => {
 
 /**
  * 切换成就分类 tab。
- * 功能：避免长页面堆叠，按分类查看徽章。
+ * 功能：按分类查看徽章，切换时保持当前滚动位置避免页面跳动。
  * 参数：category - 目标分类。
  * 返回值：无。
  */
 const switchCategory = (category: BadgeCategory) => {
+  if (activeCategory.value === category) {
+    return;
+  }
+  // scrollY 用于切换 tab 后恢复位置，避免内容高度变化导致页面闪跳
+  const scrollY = window.scrollY;
   activeCategory.value = category;
+  requestAnimationFrame(() => {
+    window.scrollTo(0, scrollY);
+  });
 };
 </script>
 

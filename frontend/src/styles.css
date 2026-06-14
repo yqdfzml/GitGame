@@ -2023,19 +2023,31 @@ a:hover { color: var(--accent-hover); }
 .achievements-tabs {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  padding: 16px 16px 0;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border);
 }
 
 .achievements-tab {
-  padding: 8px 14px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  margin: 0;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color var(--transition), background var(--transition), border-color var(--transition);
 }
 
 .achievements-tab.active {
@@ -2046,6 +2058,7 @@ a:hover { color: var(--accent-hover); }
 
 .achievements-tab-panel {
   padding: 20px;
+  min-height: 320px;
 }
 
 .achievements-summary {
