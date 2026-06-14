@@ -3,9 +3,9 @@ import vue from "@vitejs/plugin-vue";
 import type { ProxyOptions } from "vite";
 import { defineConfig } from "vite";
 
-/** 仓库根目录，供 dev server 读取 frontend 共享资源 */
+/** 仓库根目录，供 dev server 读取 frontend 共享样式 */
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-/** 玩家端 src，管理后台与玩家端共用样式与类型 */
+/** 玩家端 src，管理后台共用类型与工具函数 */
 const sharedSrcRoot = fileURLToPath(new URL("../frontend/src", import.meta.url));
 /** 管理后台 src */
 const adminSrcRoot = fileURLToPath(new URL("./src", import.meta.url));
@@ -28,17 +28,21 @@ const createApiProxy = (): ProxyOptions => ({
 });
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue({
+      // monorepo 下 @shared 可能解析到 frontend 目录中的 .vue 文件
+      include: [/\.vue$/],
+    }),
+  ],
   resolve: {
     alias: [
-      { find: "@", replacement: adminSrcRoot },
-      // 显式匹配 @shared/xxx，避免 dev 模式下别名未命中导致 styles.css 找不到
+      // @shared 必须排在 @/ 之前，避免 @ 前缀误匹配 @shared/xxx
       { find: /^@shared\/(.*)/, replacement: `${sharedSrcRoot}/$1` },
+      { find: /^@\/(.*)/, replacement: `${adminSrcRoot}/$1` },
     ],
   },
   server: {
     port: 5174,
-    // monorepo 下允许读取 frontend 目录中的共享样式
     fs: {
       allow: [repoRoot],
     },
