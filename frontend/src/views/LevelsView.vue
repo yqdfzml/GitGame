@@ -95,7 +95,6 @@ const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
   <section class="page-stack levels-page">
     <header class="page-header">
       <h1 class="page-title page-title-serif">学习地图</h1>
-      <p class="page-desc">按章节顺序推进，当前节点与下一关始终可见。</p>
     </header>
 
     <div v-if="loading" class="loading-state">
@@ -108,21 +107,20 @@ const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
     <div v-if="!loading && !error" class="learning-map-layout">
       <section class="learning-map-main card">
         <div v-if="recommendedLevel" class="learning-map-banner">
-          <span class="learning-map-banner-label">当前推荐</span>
-          <strong>{{ recommendedLevel.title }}</strong>
+          <strong class="learning-map-banner-title">{{ recommendedLevel.title }}</strong>
           <RouterLink
             v-if="recommendedLevel.canStart && recommendedLevel.unlockStatus !== 'completed'"
             :to="`/practice/${recommendedLevel.id}`"
             class="btn-primary"
           >
-            继续下一关
+            继续
           </RouterLink>
           <RouterLink
             v-else-if="recommendedLevel.chapterId"
             :to="`/levels/${recommendedLevel.chapterId}`"
             class="btn-ghost"
           >
-            查看解锁条件
+            解锁
           </RouterLink>
         </div>
 
@@ -148,11 +146,10 @@ const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
                 <span v-else-if="node.isCurrent" class="learning-map-node-badge current">进行中</span>
                 <span v-else-if="node.levelCount === 0" class="learning-map-node-badge locked">开发中</span>
               </div>
-              <p class="learning-map-node-desc">{{ node.presentation.topicDesc }}</p>
-              <p class="learning-map-node-progress">{{ node.completedCount }}/{{ node.totalCount }} 关</p>
+              <p class="learning-map-node-progress">{{ node.completedCount }}/{{ node.totalCount }}</p>
 
               <div v-if="node.nextLevel" class="learning-map-node-next">
-                <span>下一关：{{ node.nextLevel.title }}</span>
+                <span class="learning-map-node-next-title">{{ node.nextLevel.title }}</span>
                 <RouterLink
                   v-if="node.nextLevel.canStart"
                   :to="`/practice/${node.nextLevel.id}`"
@@ -174,7 +171,7 @@ const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
                 :to="`/levels/${node.chapterId}`"
                 class="learning-map-node-entry"
               >
-                进入章节
+                进入
               </RouterLink>
             </div>
           </li>

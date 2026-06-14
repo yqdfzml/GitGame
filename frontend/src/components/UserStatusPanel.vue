@@ -55,46 +55,50 @@ const handleCheckedIn = () => {
 
 <template>
   <aside class="user-status-panel card">
-    <h3 class="user-status-title">修行状态</h3>
-
     <CheckInPanel @checked-in="handleCheckedIn" />
 
-    <div class="user-status-block">
-      <span class="user-status-label">全路径进度</span>
-      <strong>{{ routeProgress.completed }}/{{ routeProgress.total }} 关</strong>
-      <div class="progress-track user-status-track" aria-label="全路径进度">
-        <div :style="{ width: `${routeProgress.percent}%` }" />
+    <div class="user-status-metrics">
+      <div class="user-status-metric">
+        <span class="user-status-label">进度</span>
+        <strong>{{ routeProgress.percent }}%</strong>
+        <div class="progress-track user-status-track">
+          <div :style="{ width: `${routeProgress.percent}%` }" />
+        </div>
       </div>
-      <span class="user-status-hint">{{ routeProgress.percent }}% 已完成</span>
+
+      <div class="user-status-metric">
+        <span class="user-status-label">积分</span>
+        <strong>{{ pointsStore.balance ?? 0 }}</strong>
+      </div>
+
+      <div class="user-status-metric">
+        <span class="user-status-label">连签</span>
+        <strong>{{ pointsStore.wallet?.currentStreak ?? 0 }}天</strong>
+      </div>
     </div>
 
-    <div v-if="recommendedLevel" class="user-status-block user-status-suggest">
-      <span class="user-status-label">今日建议</span>
-      <strong>{{ recommendedLevel.title }}</strong>
-      <p v-if="recommendedPresentation" class="user-status-hint">
-        {{ recommendedPresentation.chapterLabel }} · {{ recommendedPresentation.skillLabel }}
-      </p>
-      <p class="user-status-hint">
-        {{ isContinue ? "继续推进主线，保持学习节奏" : `解锁需 ${recommendedLevel.unlockCost} 积分` }}
-      </p>
+    <div v-if="recommendedLevel" class="user-status-next card-inset">
+      <div class="user-status-next-head">
+        <span v-if="recommendedPresentation" class="ui-chip">{{ recommendedPresentation.chapterLabel }}</span>
+        <span class="ui-chip" :class="isContinue ? 'ui-chip-ok' : 'ui-chip-warn'">
+          {{ isContinue ? "可开始" : `${recommendedLevel.unlockCost} 积分` }}
+        </span>
+      </div>
+      <strong class="user-status-next-title">{{ recommendedLevel.title }}</strong>
       <RouterLink
         v-if="isContinue"
         :to="`/practice/${recommendedLevel.id}`"
         class="btn-primary user-status-cta"
       >
-        开始本关
+        开始
       </RouterLink>
       <RouterLink
         v-else-if="recommendedLevel.chapterId"
         :to="`/levels/${recommendedLevel.chapterId}`"
         class="btn-ghost user-status-cta"
       >
-        去章节解锁
+        解锁
       </RouterLink>
-    </div>
-
-    <div v-if="pointsStore.wallet && !pointsStore.wallet.checkedInToday" class="user-status-tip card-soft">
-      今日尚未签到，签到可获得积分用于解锁后续关卡。
     </div>
   </aside>
 </template>

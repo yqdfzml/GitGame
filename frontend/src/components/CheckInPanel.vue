@@ -57,15 +57,12 @@ defineExpose({
         >
           {{
             pointsStore.wallet.checkedInToday
-              ? "今日已签到"
+              ? "已签到"
               : pointsStore.checkingIn
                 ? "签到中..."
-                : "每日签到"
+                : "签到"
           }}
         </button>
-        <span v-if="pointsStore.wallet.checkedInToday" class="check-in-tip">
-          明天继续签到可累积连签奖励
-        </span>
       </div>
     </template>
 

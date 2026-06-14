@@ -6,7 +6,7 @@ import LevelUnlockButton from "../components/LevelUnlockButton.vue";
 import UserStatusPanel from "../components/UserStatusPanel.vue";
 import { usePointsStore } from "../stores/points";
 import type { LevelSummary } from "../types";
-import { findNextRecommendedLevel, getLevelLockReason } from "../utils/levelProgress";
+import { findNextRecommendedLevel } from "../utils/levelProgress";
 import {
   difficultyLabel,
   getLevelPresentation,
@@ -87,9 +87,8 @@ onMounted(() => {
 <template>
   <section class="page-stack chapter-levels-page">
     <header class="page-header">
-      <RouterLink to="/levels" class="back-link">← 学习地图</RouterLink>
+      <RouterLink to="/levels" class="back-link">← 地图</RouterLink>
       <h1 class="page-title page-title-serif">{{ presentation.chapterLabel }}</h1>
-      <p class="page-desc">{{ presentation.skillLabel }}</p>
     </header>
 
     <div v-if="loading" class="loading-state">
@@ -108,12 +107,17 @@ onMounted(() => {
 
         <template v-else>
           <section v-if="recommendedLevel" class="chapter-recommend card">
-            <span class="chapter-recommend-label">下一推荐关卡</span>
-            <h2>{{ recommendedLevel.title }}</h2>
-            <p class="chapter-recommend-desc">{{ recommendedLevel.description }}</p>
-            <p class="chapter-recommend-reason">
-              {{ getLevelLockReason(recommendedLevel, pointBalance) }}
-            </p>
+            <div class="chapter-recommend-head">
+              <span class="ui-chip">{{ difficultyLabel(recommendedLevel.difficulty) }}</span>
+              <span
+                v-if="recommendedLevel.unlockStatus === 'locked'"
+                class="ui-chip ui-chip-warn"
+              >
+                {{ recommendedLevel.unlockCost }} 积分
+              </span>
+              <span v-else-if="recommendedLevel.unlockStatus === 'completed'" class="ui-chip ui-chip-ok">已完成</span>
+            </div>
+            <h2 class="chapter-recommend-title">{{ recommendedLevel.title }}</h2>
 
             <div class="chapter-recommend-actions">
               <RouterLink
@@ -121,7 +125,7 @@ onMounted(() => {
                 :to="`/practice/${recommendedLevel.id}`"
                 class="btn-primary"
               >
-                开始本关
+                开始
               </RouterLink>
               <LevelUnlockButton
                 v-else-if="recommendedLevel.unlockStatus === 'locked'"
@@ -146,7 +150,6 @@ onMounted(() => {
                 <span class="level-list-body">
                   <strong class="level-list-title">{{ level.title }}</strong>
                   <span class="level-list-desc">{{ level.description }}</span>
-                  <span class="level-list-reason">{{ getLevelLockReason(level, pointBalance) }}</span>
                 </span>
                 <span class="level-list-meta">
                   <span class="level-difficulty">{{ difficultyLabel(level.difficulty) }}</span>
@@ -160,11 +163,10 @@ onMounted(() => {
                 <span class="level-list-body">
                   <strong class="level-list-title">{{ level.title }}</strong>
                   <span class="level-list-desc">{{ level.description }}</span>
-                  <span class="level-list-reason locked">{{ getLevelLockReason(level, pointBalance) }}</span>
                 </span>
                 <span class="level-list-meta">
                   <span class="level-difficulty">{{ difficultyLabel(level.difficulty) }}</span>
-                  <span class="level-lock-badge">已锁定</span>
+                  <span class="ui-chip ui-chip-warn">{{ level.unlockCost }} 积分</span>
                   <LevelUnlockButton
                     :level-id="level.id"
                     :unlock-cost="level.unlockCost"

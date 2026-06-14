@@ -45,7 +45,6 @@ const loadDashboard = () => {
       leaderboard.value = overview.leaderboard;
       activities.value = overview.activities;
 
-      // 最近成就：取最新解锁的 3 个徽章
       recentBadges.value = badgeData.badges
         .filter((badge) => badge.unlocked)
         .sort((left, right) => {
@@ -90,17 +89,9 @@ const canContinue = computed(() => {
 
 <template>
   <section class="home-dashboard">
-    <header class="home-dashboard-header">
-      <div>
-        <h2 class="home-section-title">个人仪表盘</h2>
-        <p class="home-section-desc">今天该继续哪一关，一眼就能看清。</p>
-      </div>
-      <RouterLink to="/levels" class="home-section-link">查看学习地图</RouterLink>
-    </header>
-
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner" />
-      <span>加载仪表盘...</span>
+      <span>加载中...</span>
     </div>
 
     <p v-if="error" class="error-msg">{{ error }}</p>
@@ -108,19 +99,20 @@ const canContinue = computed(() => {
     <template v-if="!loading && !error">
       <div class="home-dashboard-main">
         <section class="home-hero card">
-          <span class="home-hero-label">今日主线</span>
-
           <template v-if="nextLevel">
-            <h3 class="home-hero-title">{{ nextLevel.title }}</h3>
-            <p v-if="nextPresentation" class="home-hero-desc">
-              {{ nextPresentation.chapterLabel }} · {{ nextPresentation.skillLabel }}
-            </p>
-            <p class="home-hero-hint">
-              {{
-                canContinue
-                  ? "你已解锁本关，继续推进即可积累积分与徽章。"
-                  : `本关尚未解锁，需要 ${nextLevel.unlockCost} 积分。`
-              }}
+            <div class="home-hero-top">
+              <span v-if="nextPresentation" class="ui-chip">{{ nextPresentation.chapterLabel }}</span>
+              <span
+                class="ui-chip"
+                :class="canContinue ? 'ui-chip-ok' : 'ui-chip-warn'"
+              >
+                {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
+              </span>
+            </div>
+
+            <h2 class="home-hero-title">{{ nextLevel.title }}</h2>
+            <p v-if="nextPresentation" class="home-hero-meta">
+              {{ nextPresentation.skillLabel }}
             </p>
 
             <div class="home-hero-actions">
@@ -129,56 +121,62 @@ const canContinue = computed(() => {
                 :to="`/practice/${nextLevel.id}`"
                 class="btn-primary home-hero-cta"
               >
-                继续下一关
+                继续
               </RouterLink>
               <RouterLink
                 v-else-if="nextLevel.chapterId"
                 :to="`/levels/${nextLevel.chapterId}`"
                 class="btn-primary home-hero-cta"
               >
-                去解锁本关
+                解锁
               </RouterLink>
-              <RouterLink to="/levels" class="btn-ghost">浏览修炼路径</RouterLink>
+              <RouterLink to="/levels" class="btn-ghost">地图</RouterLink>
             </div>
           </template>
 
           <template v-else>
-            <h3 class="home-hero-title">全部关卡已通关</h3>
-            <p class="home-hero-desc">主线修炼完成，可以去成就中心查看徽章，或挑战排行榜。</p>
+            <div class="home-hero-top">
+              <span class="ui-chip ui-chip-ok">主线完成</span>
+            </div>
+            <h2 class="home-hero-title">全部通关</h2>
             <div class="home-hero-actions">
-              <RouterLink to="/achievements" class="btn-primary home-hero-cta">查看成就</RouterLink>
-              <RouterLink to="/leaderboard" class="btn-ghost">查看排行榜</RouterLink>
+              <RouterLink to="/achievements" class="btn-primary home-hero-cta">成就</RouterLink>
+              <RouterLink to="/leaderboard" class="btn-ghost">排行</RouterLink>
             </div>
           </template>
         </section>
 
         <aside class="home-stats card">
-          <div class="home-stat-item">
-            <span class="home-stat-label">路径进度</span>
-            <strong>{{ routeProgress.completed }}/{{ routeProgress.total }}</strong>
-            <div class="progress-track home-stat-track">
-              <div :style="{ width: `${routeProgress.percent}%` }" />
+          <div class="home-stat-grid">
+            <div class="home-stat-card">
+              <span class="home-stat-label">进度</span>
+              <strong class="home-stat-value">{{ routeProgress.percent }}%</strong>
+              <div class="progress-track home-stat-track">
+                <div :style="{ width: `${routeProgress.percent}%` }" />
+              </div>
+              <span class="home-stat-sub">{{ routeProgress.completed }}/{{ routeProgress.total }}</span>
             </div>
-          </div>
 
-          <div class="home-stat-item">
-            <span class="home-stat-label">当前积分</span>
-            <strong>{{ pointsStore.balance ?? 0 }}</strong>
-          </div>
+            <div class="home-stat-card">
+              <span class="home-stat-label">积分</span>
+              <strong class="home-stat-value">{{ pointsStore.balance ?? 0 }}</strong>
+            </div>
 
-          <div class="home-stat-item">
-            <span class="home-stat-label">连续签到</span>
-            <strong>{{ pointsStore.wallet?.currentStreak ?? 0 }} 天</strong>
-          </div>
+            <div class="home-stat-card">
+              <span class="home-stat-label">连签</span>
+              <strong class="home-stat-value">{{ pointsStore.wallet?.currentStreak ?? 0 }}</strong>
+              <span class="home-stat-sub">天</span>
+            </div>
 
-          <div class="home-stat-item">
-            <span class="home-stat-label">最近成就</span>
-            <ul v-if="recentBadges.length > 0" class="home-recent-badges">
-              <li v-for="badge in recentBadges" :key="badge.id">
-                <RouterLink to="/achievements">{{ badge.name }}</RouterLink>
-              </li>
-            </ul>
-            <p v-else class="home-stat-empty">通关关卡后可解锁徽章</p>
+            <div class="home-stat-card home-stat-card-wide">
+              <span class="home-stat-label">成就</span>
+              <ul v-if="recentBadges.length > 0" class="home-recent-badges">
+                <li v-for="badge in recentBadges" :key="badge.id">
+                  <RouterLink to="/achievements" class="ui-chip ui-chip-badge">{{ badge.name }}</RouterLink>
+                </li>
+              </ul>
+              <span v-else class="home-stat-sub">—</span>
+            </div>
           </div>
         </aside>
       </div>
@@ -186,15 +184,15 @@ const canContinue = computed(() => {
       <section class="home-dashboard-secondary">
         <div class="home-dashboard-block">
           <div class="home-dashboard-block-head">
-            <h3>全服动态</h3>
+            <h3>动态</h3>
           </div>
           <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />
         </div>
 
         <div class="home-dashboard-block home-dashboard-leaderboard">
           <div class="home-dashboard-block-head">
-            <h3>排行榜速览</h3>
-            <RouterLink to="/leaderboard" class="home-section-link">完整榜单</RouterLink>
+            <h3>排行</h3>
+            <RouterLink to="/leaderboard" class="home-section-link">全部</RouterLink>
           </div>
           <LeaderboardPanel
             :entries="leaderboard"

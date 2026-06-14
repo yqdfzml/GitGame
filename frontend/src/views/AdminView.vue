@@ -329,7 +329,6 @@ onMounted(() => {
   <section class="page-stack admin-page">
     <header class="page-header">
       <h1 class="page-title">管理后台</h1>
-      <p class="page-desc">左侧选关、中间表单编辑、右侧实时预览与校验。</p>
     </header>
 
     <div class="admin-workspace">

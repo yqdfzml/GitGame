@@ -65,7 +65,6 @@ const switchViewMode = (mode: "timeline" | "log") => {
   <section class="page-stack replay-page">
     <header class="page-header">
       <h1 class="page-title">通关复盘</h1>
-      <p class="page-desc">按时间线理解每一步命令、结果与仓库状态变化。</p>
     </header>
 
     <div v-if="loading" class="loading-state">
@@ -78,9 +77,12 @@ const switchViewMode = (mode: "timeline" | "log") => {
     <template v-if="!loading && !error">
       <section class="replay-summary card">
         <div class="replay-summary-main">
-          <strong>{{ replaySummary.headline }}</strong>
-          <p>共 {{ timelineSteps.length }} 步 · 成功 {{ replaySummary.successCount }} · 失败 {{ replaySummary.failCount }}</p>
-          <p v-if="attemptStatus" class="replay-summary-status">会话状态：{{ attemptStatus }}</p>
+          <div class="replay-summary-stats">
+            <span>{{ timelineSteps.length }} 步</span>
+            <span class="replay-stat-ok">{{ replaySummary.successCount }} 成功</span>
+            <span v-if="replaySummary.failCount > 0" class="replay-stat-fail">{{ replaySummary.failCount }} 失败</span>
+          </div>
+          <p v-if="attemptStatus" class="replay-summary-status">{{ attemptStatus }}</p>
         </div>
 
         <div class="replay-view-toggle">
@@ -124,13 +126,8 @@ const switchViewMode = (mode: "timeline" | "log") => {
             <p v-if="step.output" class="replay-timeline-output">{{ step.output }}</p>
 
             <div class="replay-timeline-state">
-              <span class="replay-timeline-label">仓库状态</span>
+              <span class="replay-timeline-label">状态</span>
               <p>{{ step.stateSummary }}</p>
-            </div>
-
-            <div v-if="step.suggestion" class="replay-timeline-suggestion">
-              <span class="replay-timeline-label">改进建议</span>
-              <p>{{ step.suggestion }}</p>
             </div>
           </div>
         </article>

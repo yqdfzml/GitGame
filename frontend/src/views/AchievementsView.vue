@@ -134,10 +134,6 @@ const trackBadges = computed(() => {
   return result;
 });
 
-/** 当前 tab 对应分区配置 */
-const activeSection = computed(() => {
-  return BADGE_SECTIONS.find((section) => section.category === activeCategory.value) ?? BADGE_SECTIONS[0];
-});
 
 /**
  * 切换成就分类 tab。
@@ -154,7 +150,6 @@ const switchCategory = (category: BadgeCategory) => {
   <section class="page-stack achievements-page">
     <header class="page-header">
       <h1 class="page-title page-title-serif">成就中心</h1>
-      <p class="page-desc">先看称号体系与下一目标，再按分类追踪全部徽章。</p>
     </header>
 
     <div v-if="loading" class="loading-state">
@@ -188,8 +183,7 @@ const switchCategory = (category: BadgeCategory) => {
             >
               {{ nextTitleBadge.name }}
             </strong>
-            <strong v-else class="achievements-next-title muted">称号已满级</strong>
-            <p v-if="nextTitleBadge" class="achievements-next-desc">{{ nextTitleBadge.description }}</p>
+            <strong v-else class="achievements-next-title muted">已满级</strong>
           </div>
         </div>
 
@@ -213,8 +207,7 @@ const switchCategory = (category: BadgeCategory) => {
       </section>
 
       <section v-if="trackBadges.length > 0" class="achievements-track card">
-        <h2 class="achievement-section-title">即将解锁 / 推荐追踪</h2>
-        <p class="achievement-section-desc">优先关注这些目标，能更快提升称号与段位。</p>
+        <h2 class="achievement-section-title">即将解锁</h2>
         <div class="badge-grid achievements-track-grid">
           <BadgeCard v-for="badge in trackBadges" :key="badge.id" :badge="badge" />
         </div>
@@ -236,8 +229,6 @@ const switchCategory = (category: BadgeCategory) => {
         </div>
 
         <div class="achievements-tab-panel" role="tabpanel">
-          <h2 class="achievement-section-title">{{ activeSection.title }}</h2>
-          <p class="achievement-section-desc">{{ activeSection.description }}</p>
           <div class="badge-grid">
             <BadgeCard
               v-for="badge in badgesByCategory[activeCategory]"
