@@ -1819,7 +1819,54 @@ a:hover { color: var(--accent-hover); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.practice-meta { display: flex; gap: 8px; flex-wrap: nowrap; flex-shrink: 0; align-items: center; }
+.practice-meta { display: flex; gap: 8px; flex-wrap: nowrap; flex-shrink: 0; align-items: center; position: relative; }
+
+.practice-hint-wrap {
+  position: relative;
+}
+
+.practice-hint-trigger {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.practice-hint-trigger.active {
+  color: var(--accent);
+  border-color: rgba(242, 189, 75, 0.35);
+  background: rgba(242, 189, 75, 0.1);
+}
+
+.practice-hint-trigger:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.practice-hint-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(320px, 70vw);
+  padding: 12px 14px;
+  z-index: 30;
+  box-shadow: var(--shadow-lg);
+}
+
+.practice-hint-panel-title {
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+.practice-hint-list {
+  margin-bottom: 0;
+}
+
+.practice-hint-list li {
+  font-size: 0.82rem;
+  padding: 6px 0 6px 16px;
+}
+
 .practice-error { margin-bottom: 8px; flex-shrink: 0; }
 .practice-success-banner { margin-bottom: 10px; flex-shrink: 0; padding: 10px 14px; }
 

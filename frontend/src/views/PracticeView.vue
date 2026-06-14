@@ -16,6 +16,10 @@ const levelId = route.params.levelId as string;
 const levelTitle = ref("");
 /** 关卡任务说明 */
 const levelDescription = ref("");
+/** 关卡目标提示列表 */
+const goalHints = ref<string[]>([]);
+/** 提示面板是否展开 */
+const hintOpen = ref(false);
 /** 当前 attempt id */
 const attemptId = ref("");
 /** 当前仓库状态 */
@@ -119,10 +123,21 @@ const appendNextLevelHint = (nextLevelInfo: NextLevelAfterComplete | null | unde
   scrollTerminalToBottom();
 };
 
+/**
+ * 切换提示面板显示状态。
+ * 功能：点击顶栏「提示」时展开或收起目标提示。
+ * 参数：无。
+ * 返回值：无。
+ */
+const toggleHintPanel = () => {
+  hintOpen.value = !hintOpen.value;
+};
+
 onMounted(() => {
   levelsApi.get(levelId).then((level) => {
     levelTitle.value = level.title;
     levelDescription.value = level.description;
+    goalHints.value = level.goalHints;
   }).catch((err: Error) => {
     if (err.message.includes("未解锁")) {
       lockedError.value = true;
@@ -214,6 +229,23 @@ const goReplay = () => {
         <h1 class="practice-title">{{ levelTitle || '练习' }}</h1>
       </div>
       <div v-if="judge" class="practice-meta">
+        <div class="practice-hint-wrap">
+          <button
+            type="button"
+            class="meta-chip practice-hint-trigger"
+            :class="{ active: hintOpen }"
+            :disabled="goalHints.length === 0"
+            @click="toggleHintPanel"
+          >
+            提示
+          </button>
+          <div v-if="hintOpen && goalHints.length > 0" class="practice-hint-panel card">
+            <p class="practice-hint-panel-title">关卡提示</p>
+            <ul class="hint-list practice-hint-list">
+              <li v-for="hint in goalHints" :key="hint">{{ hint }}</li>
+            </ul>
+          </div>
+        </div>
         <span class="meta-chip">步骤 {{ stepCount }}</span>
         <span class="meta-chip" :class="{ done: judge.passed }">
           {{ judge.passed ? '已通关' : `进度 ${progressPct}%` }}
