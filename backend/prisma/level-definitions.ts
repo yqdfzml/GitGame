@@ -65,26 +65,38 @@ export const ALL_LEVELS: LevelSeed[] = [
   // ══ 第 1 章：初入仓境（5 关）sortOrder 1-5 ══
   {
     courseId: "mvp", chapterId: "workspace", title: "山门初开", sortOrder: 1,
-    description: "仓库里有一份未跟踪的 welcome.txt。观察当前状态，保持它不被纳入版本库，暂存区保持为空。",
+    description: "welcome.txt 尚未纳入版本库，app.js 有本地修改。用 git status 辨认未跟踪与已修改，两者都保持现状。",
     difficulty: Difficulty.BEGINNER,
-    initialState: { ...emptyRepoBase(), workingTree: { "welcome.txt": { content: "欢迎来到 GitGame", status: "untracked" } } },
-    goal: { untrackedFiles: ["welcome.txt"], indexEmpty: true },
+    initialState: {
+      ...makeRepoWithCommit("main", "w0a1b2c", "init", { "app.js": "v1" }),
+      workingTree: {
+        "welcome.txt": { content: "欢迎来到 GitGame", status: "untracked" },
+        "app.js": { content: "v2", status: "modified" },
+      },
+    },
+    goal: { untrackedFiles: ["welcome.txt"], workingTreeContents: { "app.js": "v2" }, indexEmpty: true },
     constraints: { baseScore: 30, stepPenalty: 1, maxSteps: 10, minSteps: 1 },
   },
   {
     courseId: "mvp", chapterId: "workspace", title: "灵气扰动", sortOrder: 2,
-    description: "app.js 在工作区已被改为 v2。确认这一改动并保留，不要提交或丢弃。",
+    description: "app.js 已改为 v2。将这次修改加入暂存区，先不要提交。",
     difficulty: Difficulty.BEGINNER,
     initialState: { ...makeRepoWithCommit("main", "w1a2b3c", "init", { "app.js": "v1" }), workingTree: { "app.js": { content: "v2", status: "modified" } } },
-    goal: { workingTreeContents: { "app.js": "v2" }, indexEmpty: true },
-    constraints: { baseScore: 30, stepPenalty: 1, maxSteps: 10, minSteps: 1 },
+    goal: { indexContents: { "app.js": "v2" }, workingTreeContents: { "app.js": "v2" } },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15 },
   },
   {
     courseId: "mvp", chapterId: "workspace", title: "暂存之门", sortOrder: 3,
-    description: "notes.md 有本地修改。把修改放入暂存区即可，先不要提交。",
+    description: "notes.md 有待提交的修改，draft.txt 是未跟踪草稿。只暂存 notes.md，draft.txt 不要纳入版本库。",
     difficulty: Difficulty.BEGINNER,
-    initialState: { ...makeRepoWithCommit("main", "w2b3c4d", "init", { "notes.md": "旧笔记" }), workingTree: { "notes.md": { content: "新笔记内容", status: "modified" } } },
-    goal: { indexContents: { "notes.md": "新笔记内容" }, workingTreeContents: { "notes.md": "新笔记内容" } },
+    initialState: {
+      ...makeRepoWithCommit("main", "w2b3c4d", "init", { "notes.md": "旧笔记" }),
+      workingTree: {
+        "notes.md": { content: "新笔记内容", status: "modified" },
+        "draft.txt": { content: "wip", status: "untracked" },
+      },
+    },
+    goal: { indexContents: { "notes.md": "新笔记内容" }, workingTreeContents: { "notes.md": "新笔记内容" }, untrackedFiles: ["draft.txt"] },
     constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15 },
   },
   {

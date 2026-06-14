@@ -25,19 +25,19 @@ export interface LevelGoalHintsBundle {
 /** 40 关分层提示，按 sortOrder 索引 */
 const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
   1: {
-    concepts: ["Git 仓库分为工作区、暂存区、版本库。未跟踪（untracked）文件尚未被 Git 管理。"],
-    directions: ["先用 git status 观察当前状态，不要误把文件加入版本库。"],
-    keyPoints: ["welcome.txt 需要保持未跟踪，暂存区保持为空。"],
+    concepts: ["Git 仓库分为工作区、暂存区、版本库。未跟踪（untracked）与已修改（modified）是两种不同的本地状态。"],
+    directions: ["先用 git status 观察 welcome.txt 与 app.js 各自的状态，不要误操作。"],
+    keyPoints: ["welcome.txt 保持未跟踪，app.js 保持 v2 修改，暂存区保持为空。"],
   },
   2: {
-    concepts: ["已跟踪文件被修改后，工作区内容与 HEAD 不一致，status 会显示 modified。"],
-    directions: ["用 git status 确认 app.js 的修改，保留这份本地改动即可。"],
-    keyPoints: ["本题不要求提交或 restore，只要 app.js 仍为 v2。"],
+    concepts: ["git add 把选中的修改放入暂存区，是 commit 前的必要步骤。"],
+    directions: ["将 app.js 的 v2 修改加入暂存区，先不要 commit。"],
+    keyPoints: ["git add app.js，再用 git status 确认已进入 staged。"],
   },
   3: {
-    concepts: ["git add 把选中的修改放入暂存区，是 commit 前的必要步骤。"],
-    directions: ["将 notes.md 的修改加入暂存区，但先不要 commit。"],
-    keyPoints: ["可尝试 git add notes.md，再用 git status 确认 staged 状态。"],
+    concepts: ["add 时要指定路径；未跟踪文件不会因为 add 其他文件而自动纳入版本库。"],
+    directions: ["只暂存 notes.md，draft.txt 保持未跟踪。"],
+    keyPoints: ["git add notes.md，不要用 git add . 误把 draft.txt 加进去。"],
   },
   4: {
     concepts: ["同一时刻可以并存 staged、modified、untracked 三种状态，add 时要精确指定路径。"],
