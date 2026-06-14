@@ -25,7 +25,7 @@ const handleSubmit = () => {
   error.value = "";
   auth.login(email.value, password.value)
     .then(() => {
-      const redirect = (route.query.redirect as string) || "/levels";
+      const redirect = (route.query.redirect as string) || "/";
       router.push(redirect);
     })
     .catch((err: Error) => {

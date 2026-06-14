@@ -25,7 +25,7 @@ const error = ref("");
 const handleSubmit = () => {
   error.value = "";
   auth.register(email.value, password.value, displayName.value)
-    .then(() => router.push("/levels"))
+    .then(() => router.push("/"))
     .catch((err: Error) => {
       error.value = err.message;
     });
