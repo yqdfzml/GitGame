@@ -23,6 +23,8 @@ export const gitgameThemeOverrides: GlobalThemeOverrides = {
   },
   Input: {
     borderRadius: "8px",
+    color: "#1a1714",
+    colorFocus: "#1a1714",
   },
   Card: {
     borderRadius: "10px",

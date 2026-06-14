@@ -104,7 +104,7 @@ const handleSubmit = () => {
         </div>
 
         <NForm class="register-form" label-placement="top" :show-require-mark="false">
-          <NFormItem label="头像（必选）">
+          <NFormItem label="头像">
             <AvatarCropPicker @change="handleAvatarChange" />
           </NFormItem>
 
@@ -126,7 +126,7 @@ const handleSubmit = () => {
             />
           </NFormItem>
 
-          <NFormItem label="密码（至少 6 位）">
+          <NFormItem label="密码">
             <NInput
               v-model:value="password"
               type="password"

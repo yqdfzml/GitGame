@@ -1970,6 +1970,16 @@ a:hover { color: var(--accent-hover); }
   gap: 4px;
 }
 
+/* 覆盖浏览器 autofill 默认浅蓝背景 */
+.register-card .n-input input:-webkit-autofill,
+.register-card .n-input input:-webkit-autofill:hover,
+.register-card .n-input input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #1a1714 inset;
+  -webkit-text-fill-color: #f5f0e8;
+  caret-color: #f5f0e8;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .register-error {
   margin-bottom: 4px;
 }
@@ -1986,7 +1996,7 @@ a:hover { color: var(--accent-hover); }
   padding: 0;
   border: 1px dashed rgba(242, 189, 75, 0.35);
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.2);
+  background: transparent;
   overflow: hidden;
   cursor: pointer;
   flex-shrink: 0;
@@ -2008,12 +2018,8 @@ a:hover { color: var(--accent-hover); }
 }
 
 .avatar-picker-meta {
-  display: grid;
-  gap: 6px;
-}
-
-.avatar-picker-hint {
-  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
 }
 
 .avatar-crop-input {

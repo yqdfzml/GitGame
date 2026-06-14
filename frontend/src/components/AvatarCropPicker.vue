@@ -7,7 +7,6 @@ import {
   NSpace,
   NText,
 } from "naive-ui";
-
 const emit = defineEmits<{
   /** 用户确认裁剪后通知父组件 */
   change: [file: File | null];
@@ -208,10 +207,9 @@ onBeforeUnmount(() => {
     </button>
 
     <div class="avatar-picker-meta">
-      <NButton secondary size="small" @click="pickImage">
+      <NButton text size="small" @click="pickImage">
         {{ confirmedPreviewUrl ? "重新裁剪头像" : "选择并裁剪头像" }}
       </NButton>
-      <NText depth="3" class="avatar-picker-hint">点击头像或按钮，在弹窗中完成裁剪</NText>
     </div>
   </div>
 
