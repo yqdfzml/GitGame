@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { JudgeResult } from "../types";
+import { calcResolvedCount } from "../utils/challengeProgress";
 
 const props = defineProps<{
   /** 判题结果 */
@@ -15,13 +16,14 @@ const props = defineProps<{
   initialSatisfiedKeys?: string[];
 }>();
 
-/** 本轮已消除的差距项数量 */
+/** 本轮已完成的目标项数量 */
 const resolvedCount = computed(() => {
-  if (props.judge.passed) {
-    return props.initialGapCount ?? props.judge.satisfied.length;
-  }
   if (props.initialGapCount !== undefined) {
-    return props.initialGapCount - props.judge.gaps.length;
+    return calcResolvedCount(
+      props.judge,
+      props.initialGapCount,
+      props.initialSatisfiedKeys ?? [],
+    );
   }
   return props.judge.satisfied.length;
 });

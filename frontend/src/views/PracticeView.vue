@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { attemptsApi, levelsApi } from "../api/client";
 import CommitGraph from "../components/CommitGraph.vue";
@@ -38,12 +38,31 @@ const completed = ref(false);
 const stepCount = ref(0);
 /** 错误信息 */
 const error = ref("");
+/** 命令输入框 DOM 引用，用于命令执行后恢复焦点 */
+const commandInputRef = ref<HTMLInputElement | null>(null);
 
 /** 目标完成百分比，以开局差距为基准从 0% 起算 */
 const progressPct = computed(() => {
   if (!judge.value) return 0;
-  return calcChallengeProgress(judge.value, initialGapCount.value);
+  return calcChallengeProgress(
+    judge.value,
+    initialGapCount.value,
+    initialSatisfiedKeys.value,
+  );
 });
+
+/**
+ * 让命令输入框重新获得焦点。
+ * 功能：在 DOM 更新完成后聚焦输入框，避免执行命令后失焦。
+ * 参数：无。
+ * 返回值：无。
+ */
+const focusCommandInput = () => {
+  if (completed.value) return;
+  nextTick(() => {
+    commandInputRef.value?.focus();
+  });
+};
 
 onMounted(() => {
   levelsApi.get(levelId).then((level) => {
@@ -59,6 +78,7 @@ onMounted(() => {
     initialSatisfiedKeys.value = [...attempt.judge.satisfied];
     stepCount.value = attempt.stepCount;
     terminalLines.value.push({ text: "练习已开始。输入 git 命令并按 Enter 执行。", type: "success" });
+    focusCommandInput();
   }).catch((err: Error) => {
     error.value = err.message;
   });
@@ -100,6 +120,7 @@ const submitCommand = () => {
     })
     .finally(() => {
       submitting.value = false;
+      focusCommandInput();
     });
 };
 
@@ -179,9 +200,10 @@ const goReplay = () => {
           <div class="terminal-input-row">
             <span class="prompt-symbol">❯</span>
             <input
+              ref="commandInputRef"
               v-model="commandInput"
               placeholder="git status"
-              :disabled="completed || submitting"
+              :disabled="completed"
               @keydown.enter="submitCommand"
             />
             <button class="btn-primary" :disabled="completed || submitting" @click="submitCommand">

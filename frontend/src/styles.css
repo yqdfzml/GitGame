@@ -537,7 +537,16 @@ a:hover { color: var(--accent-hover); }
   color: var(--text-faint); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
 }
 
-.practice-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; flex-shrink: 0; }
+.practice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  height: 36px;
+  min-height: 36px;
+}
 .practice-header-main { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
 .practice-header-main .page-eyebrow { margin-bottom: 0; }
 .practice-title {
@@ -549,7 +558,7 @@ a:hover { color: var(--accent-hover); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.practice-meta { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+.practice-meta { display: flex; gap: 8px; flex-wrap: nowrap; flex-shrink: 0; align-items: center; }
 .practice-error { margin-bottom: 8px; flex-shrink: 0; }
 .practice-success-banner { margin-bottom: 10px; flex-shrink: 0; padding: 10px 14px; }
 
@@ -610,6 +619,8 @@ a:hover { color: var(--accent-hover); }
 .practice-panel-compact {
   padding: 12px 14px;
   min-height: 0;
+  max-height: 168px;
+  overflow-y: auto;
 }
 
 .practice-panel-compact .panel-title {
@@ -664,6 +675,8 @@ a:hover { color: var(--accent-hover); }
 .meta-chip {
   padding: 5px 12px; background: var(--surface); border: 1px solid var(--border);
   border-radius: 999px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .meta-chip.done { color: var(--accent-2); border-color: rgba(47, 179, 136, 0.3); background: var(--success-soft); }
 
