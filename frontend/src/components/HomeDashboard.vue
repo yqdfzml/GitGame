@@ -97,106 +97,106 @@ const canContinue = computed(() => {
     <p v-if="error" class="error-msg">{{ error }}</p>
 
     <template v-if="!loading && !error">
-      <section class="home-command card">
-        <div class="home-command-body">
-          <div class="home-command-main">
-            <template v-if="nextLevel">
-              <div class="home-command-head">
+      <div class="home-dashboard-main">
+        <section class="home-hero card">
+          <template v-if="nextLevel">
+            <div class="home-hero-content">
+              <div class="home-hero-top">
                 <span v-if="nextPresentation" class="ui-chip ui-chip-muted">{{ nextPresentation.chapterLabel }}</span>
                 <span class="ui-chip" :class="canContinue ? 'ui-chip-ok' : 'ui-chip-warn'">
                   {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
                 </span>
               </div>
 
-              <div class="home-command-row">
-                <div class="home-command-text">
-                  <h2 class="home-command-title">{{ nextLevel.title }}</h2>
-                  <p v-if="nextPresentation" class="home-command-meta">{{ nextPresentation.skillLabel }}</p>
-                </div>
+              <h2 class="home-hero-title">{{ nextLevel.title }}</h2>
+              <p v-if="nextPresentation" class="home-hero-meta">
+                {{ nextPresentation.skillLabel }}
+              </p>
+            </div>
 
-                <div class="home-command-actions">
-                  <RouterLink
-                    v-if="canContinue"
-                    :to="`/practice/${nextLevel.id}`"
-                    class="btn-primary home-command-cta"
-                  >
-                    继续
-                  </RouterLink>
-                  <RouterLink
-                    v-else-if="nextLevel.chapterId"
-                    :to="`/levels/${nextLevel.chapterId}`"
-                    class="btn-primary home-command-cta"
-                  >
-                    解锁
-                  </RouterLink>
-                  <RouterLink to="/levels" class="btn-ghost home-command-map">地图</RouterLink>
-                </div>
-              </div>
-            </template>
+            <div class="home-hero-actions">
+              <RouterLink
+                v-if="canContinue"
+                :to="`/practice/${nextLevel.id}`"
+                class="btn-primary home-hero-cta"
+              >
+                继续
+              </RouterLink>
+              <RouterLink
+                v-else-if="nextLevel.chapterId"
+                :to="`/levels/${nextLevel.chapterId}`"
+                class="btn-primary home-hero-cta"
+              >
+                解锁
+              </RouterLink>
+              <RouterLink to="/levels" class="btn-ghost home-hero-map">地图</RouterLink>
+            </div>
+          </template>
 
-            <template v-else>
-              <div class="home-command-head">
+          <template v-else>
+            <div class="home-hero-content">
+              <div class="home-hero-top">
                 <span class="ui-chip ui-chip-ok">主线完成</span>
               </div>
-              <div class="home-command-row">
-                <h2 class="home-command-title">全部通关</h2>
-                <div class="home-command-actions">
-                  <RouterLink to="/achievements" class="btn-primary home-command-cta">成就</RouterLink>
-                  <RouterLink to="/leaderboard" class="btn-ghost home-command-map">排行</RouterLink>
-                </div>
-              </div>
-            </template>
-          </div>
+              <h2 class="home-hero-title">全部通关</h2>
+            </div>
+            <div class="home-hero-actions">
+              <RouterLink to="/achievements" class="btn-primary home-hero-cta">成就</RouterLink>
+              <RouterLink to="/leaderboard" class="btn-ghost home-hero-map">排行</RouterLink>
+            </div>
+          </template>
+        </section>
 
-          <div class="home-command-metrics">
-            <div class="home-metric">
-              <span class="home-metric-label">进度</span>
-              <strong class="home-metric-value">{{ routeProgress.percent }}%</strong>
-              <div class="progress-track home-metric-track">
+        <aside class="home-stats card">
+          <div class="home-stat-grid">
+            <div class="home-stat-card">
+              <span class="home-stat-label">进度</span>
+              <strong class="home-stat-value">{{ routeProgress.percent }}%</strong>
+              <div class="progress-track home-stat-track">
                 <div :style="{ width: `${routeProgress.percent}%` }" />
               </div>
-              <span class="home-metric-sub">{{ routeProgress.completed }}/{{ routeProgress.total }}</span>
+              <span class="home-stat-sub">{{ routeProgress.completed }}/{{ routeProgress.total }}</span>
             </div>
 
-            <div class="home-metric">
-              <span class="home-metric-label">积分</span>
-              <strong class="home-metric-value">{{ pointsStore.balance ?? 0 }}</strong>
+            <div class="home-stat-card">
+              <span class="home-stat-label">积分</span>
+              <strong class="home-stat-value">{{ pointsStore.balance ?? 0 }}</strong>
             </div>
 
-            <div class="home-metric">
-              <span class="home-metric-label">连签</span>
-              <strong class="home-metric-value">{{ pointsStore.wallet?.currentStreak ?? 0 }}<small>天</small></strong>
+            <div class="home-stat-card">
+              <span class="home-stat-label">连签</span>
+              <div class="home-stat-inline">
+                <strong class="home-stat-value">{{ pointsStore.wallet?.currentStreak ?? 0 }}</strong>
+                <span class="home-stat-unit">天</span>
+              </div>
+            </div>
+
+            <div class="home-stat-card home-stat-card-wide">
+              <span class="home-stat-label">成就</span>
+              <ul v-if="recentBadges.length > 0" class="home-recent-badges">
+                <li v-for="badge in recentBadges" :key="badge.id">
+                  <RouterLink to="/achievements" class="ui-chip ui-chip-badge">{{ badge.name }}</RouterLink>
+                </li>
+              </ul>
+              <span v-else class="home-stat-sub">—</span>
             </div>
           </div>
-        </div>
+        </aside>
+      </div>
 
-        <div v-if="recentBadges.length > 0" class="home-command-footer">
-          <span class="home-metric-label">成就</span>
-          <ul class="home-recent-badges">
-            <li v-for="badge in recentBadges" :key="badge.id">
-              <RouterLink to="/achievements" class="ui-chip ui-chip-badge">{{ badge.name }}</RouterLink>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />
 
-      <section class="home-dashboard-secondary">
-        <div class="home-dashboard-block">
-          <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />
+      <section class="home-dashboard-block home-dashboard-leaderboard">
+        <div class="home-dashboard-block-head">
+          <h3>排行榜</h3>
+          <RouterLink to="/leaderboard" class="home-section-link">完整榜单</RouterLink>
         </div>
-
-        <div class="home-dashboard-block home-dashboard-leaderboard">
-          <div class="home-dashboard-block-head">
-            <h3>排行榜</h3>
-            <RouterLink to="/leaderboard" class="home-section-link">完整榜单</RouterLink>
-          </div>
-          <LeaderboardPanel
-            :entries="leaderboard"
-            :preview-limit="8"
-            :loading="false"
-            :error="''"
-          />
-        </div>
+        <LeaderboardPanel
+          :entries="leaderboard"
+          :preview-limit="8"
+          :loading="false"
+          :error="''"
+        />
       </section>
     </template>
   </section>
