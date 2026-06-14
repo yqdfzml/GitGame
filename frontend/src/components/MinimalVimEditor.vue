@@ -52,25 +52,30 @@ const modeLabel = computed(() => {
 });
 
 /**
- * 打开 Vim 时重置内部状态。
- * 功能：同步文件内容并回到普通模式。
- * 参数：无（监听 props.show）。
+ * 打开 Vim 时重置内部状态并同步文件内容。
+ * 功能：show 为 true 时复制 props.content 并回到普通模式。
+ * 参数：无（读取 props）。
  * 返回值：无。
  */
+const syncEditorFromProps = () => {
+  if (!props.show) {
+    return;
+  }
+  draftContent.value = props.content;
+  vimMode.value = "normal";
+  commandBuffer.value = "";
+  statusMessage.value = "按 i 进入编辑，:wq 保存，:q! 放弃";
+  nextTick(() => {
+    normalViewRef.value?.focus();
+  });
+};
+
 watch(
-  () => props.show,
-  (visible) => {
-    if (!visible) {
-      return;
-    }
-    draftContent.value = props.content;
-    vimMode.value = "normal";
-    commandBuffer.value = "";
-    statusMessage.value = "按 i 进入编辑，:wq 保存，:q! 放弃";
-    nextTick(() => {
-      normalViewRef.value?.focus();
-    });
+  () => [props.show, props.content] as const,
+  () => {
+    syncEditorFromProps();
   },
+  { immediate: true },
 );
 
 /**

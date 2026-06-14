@@ -128,12 +128,19 @@ const currentConflictPaths = computed(() => {
   return Object.keys(repoState.value.conflicts);
 });
 
-/** 正在编辑文件的工作区全文 */
+/** 正在编辑文件的工作区全文，暂存区作兜底 */
 const editingConflictContent = computed(() => {
   if (!repoState.value || !editingConflictPath.value) {
     return "";
   }
-  return repoState.value.workingTree[editingConflictPath.value]?.content ?? "";
+  /** 当前编辑的文件路径 */
+  const path = editingConflictPath.value;
+  /** 工作区里的冲突标记全文 */
+  const workingContent = repoState.value.workingTree[path]?.content;
+  if (workingContent !== undefined) {
+    return workingContent;
+  }
+  return repoState.value.index[path] ?? "";
 });
 
 /** 正在编辑文件的冲突元信息 */

@@ -31,20 +31,25 @@ const draftContent = ref("");
 const saveError = ref("");
 
 /**
- * 弹窗打开时同步工作区内容到草稿。
- * 功能：每次 show 变为 true 时重置编辑区。
- * 参数：无（监听 props.show）。
+ * 打开编辑器时把工作区内容同步到草稿。
+ * 功能：show 为 true 时复制 props.content，并清空校验提示。
+ * 参数：无（读取 props）。
  * 返回值：无。
  */
+const syncDraftFromProps = () => {
+  if (!props.show) {
+    return;
+  }
+  draftContent.value = props.content;
+  saveError.value = "";
+};
+
 watch(
-  () => props.show,
-  (visible) => {
-    if (!visible) {
-      return;
-    }
-    draftContent.value = props.content;
-    saveError.value = "";
+  () => [props.show, props.content] as const,
+  () => {
+    syncDraftFromProps();
   },
+  { immediate: true },
 );
 
 /**
