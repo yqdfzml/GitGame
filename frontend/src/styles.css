@@ -198,13 +198,59 @@ a:hover { color: var(--accent-hover); }
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 140px;
+  min-width: 180px;
   padding: 6px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-lg);
   z-index: 200;
+}
+
+.user-menu-checkin {
+  display: grid;
+  gap: 6px;
+}
+
+.user-menu-checkin-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 12px 0;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.user-menu-checkin-balance {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.user-menu-checkin-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-menu-checkin-btn:not(:disabled):hover {
+  color: var(--accent);
+}
+
+.user-menu-checkin-btn:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.user-menu-item-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.user-menu-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
 }
 
 .user-menu-item {
@@ -221,7 +267,7 @@ a:hover { color: var(--accent-hover); }
   cursor: pointer;
 }
 
-.user-menu-item:hover {
+.user-menu-item:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--text);
 }

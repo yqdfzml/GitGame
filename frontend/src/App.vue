@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BookOpenCheck, ChevronDown, GitBranch, Home, Medal, Trophy } from "lucide-vue-next";
+import { BookOpenCheck, CalendarCheck, ChevronDown, GitBranch, Home, Medal, Trophy } from "lucide-vue-next";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, RouterView } from "vue-router";
 import { usersApi } from "./api/client";
@@ -91,12 +91,53 @@ const userMenuOpen = ref(false);
 
 /**
  * 切换用户菜单展开状态。
- * 功能：点击头像区域时展开或收起下拉菜单。
+ * 功能：点击头像区域时展开或收起下拉菜单，展开时刷新积分钱包。
  * 参数：无。
  * 返回值：无。
  */
 const toggleUserMenu = () => {
   userMenuOpen.value = !userMenuOpen.value;
+  if (userMenuOpen.value && auth.isLoggedIn) {
+    pointsStore.loadWallet();
+  }
+};
+
+/** 签到按钮文案，根据钱包与请求状态切换 */
+const checkInButtonText = computed(() => {
+  if (pointsStore.loading && !pointsStore.wallet) {
+    return "加载中...";
+  }
+  if (!pointsStore.wallet) {
+    return "签到";
+  }
+  if (pointsStore.wallet.checkedInToday) {
+    return "已签到";
+  }
+  if (pointsStore.checkingIn) {
+    return "签到中...";
+  }
+  return "签到";
+});
+
+/** 签到按钮是否可点击 */
+const checkInDisabled = computed(() => {
+  if (pointsStore.checkingIn) {
+    return true;
+  }
+  if (!pointsStore.wallet) {
+    return true;
+  }
+  return pointsStore.wallet.checkedInToday;
+});
+
+/**
+ * 处理下拉菜单签到点击。
+ * 功能：调用积分 Store 签到，成功后顶栏积分自动同步。
+ * 参数：无。
+ * 返回值：无。
+ */
+const handleCheckIn = () => {
+  pointsStore.checkIn();
 };
 
 /**
@@ -153,7 +194,7 @@ const handleDocumentClick = (event: MouseEvent) => {
           v-if="topbarBalance !== null"
           to="/levels"
           class="topbar-points-chip"
-          title="前往关卡页签到与解锁"
+          title="当前积分"
         >
           积分 {{ topbarBalance }}
         </RouterLink>
@@ -184,6 +225,23 @@ const handleDocumentClick = (event: MouseEvent) => {
           </button>
 
           <div v-if="userMenuOpen" class="user-menu-panel" role="menu">
+            <div class="user-menu-checkin">
+              <div v-if="pointsStore.wallet" class="user-menu-checkin-meta">
+                <span class="user-menu-checkin-balance">积分 {{ pointsStore.wallet.balance }}</span>
+                <span class="user-menu-checkin-streak">连签 {{ pointsStore.wallet.currentStreak }} 天</span>
+              </div>
+              <button
+                type="button"
+                class="user-menu-item user-menu-checkin-btn"
+                role="menuitem"
+                :disabled="checkInDisabled"
+                @click="handleCheckIn"
+              >
+                <CalendarCheck class="user-menu-item-icon" aria-hidden="true" />
+                {{ checkInButtonText }}
+              </button>
+            </div>
+            <div class="user-menu-divider" role="separator" />
             <button type="button" class="user-menu-item" role="menuitem" @click="handleLogout">
               登出
             </button>
