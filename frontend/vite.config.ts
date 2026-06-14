@@ -29,6 +29,7 @@ export default defineConfig({
       "/levels": createApiProxy(),
       "/attempts": createApiProxy(),
       "/leaderboard": createApiProxy(),
+      "/home": createApiProxy(),
       "/users": createApiProxy(),
       "/admin": createApiProxy(),
       "/healthz": createApiProxy(),
