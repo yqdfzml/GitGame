@@ -252,9 +252,9 @@ export class AdminService {
         description: existing.description,
         difficulty: existing.difficulty,
         sortOrder: existing.sortOrder + 1,
-        initialState: existing.initialState,
-        goal: existing.goal,
-        constraints: existing.constraints,
+        initialState: toPrismaJson(existing.initialState),
+        goal: toPrismaJson(existing.goal),
+        constraints: toPrismaJson(existing.constraints),
         status: "DRAFT",
       },
     });

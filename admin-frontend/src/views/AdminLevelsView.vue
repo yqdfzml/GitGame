@@ -8,7 +8,7 @@ import type {
   AdminLevelItem,
   AdminLevelListFilters,
 } from "../types/admin";
-import { TOPIC_CHAPTER_IDS } from "@shared/utils/levelPresentation";
+import { TOPIC_CHAPTER_IDS, difficultyLabel, getChapterLabel } from "@shared/utils/levelPresentation";
 
 /** 默认表单模板 */
 const DEFAULT_FORM: AdminLevelFormData = {
@@ -505,7 +505,7 @@ onMounted(() => {
             <select v-model="filters.chapterId" class="admin-filter-select">
               <option value="">全部章节</option>
               <option v-for="chapterId in TOPIC_CHAPTER_IDS" :key="chapterId" :value="chapterId">
-                {{ chapterId }}
+                {{ getChapterLabel(chapterId) }}
               </option>
             </select>
           </label>
@@ -522,9 +522,9 @@ onMounted(() => {
             难度
             <select v-model="filters.difficulty" class="admin-filter-select">
               <option value="">全部难度</option>
-              <option value="BEGINNER">BEGINNER</option>
-              <option value="INTERMEDIATE">INTERMEDIATE</option>
-              <option value="ADVANCED">ADVANCED</option>
+              <option value="BEGINNER">{{ difficultyLabel("BEGINNER") }}</option>
+              <option value="INTERMEDIATE">{{ difficultyLabel("INTERMEDIATE") }}</option>
+              <option value="ADVANCED">{{ difficultyLabel("ADVANCED") }}</option>
             </select>
           </label>
         </div>
@@ -545,7 +545,7 @@ onMounted(() => {
             >
               <strong>{{ level.title }}</strong>
               <span class="admin-level-meta">
-                {{ level.chapterId ?? "未分章" }} · {{ statusLabelMap[level.status] ?? level.status }}
+                {{ getChapterLabel(level.chapterId) }} · {{ statusLabelMap[level.status] ?? level.status }}
               </span>
             </li>
           </ul>
@@ -587,7 +587,7 @@ onMounted(() => {
               <label>章节</label>
               <select v-model="formData.chapterId">
                 <option v-for="chapterId in TOPIC_CHAPTER_IDS" :key="chapterId" :value="chapterId">
-                  {{ chapterId }}
+                  {{ getChapterLabel(chapterId) }}
                 </option>
               </select>
             </div>
@@ -598,9 +598,9 @@ onMounted(() => {
             <div class="form-group">
               <label>难度</label>
               <select v-model="formData.difficulty">
-                <option value="BEGINNER">BEGINNER</option>
-                <option value="INTERMEDIATE">INTERMEDIATE</option>
-                <option value="ADVANCED">ADVANCED</option>
+                <option value="BEGINNER">{{ difficultyLabel("BEGINNER") }}</option>
+                <option value="INTERMEDIATE">{{ difficultyLabel("INTERMEDIATE") }}</option>
+                <option value="ADVANCED">{{ difficultyLabel("ADVANCED") }}</option>
               </select>
             </div>
             <div class="form-group">
@@ -676,7 +676,7 @@ onMounted(() => {
           <p><strong>{{ formData.title }}</strong></p>
           <p class="admin-preview-desc">{{ formData.description }}</p>
           <p class="admin-preview-meta">
-            {{ formData.chapterId }} · {{ formData.difficulty }} · sort {{ formData.sortOrder }}
+            {{ getChapterLabel(formData.chapterId) }} · {{ difficultyLabel(formData.difficulty) }} · sort {{ formData.sortOrder }}
           </p>
         </div>
 

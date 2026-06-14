@@ -5,6 +5,7 @@ import { adminAttemptsApi } from "../api/client";
 import AdminListState from "../components/admin/AdminListState.vue";
 import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
 import type { AdminAttemptListFilters, AdminAttemptListItem } from "../types/admin";
+import { getChapterLabel } from "@shared/utils/levelPresentation";
 
 const route = useRoute();
 const router = useRouter();
@@ -194,7 +195,7 @@ onMounted(() => {
                 </td>
                 <td>
                   <strong>{{ attempt.levelTitle }}</strong>
-                  <span class="admin-attempt-sub">{{ attempt.levelChapterId ?? "未分章" }}</span>
+                  <span class="admin-attempt-sub">{{ getChapterLabel(attempt.levelChapterId) }}</span>
                 </td>
                 <td>{{ statusLabelMap[attempt.status] ?? attempt.status }}</td>
                 <td>{{ attempt.stepCount }}</td>

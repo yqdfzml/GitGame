@@ -153,6 +153,16 @@ export const getLevelPresentation = (chapterId: string | null): LevelPresentatio
 };
 
 /**
+ * 获取章节中文展示名。
+ * 功能：管理后台与玩家端统一章节文案，避免直接露出 chapterId。
+ * 参数：chapterId - 章节 id，可为空。
+ * 返回值：中文章节名。
+ */
+export const getChapterLabel = (chapterId: string | null): string => {
+  return getLevelPresentation(chapterId).chapterLabel;
+};
+
+/**
  * 难度枚举转中文标签。
  * 功能：与「入门 / 进阶 / 突破」文案保持一致。
  * 参数：difficulty - 后端难度枚举。

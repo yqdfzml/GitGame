@@ -2488,6 +2488,7 @@ a:hover { color: var(--accent-hover); }
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   background: var(--bg);
+  color-scheme: dark;
 }
 
 .admin-shell-nav {
@@ -2776,6 +2777,49 @@ a:hover { color: var(--accent-hover); }
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-bottom: 12px;
+}
+
+/* 管理后台筛选条与工具栏：统一暗色 input/select，避免浏览器默认白底 */
+.admin-filter-label input,
+.admin-filter-label select,
+.admin-filter-select,
+.admin-users-toolbar input,
+.admin-users-toolbar select,
+.admin-gamification-toolbar input,
+.admin-invite-create-grid input,
+.admin-invite-create-grid select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.admin-filter-label input:focus,
+.admin-filter-label select:focus,
+.admin-users-toolbar input:focus,
+.admin-users-toolbar select:focus,
+.admin-gamification-toolbar input:focus,
+.admin-invite-create-grid input:focus,
+.admin-invite-create-grid select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.admin-filter-label input::placeholder,
+.admin-users-toolbar input::placeholder,
+.admin-gamification-toolbar input::placeholder,
+.admin-invite-create-grid input::placeholder {
+  color: var(--text-faint);
+}
+
+.admin-filter-grid .admin-filter-label {
+  margin-bottom: 0;
 }
 
 .admin-filter-select {
