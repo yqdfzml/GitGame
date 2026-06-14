@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
-import { ScrollText } from "lucide-vue-next";
+import { Trophy } from "lucide-vue-next";
 import type { LeaderboardEntry } from "../types";
 
 const props = defineProps<{
@@ -15,7 +15,7 @@ const props = defineProps<{
   error: string;
   /** 面板标题 */
   title?: string;
-  /** 是否显示流式头部 */
+  /** 是否显示面板头部 */
   showHeader?: boolean;
   /** 头部右侧更多链接 */
   moreHref?: string;
@@ -32,29 +32,16 @@ const visibleEntries = computed(() => {
 });
 
 /**
- * 获取排名圆点样式。
- * 功能：前三名使用金银铜色，其余使用默认绿色。
+ * 获取名次展示样式。
+ * 功能：前三名使用金银铜阶梯样式。
  * 参数：rank - 排名数字。
  * 返回值：CSS class 名。
  */
-const rankDotClass = (rank: number) => {
-  if (rank === 1) return "log-stream-dot gold";
-  if (rank === 2) return "log-stream-dot silver";
-  if (rank === 3) return "log-stream-dot bronze";
-  return "log-stream-dot";
-};
-
-/**
- * 获取排名状态徽章样式。
- * 功能：为日志流条目提供 TOP 标签颜色。
- * 参数：rank - 排名数字。
- * 返回值：CSS class 名。
- */
-const rankBadgeClass = (rank: number) => {
-  if (rank === 1) return "log-stream-status gold";
-  if (rank === 2) return "log-stream-status silver";
-  if (rank === 3) return "log-stream-status bronze";
-  return "log-stream-status";
+const rankPosClass = (rank: number) => {
+  if (rank === 1) return "rank-ladder-pos gold";
+  if (rank === 2) return "rank-ladder-pos silver";
+  if (rank === 3) return "rank-ladder-pos bronze";
+  return "rank-ladder-pos";
 };
 
 /**
@@ -68,16 +55,6 @@ const levelLabel = (entry: LeaderboardEntry) => {
     return entry.levelTitle;
   }
   return `#${entry.levelId}`;
-};
-
-/**
- * 获取用户名首字母。
- * 功能：用于头像占位圆标。
- * 参数：name - 玩家昵称。
- * 返回值：单字符。
- */
-const userInitial = (name: string) => {
-  return name.charAt(0).toUpperCase();
 };
 
 /**
@@ -97,50 +74,46 @@ const formatDuration = (seconds: number) => {
 </script>
 
 <template>
-  <div class="log-stream-panel leaderboard-log">
-    <header v-if="showHeader !== false" class="log-stream-head">
-      <div class="log-stream-title">
-        <ScrollText class="log-stream-icon" aria-hidden="true" />
-        <h3>{{ title ?? "修行榜" }}</h3>
+  <div class="rank-ladder-panel">
+    <header v-if="showHeader !== false" class="rank-ladder-head">
+      <div class="rank-ladder-head-icon">
+        <Trophy aria-hidden="true" />
       </div>
-      <span class="log-stream-live">Live</span>
-      <RouterLink v-if="moreHref" :to="moreHref" class="log-stream-more">{{ moreLabel ?? "全部" }}</RouterLink>
+      <div class="rank-ladder-head-text">
+        <h3 class="rank-ladder-title">{{ title ?? "修行榜" }}</h3>
+        <span class="rank-ladder-subtitle">全服最高分 · 最快通关</span>
+      </div>
+      <RouterLink v-if="moreHref" :to="moreHref" class="rank-ladder-more">{{ moreLabel ?? "全部" }}</RouterLink>
     </header>
 
-    <div v-if="loading" class="loading-state log-stream-loading">
+    <div v-if="loading" class="loading-state rank-ladder-loading">
       <div class="loading-spinner" />
       <span>加载中...</span>
     </div>
 
     <p v-if="error" class="error-msg">{{ error }}</p>
 
-    <ul v-if="!loading && !error" class="log-stream-list">
+    <ol v-if="!loading && !error" class="rank-ladder-list">
       <li
         v-for="entry in visibleEntries"
         :key="`${entry.rank}-${entry.displayName}-${entry.levelId}`"
-        class="log-stream-item"
+        class="rank-ladder-item"
+        :class="{ podium: entry.rank <= 3 }"
       >
-        <span :class="rankDotClass(entry.rank)" />
+        <span :class="rankPosClass(entry.rank)">{{ entry.rank }}</span>
 
-        <div class="log-stream-body">
-          <p class="log-stream-event">
-            通关
-            <em class="log-highlight-level">{{ levelLabel(entry) }}</em>
-            · 得分
-            <em class="log-highlight-score">{{ entry.score }}</em>
-          </p>
-
-          <div class="log-stream-user-row">
-            <span class="log-stream-avatar">{{ userInitial(entry.displayName) }}</span>
-            <span class="log-stream-user">{{ entry.displayName }}</span>
-            <span :class="rankBadgeClass(entry.rank)">TOP {{ entry.rank }}</span>
-          </div>
+        <div class="rank-ladder-main">
+          <strong class="rank-ladder-user">{{ entry.displayName }}</strong>
+          <span class="rank-ladder-level">{{ levelLabel(entry) }}</span>
         </div>
 
-        <span class="log-stream-time">{{ formatDuration(entry.durationSeconds) }}</span>
+        <div class="rank-ladder-metrics">
+          <strong class="rank-ladder-score">{{ entry.score }}</strong>
+          <span class="rank-ladder-duration">{{ formatDuration(entry.durationSeconds) }}</span>
+        </div>
       </li>
 
-      <li v-if="visibleEntries.length === 0" class="log-stream-empty">—</li>
-    </ul>
+      <li v-if="visibleEntries.length === 0" class="rank-ladder-empty">暂无记录</li>
+    </ol>
   </div>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { ScrollText } from "lucide-vue-next";
+import { Award, CheckCircle2, Sparkles } from "lucide-vue-next";
 import type { HomeActivityItem } from "../types";
 
 const props = defineProps<{
@@ -10,13 +10,13 @@ const props = defineProps<{
   loading: boolean;
   /** 错误信息 */
   error: string;
-  /** 是否显示流式头部 */
+  /** 是否显示面板头部 */
   showHeader?: boolean;
 }>();
 
-/** 去重后的动态列表，首页只展示最近条目 */
+/** 首页展示的最近动态 */
 const visibleActivities = computed(() => {
-  return props.activities.slice(0, 12);
+  return props.activities.slice(0, 10);
 });
 
 /**
@@ -29,7 +29,7 @@ const formatRelativeTime = (isoTime: string) => {
   const diffMs = Date.now() - new Date(isoTime).getTime();
   const diffMinutes = Math.floor(diffMs / 60000);
   if (diffMinutes <= 0) {
-    return "now";
+    return "刚刚";
   }
   if (diffMinutes < 60) {
     return `${diffMinutes}m`;
@@ -43,107 +43,74 @@ const formatRelativeTime = (isoTime: string) => {
 };
 
 /**
- * 获取动态圆点样式。
- * 功能：通关与徽章解锁使用不同颜色。
+ * 判断是否为徽章解锁动态。
+ * 功能：区分时间线样式与图标。
  * 参数：type - 动态类型。
- * 返回值：CSS class 名。
+ * 返回值：是否为徽章类事件。
  */
-const activityDotClass = (type: HomeActivityItem["type"]) => {
-  if (type === "badge_unlock") {
-    return "log-stream-dot accent";
-  }
-  return "log-stream-dot";
-};
-
-/**
- * 获取动态状态徽章样式。
- * 功能：为日志流条目提供状态标签颜色。
- * 参数：type - 动态类型。
- * 返回值：CSS class 名。
- */
-const activityBadgeClass = (type: HomeActivityItem["type"]) => {
-  if (type === "badge_unlock") {
-    return "log-stream-status accent";
-  }
-  return "log-stream-status";
-};
-
-/**
- * 获取动态状态标签文案。
- * 功能：区分通关与徽章解锁。
- * 参数：type - 动态类型。
- * 返回值：标签文字。
- */
-const activityStatusLabel = (type: HomeActivityItem["type"]) => {
-  if (type === "badge_unlock") {
-    return "BADGE";
-  }
-  return "CLEARED";
-};
-
-/**
- * 获取用户名首字母。
- * 功能：用于头像占位圆标。
- * 参数：name - 玩家昵称。
- * 返回值：单字符。
- */
-const userInitial = (name: string) => {
-  return name.charAt(0).toUpperCase();
+const isBadgeEvent = (type: HomeActivityItem["type"]) => {
+  return type === "badge_unlock";
 };
 </script>
 
 <template>
-  <div class="log-stream-panel activity-log">
-    <header v-if="showHeader !== false" class="log-stream-head">
-      <div class="log-stream-title">
-        <ScrollText class="log-stream-icon" aria-hidden="true" />
-        <h3>宗门动态</h3>
+  <div class="sect-feed-panel">
+    <header v-if="showHeader !== false" class="sect-feed-head">
+      <div class="sect-feed-head-icon activity">
+        <Sparkles aria-hidden="true" />
       </div>
-      <span class="log-stream-live">Live</span>
+      <div class="sect-feed-head-text">
+        <h3 class="sect-feed-title">宗门动态</h3>
+        <span class="sect-feed-subtitle">徽章解锁 · 关卡通关</span>
+      </div>
+      <span class="sect-feed-live">
+        <span class="sect-feed-live-dot" />
+        实时
+      </span>
     </header>
 
-    <div v-if="loading" class="loading-state log-stream-loading">
+    <div v-if="loading" class="loading-state sect-feed-loading">
       <div class="loading-spinner" />
       <span>加载中...</span>
     </div>
 
     <p v-else-if="error" class="error-msg">{{ error }}</p>
 
-    <ul v-else class="log-stream-list">
+    <ul v-else class="sect-feed-timeline">
       <li
         v-for="item in visibleActivities"
         :key="item.id"
-        class="log-stream-item"
+        class="sect-feed-item"
+        :class="isBadgeEvent(item.type) ? 'badge' : 'clear'"
       >
-        <span :class="activityDotClass(item.type)" />
+        <div class="sect-feed-rail" />
 
-        <div class="log-stream-body">
-          <p class="log-stream-event">
-            <template v-if="item.type === 'badge_unlock'">
-              解锁
-              <em class="log-highlight-badge">{{ item.badgeName }}</em>
-            </template>
-            <template v-else>
-              通关
-              <em class="log-highlight-level">{{ item.levelTitle }}</em>
-              <template v-if="item.score !== null">
-                · 得分
-                <em class="log-highlight-score">{{ item.score }}</em>
-              </template>
-            </template>
-          </p>
-
-          <div class="log-stream-user-row">
-            <span class="log-stream-avatar">{{ userInitial(item.displayName) }}</span>
-            <span class="log-stream-user">{{ item.displayName }}</span>
-            <span :class="activityBadgeClass(item.type)">{{ activityStatusLabel(item.type) }}</span>
-          </div>
+        <div class="sect-feed-icon-wrap">
+          <Award v-if="isBadgeEvent(item.type)" aria-hidden="true" class="sect-feed-icon" />
+          <CheckCircle2 v-else aria-hidden="true" class="sect-feed-icon" />
         </div>
 
-        <span class="log-stream-time">{{ formatRelativeTime(item.happenedAt) }}</span>
+        <div class="sect-feed-body">
+          <p v-if="isBadgeEvent(item.type)" class="sect-feed-line">
+            <strong>{{ item.displayName }}</strong>
+            解锁
+            <em>{{ item.badgeName }}</em>
+          </p>
+          <p v-else class="sect-feed-line">
+            <strong>{{ item.displayName }}</strong>
+            通关
+            <em>{{ item.levelTitle }}</em>
+            <span v-if="item.score !== null" class="sect-feed-score">+{{ item.score }}</span>
+          </p>
+          <span class="sect-feed-tag" :class="isBadgeEvent(item.type) ? 'badge' : 'clear'">
+            {{ isBadgeEvent(item.type) ? "徽章" : "通关" }}
+          </span>
+        </div>
+
+        <time class="sect-feed-time">{{ formatRelativeTime(item.happenedAt) }}</time>
       </li>
 
-      <li v-if="visibleActivities.length === 0" class="log-stream-empty">—</li>
+      <li v-if="visibleActivities.length === 0" class="sect-feed-empty">暂无动态</li>
     </ul>
   </div>
 </template>

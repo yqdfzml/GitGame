@@ -185,11 +185,11 @@ const canContinue = computed(() => {
       </div>
 
       <section class="home-dashboard-secondary">
-        <div class="home-dashboard-block">
+        <div class="home-dashboard-block home-dashboard-block--activity">
           <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />
         </div>
 
-        <div class="home-dashboard-block home-dashboard-leaderboard">
+        <div class="home-dashboard-block home-dashboard-block--rank home-dashboard-leaderboard">
           <LeaderboardPanel
             :entries="leaderboard"
             :preview-limit="5"
