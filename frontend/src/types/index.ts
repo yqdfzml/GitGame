@@ -171,6 +171,16 @@ export interface UserBadgesResponse {
   totalCount: number;
 }
 
+/** 用户最近通关记录 */
+export interface RecentLevelResult {
+  levelId: string;
+  title: string;
+  courseId: string;
+  score: number;
+  durationSeconds: number;
+  completedAt: string;
+}
+
 /** 用户学习统计 */
 export interface UserStats {
   completedLevelCount: number;
@@ -178,6 +188,7 @@ export interface UserStats {
   completedLevelIds: string[];
   activeTitle: ActiveTitle | null;
   rank: RankInfo;
+  recentResults: RecentLevelResult[];
 }
 
 /** 排行榜条目 */

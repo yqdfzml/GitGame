@@ -1021,6 +1021,59 @@ a:hover { color: var(--accent-hover); }
   border-bottom: 1px solid var(--border);
 }
 
+.learning-map-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.learning-map-recent-label {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+.learning-map-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 0;
+}
+
+.learning-map-recent-list li {
+  display: inline-flex;
+  align-items: center;
+}
+
+.learning-map-recent-list li:not(:last-child)::after {
+  content: "·";
+  margin: 0 8px;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+
+.learning-map-recent-list a {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.learning-map-recent-list a:hover {
+  color: var(--accent-hover);
+}
+
+.learning-map-recent-empty {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
 .learning-map-banner-title {
   font-size: 1rem;
   font-weight: 600;

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { levelsApi } from "../api/client";
+import { levelsApi, usersApi } from "../api/client";
 import LevelChallengeCard from "../components/LevelChallengeCard.vue";
-import type { LevelSummary } from "../types";
-import { findNextRecommendedLevel } from "../utils/levelProgress";
+import type { LevelSummary, RecentLevelResult } from "../types";
 import {
   getLevelPresentation,
   TOPIC_CHAPTER_IDS,
@@ -13,14 +12,16 @@ import {
 
 /** 关卡列表 */
 const levels = ref<LevelSummary[]>([]);
+/** 最近通关记录 */
+const recentPassedLevels = ref<RecentLevelResult[]>([]);
 /** 加载中 */
 const loading = ref(true);
 /** 错误信息 */
 const error = ref("");
 
 /**
- * 加载关卡列表。
- * 功能：从后端获取带解锁状态的关卡摘要。
+ * 加载关卡列表与最近通关。
+ * 功能：并行拉取章节卡片数据和小字展示区所需的通关记录。
  * 参数：无。
  * 返回值：无。
  */
@@ -28,10 +29,13 @@ const loadLevels = () => {
   loading.value = true;
   error.value = "";
 
-  levelsApi
-    .list()
-    .then((data) => {
-      levels.value = data;
+  Promise.all([
+    levelsApi.list(),
+    usersApi.stats(),
+  ])
+    .then(([levelList, stats]) => {
+      levels.value = levelList;
+      recentPassedLevels.value = stats.recentResults;
     })
     .catch((err: Error) => {
       error.value = err.message;
@@ -62,9 +66,6 @@ const mapNodes = computed(() => {
     };
   });
 });
-
-/** 当前推荐关卡 */
-const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
 </script>
 
 <template>
@@ -81,22 +82,14 @@ const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
     <p v-if="error" class="error-msg">{{ error }}</p>
 
     <section v-if="!loading && !error" class="learning-map-main card">
-      <div v-if="recommendedLevel" class="learning-map-banner">
-        <strong class="learning-map-banner-title">{{ recommendedLevel.title }}</strong>
-        <RouterLink
-          v-if="recommendedLevel.canStart && recommendedLevel.unlockStatus !== 'completed'"
-          :to="`/practice/${recommendedLevel.id}`"
-          class="btn-primary"
-        >
-          继续
-        </RouterLink>
-        <RouterLink
-          v-else-if="recommendedLevel.chapterId"
-          :to="`/levels/${recommendedLevel.chapterId}`"
-          class="btn-ghost"
-        >
-          解锁
-        </RouterLink>
+      <div class="learning-map-recent">
+        <span class="learning-map-recent-label">最近通过</span>
+        <ul v-if="recentPassedLevels.length > 0" class="learning-map-recent-list">
+          <li v-for="item in recentPassedLevels" :key="item.levelId">
+            <RouterLink :to="`/practice/${item.levelId}`">{{ item.title }}</RouterLink>
+          </li>
+        </ul>
+        <span v-else class="learning-map-recent-empty">暂无通关记录</span>
       </div>
 
       <div class="topic-lane-grid learning-map-cards">
