@@ -2873,6 +2873,64 @@ a:hover { color: var(--accent-hover); }
   margin-bottom: 12px;
 }
 
+.admin-dashboard-panels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-dashboard-activity {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.admin-dashboard-activity span {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.74rem;
+  color: var(--text-faint);
+}
+
+.admin-gamification-section {
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-gamification-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-gamification-section-head h3 {
+  font-size: 0.95rem;
+}
+
+.admin-gamification-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-gamification-toolbar input {
+  min-width: 180px;
+}
+
+.text-positive {
+  color: var(--accent-2);
+}
+
+.text-negative {
+  color: var(--danger);
+}
+
 .admin-invite-create {
   padding: 16px;
   margin-bottom: 12px;
@@ -3040,7 +3098,9 @@ a:hover { color: var(--accent-hover); }
   .admin-users-toolbar,
   .admin-user-detail-grid,
   .admin-attempt-detail-grid,
-  .admin-invite-create-grid {
+  .admin-invite-create-grid,
+  .admin-dashboard-panels,
+  .admin-dashboard-grid {
     grid-template-columns: 1fr;
   }
 }

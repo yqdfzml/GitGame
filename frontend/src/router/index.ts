@@ -107,6 +107,12 @@ const router = createRouter({
           component: () => import("../views/admin/AdminInvitesView.vue"),
           meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "邀请码管理" },
         },
+        {
+          path: "gamification",
+          name: "admin-gamification",
+          component: () => import("../views/admin/AdminGamificationView.vue"),
+          meta: { requiresAuth: true, requiresAdmin: true, adminTitle: "积分与徽章" },
+        },
       ],
     },
   ],

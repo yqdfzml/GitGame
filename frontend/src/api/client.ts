@@ -24,6 +24,12 @@ import type {
   AdminInviteListItem,
   AdminCreateInvitePayload,
   AdminInviteActionResult,
+  AdminDashboardOverview,
+  AdminWalletListResult,
+  AdminLedgerListResult,
+  AdminUnlockListResult,
+  AdminBadgeDefinitionItem,
+  AdminLeaderboardItem,
 } from "../types/admin";
 import type { AuthUser, LevelSummary, LevelUnlockResult, PointWalletSummary } from "../types";
 
@@ -437,4 +443,89 @@ export const adminInvitesApi = {
    */
   revokeInvite: (id: string) =>
     request<AdminInviteActionResult>(`/admin/invites/${id}/revoke`, { method: "POST" }),
+};
+
+/** 管理端 Dashboard API */
+export const adminDashboardApi = {
+  /**
+   * 获取 Dashboard 概览。
+   * 功能：返回今日运营指标与待处理事项。
+   * 参数：无。
+   * 返回值：Dashboard 数据。
+   */
+  getOverview: () => request<AdminDashboardOverview>("/admin/dashboard"),
+};
+
+/** 管理端游戏化运营 API */
+export const adminGamificationApi = {
+  /**
+   * 分页列出积分钱包。
+   * 功能：查看用户积分余额。
+   * 参数：search、page、pageSize - 筛选条件。
+   * 返回值：分页钱包列表。
+   */
+  listWallets: (filters: { search?: string; page?: number; pageSize?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.search) params.set("search", filters.search);
+    if (filters.page) params.set("page", String(filters.page));
+    if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
+    const query = params.toString();
+    return request<AdminWalletListResult>(query ? `/admin/points/wallets?${query}` : "/admin/points/wallets");
+  },
+  /**
+   * 分页列出积分流水。
+   * 功能：查看积分变动记录。
+   * 参数：search、userId、page、pageSize - 筛选条件。
+   * 返回值：分页流水列表。
+   */
+  listLedgers: (filters: { search?: string; userId?: string; page?: number; pageSize?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.search) params.set("search", filters.search);
+    if (filters.userId) params.set("userId", filters.userId);
+    if (filters.page) params.set("page", String(filters.page));
+    if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
+    const query = params.toString();
+    return request<AdminLedgerListResult>(query ? `/admin/points/ledgers?${query}` : "/admin/points/ledgers");
+  },
+  /**
+   * 分页列出关卡解锁记录。
+   * 功能：查看积分解锁历史。
+   * 参数：search、userId、levelId、page、pageSize - 筛选条件。
+   * 返回值：分页解锁列表。
+   */
+  listUnlocks: (filters: {
+    search?: string;
+    userId?: string;
+    levelId?: string;
+    page?: number;
+    pageSize?: number;
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.search) params.set("search", filters.search);
+    if (filters.userId) params.set("userId", filters.userId);
+    if (filters.levelId) params.set("levelId", filters.levelId);
+    if (filters.page) params.set("page", String(filters.page));
+    if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
+    const query = params.toString();
+    return request<AdminUnlockListResult>(query ? `/admin/points/unlocks?${query}` : "/admin/points/unlocks");
+  },
+  /**
+   * 获取徽章定义。
+   * 功能：只读展示全部徽章配置。
+   * 参数：无。
+   * 返回值：徽章定义数组。
+   */
+  listBadgeDefinitions: () => request<AdminBadgeDefinitionItem[]>("/admin/badges/definitions"),
+  /**
+   * 查询排行榜。
+   * 功能：全局或按关卡查询。
+   * 参数：levelId、limit - 筛选条件。
+   * 返回值：排行榜条目数组。
+   */
+  getLeaderboard: (levelId?: string, limit = 50) => {
+    const params = new URLSearchParams();
+    if (levelId) params.set("levelId", levelId);
+    params.set("limit", String(limit));
+    return request<AdminLeaderboardItem[]>(`/admin/leaderboard?${params.toString()}`);
+  },
 };

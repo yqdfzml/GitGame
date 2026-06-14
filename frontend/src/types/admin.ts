@@ -261,3 +261,129 @@ export interface AdminInviteActionResult {
   createdAt?: string;
   status: AdminInviteStatus;
 }
+
+/** Dashboard 统计指标 */
+export interface AdminDashboardStats {
+  todayRegistrations: number;
+  activeUsers: number;
+  completionsToday: number;
+  failedAttemptsToday: number;
+}
+
+/** Dashboard 待处理事项 */
+export interface AdminDashboardPending {
+  draftLevelCount: number;
+  highAbandonLevels: Array<{
+    levelId: string;
+    levelTitle: string;
+    levelStatus: string;
+    abandonedCount: number;
+  }>;
+}
+
+/** Dashboard 概览 */
+export interface AdminDashboardOverview {
+  stats: AdminDashboardStats;
+  pending: AdminDashboardPending;
+  recentClears: Array<{
+    id: string;
+    displayName: string;
+    levelTitle: string;
+    score: number;
+    happenedAt: string;
+  }>;
+  recentBadgeUnlocks: Array<{
+    id: string;
+    displayName: string;
+    badgeName: string;
+    happenedAt: string;
+  }>;
+}
+
+/** 积分钱包列表项 */
+export interface AdminWalletListItem {
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  balance: number;
+  totalEarned: number;
+  totalSpent: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastCheckInDate: string | null;
+  updatedAt: string;
+}
+
+/** 钱包分页结果 */
+export interface AdminWalletListResult {
+  items: AdminWalletListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 积分流水分页结果 */
+export interface AdminLedgerListResult {
+  items: Array<{
+    id: string;
+    userId: string;
+    userEmail: string;
+    userDisplayName: string;
+    delta: number;
+    balanceAfter: number;
+    reason: string;
+    levelId: string | null;
+    levelTitle: string | null;
+    createdAt: string;
+  }>;
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 关卡解锁列表项 */
+export interface AdminUnlockListItem {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userDisplayName: string;
+  levelId: string;
+  levelTitle: string;
+  levelChapterId: string | null;
+  cost: number;
+  unlockedAt: string;
+}
+
+/** 关卡解锁分页结果 */
+export interface AdminUnlockListResult {
+  items: AdminUnlockListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 徽章定义只读项 */
+export interface AdminBadgeDefinitionItem {
+  id: string;
+  category: string;
+  name: string;
+  description: string;
+  ability: string;
+  iconKey: string;
+  color: string;
+  visualTier: number;
+  titleLevel: number | null;
+}
+
+/** 管理端排行榜条目 */
+export interface AdminLeaderboardItem {
+  rank: number;
+  userId: string;
+  levelId: string;
+  levelTitle: string;
+  chapterId: string | null;
+  displayName: string;
+  score: number;
+  durationSeconds: number;
+  updatedAt: string;
+}
