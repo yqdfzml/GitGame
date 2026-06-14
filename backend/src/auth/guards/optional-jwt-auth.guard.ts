@@ -1,20 +1,22 @@
 import { CanActivate, ExecutionContext, Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { AuthSessionValidator } from "../auth-session.validator";
 import { AuthRequest, JwtPayload } from "./jwt-auth.guard";
 
 /**
  * 可选 JWT 鉴权守卫。
- * 功能：有有效 token 时注入 request.user，未登录时不拦截。
- * 参数：通过 NestJS 守卫机制自动注入。
- * 返回值：始终 true。
+ * 功能：有有效 token 时注入 request.user，无效或会话失效时按未登录处理。
  */
 @Injectable()
 export class OptionalJwtAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly authSessionValidator: AuthSessionValidator,
+  ) {}
 
   /**
    * 尝试解析 Cookie 中的 access_token。
-   * 功能：解析成功则写入 request.user，失败则保持 undefined。
+   * 功能：验签并回查数据库，失败时不拦截请求。
    * 参数：context - 执行上下文。
    * 返回值：Promise<boolean>，恒为 true。
    */
@@ -30,9 +32,9 @@ export class OptionalJwtAuthGuard implements CanActivate {
       if (payload.type && payload.type !== "access") {
         return true;
       }
-      request.user = payload;
+      request.user = await this.authSessionValidator.validateAccessPayload(payload);
     } catch {
-      // 可选鉴权：token 无效时按未登录处理
+      // 可选鉴权：token 无效或会话已失效时按未登录处理
     }
 
     return true;

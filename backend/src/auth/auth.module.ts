@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
+import { AuthSessionValidator } from "./auth-session.validator";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { AvatarStorageService } from "./avatar-storage.service";
@@ -15,12 +16,19 @@ import { AdminGuard } from "./guards/admin.guard";
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>("JWT_SECRET"),
-        signOptions: { expiresIn: Number(config.get<string>("JWT_EXPIRES_IN")) },
+        signOptions: { expiresIn: config.get<number>("JWT_EXPIRES_IN") },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AvatarStorageService, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard],
-  exports: [AuthService, JwtModule, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard],
+  providers: [
+    AuthService,
+    AuthSessionValidator,
+    AvatarStorageService,
+    JwtAuthGuard,
+    OptionalJwtAuthGuard,
+    AdminGuard,
+  ],
+  exports: [AuthService, AuthSessionValidator, JwtModule, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard],
 })
 export class AuthModule {}

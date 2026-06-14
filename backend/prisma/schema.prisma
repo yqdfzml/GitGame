@@ -49,6 +49,8 @@ model User {
   avatarUrl    String?    @map("avatar_url") @db.VarChar(512)
   role         UserRole   @default(USER)
   status       UserStatus @default(ACTIVE)
+  /// 递增后使旧 access token 立即失效
+  tokenVersion Int        @default(0) @map("token_version")
   lastLoginAt  DateTime?  @map("last_login_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")

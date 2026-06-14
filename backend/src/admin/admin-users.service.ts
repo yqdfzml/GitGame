@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, UserRole, UserStatus } from "@prisma/client";
+import { AuthService } from "../auth/auth.service";
 import { BadgesService } from "../badges/badges.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UsersService } from "../users/users.service";
@@ -26,6 +27,7 @@ export class AdminUsersService {
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly badgesService: BadgesService,
+    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -214,6 +216,11 @@ export class AdminUsersService {
       data.status = dto.status;
     }
 
+    /** 角色或状态变更时需要使旧 token 失效 */
+    const shouldInvalidateSessions =
+      (dto.role !== undefined && dto.role !== user.role)
+      || (dto.status !== undefined && dto.status !== user.status);
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data,
@@ -225,6 +232,10 @@ export class AdminUsersService {
         status: true,
       },
     });
+
+    if (shouldInvalidateSessions) {
+      await this.authService.invalidateUserSessions(userId);
+    }
 
     return {
       id: updated.id.toString(),
@@ -294,6 +305,10 @@ export class AdminUsersService {
       },
     });
 
+    if (status !== user.status) {
+      await this.authService.invalidateUserSessions(userId);
+    }
+
     return {
       id: updated.id.toString(),
       email: updated.email,
@@ -331,6 +346,10 @@ export class AdminUsersService {
       },
     });
 
+    if (role !== user.role) {
+      await this.authService.invalidateUserSessions(userId);
+    }
+
     return {
       id: updated.id.toString(),
       email: updated.email,
@@ -352,11 +371,8 @@ export class AdminUsersService {
       throw new NotFoundException("用户不存在");
     }
 
-    const result = await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    const revokedCount = await this.authService.invalidateUserSessions(userId);
 
-    return { revokedCount: result.count };
+    return { revokedCount };
   }
 }

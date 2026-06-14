@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { createHash, randomBytes } from "crypto";
@@ -133,32 +134,58 @@ export class AuthService {
    */
   async refreshSession(rawRefreshToken: string): Promise<{ user: AuthUserSummary; tokens: AuthSessionTokens }> {
     const tokenHash = this.hashToken(rawRefreshToken);
-    const stored = await this.prisma.refreshToken.findFirst({
-      where: {
-        tokenHash,
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
+
+    return this.prisma.$transaction(async (tx) => {
+      const stored = await tx.refreshToken.findFirst({
+        where: {
+          tokenHash,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!stored) {
+        throw new UnauthorizedException("登录已过期，请重新登录");
+      }
+
+      const user = await tx.user.findUnique({ where: { id: stored.userId } });
+      if (!user || user.status !== "ACTIVE") {
+        throw new UnauthorizedException("账号不可用");
+      }
+
+      // 条件撤销：并发 refresh 只有一个请求能成功，防止 token 重放
+      const revokeResult = await tx.refreshToken.updateMany({
+        where: { id: stored.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      if (revokeResult.count !== 1) {
+        throw new UnauthorizedException("登录已过期，请重新登录");
+      }
+
+      const summary = this.toUserSummary(user);
+      const tokens = await this.createSessionInTransaction(tx, user.id, user.tokenVersion);
+      return { user: summary, tokens };
     });
+  }
 
-    if (!stored) {
-      throw new UnauthorizedException("登录已过期，请重新登录");
-    }
-
-    const user = await this.prisma.user.findUnique({ where: { id: stored.userId } });
-    if (!user || user.status !== "ACTIVE") {
-      throw new UnauthorizedException("账号不可用");
-    }
-
-    // 轮换：旧 refresh 立即作废，防止重复使用
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revokedAt: new Date() },
+  /**
+   * 使用户全部会话失效。
+   * 功能：递增 tokenVersion 并撤销 refresh token，旧 access token 立即不可用。
+   * 参数：userId - 目标用户 id。
+   * 返回值：无。
+   */
+  async invalidateUserSessions(userId: bigint): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 } },
+      });
+      const revokeResult = await tx.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      return revokeResult.count;
     });
-
-    const summary = this.toUserSummary(user);
-    const tokens = await this.createSession(user.id);
-    return { user: summary, tokens };
   }
 
   /**
@@ -200,14 +227,32 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException("用户不存在");
     }
+    return this.createSessionInTransaction(this.prisma, userId, user.tokenVersion);
+  }
+
+  /**
+   * 在事务内创建双 token 会话。
+   * 功能：签发 access JWT 并将 refresh 哈希入库。
+   * 参数：tx - Prisma 客户端或事务；userId - 用户 id；tokenVersion - 写入 JWT 的版本号。
+   * 返回值：access 与 refresh 明文令牌。
+   */
+  private async createSessionInTransaction(
+    tx: Prisma.TransactionClient | PrismaService,
+    userId: bigint,
+    tokenVersion: number,
+  ): Promise<AuthSessionTokens> {
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException("用户不存在");
+    }
 
     const summary = this.toUserSummary(user);
-    const accessToken = await this.signAccessToken(summary);
+    const accessToken = await this.signAccessToken(summary, tokenVersion);
     const refreshToken = this.generateRefreshToken();
     const refreshExpiresIn = Number(this.config.get<string>("JWT_REFRESH_EXPIRES_IN"));
     const expiresAt = new Date(Date.now() + refreshExpiresIn * 1000);
 
-    await this.prisma.refreshToken.create({
+    await tx.refreshToken.create({
       data: {
         userId,
         tokenHash: this.hashToken(refreshToken),
@@ -224,10 +269,10 @@ export class AuthService {
    * 参数：user - 用户摘要。
    * 返回值：JWT 字符串。
    */
-  private signAccessToken(user: AuthUserSummary): Promise<string> {
+  private signAccessToken(user: AuthUserSummary, tokenVersion: number): Promise<string> {
     const expiresIn = Number(this.config.get<string>("JWT_EXPIRES_IN"));
     return this.jwtService.signAsync(
-      { sub: user.id, role: user.role, type: "access" },
+      { sub: user.id, role: user.role, type: "access", ver: tokenVersion },
       { expiresIn },
     );
   }

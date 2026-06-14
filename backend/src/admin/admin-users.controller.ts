@@ -11,11 +11,13 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { UserRole, UserStatus } from "@prisma/client";
-import { AdminGuard } from "../auth/guards/admin.guard";
-import { AuthRequest, JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminUsersService } from "./admin-users.service";
-import { UpdateUserDto, UpdateUserRoleDto, UpdateUserStatusDto } from "./dto/admin-user.dto";
+import {
+  AdminUserListQueryDto,
+  UpdateUserDto,
+  UpdateUserRoleDto,
+  UpdateUserStatusDto,
+} from "./dto/admin-user.dto";
 
 /** 管理端用户控制器 */
 @Controller("admin/users")
@@ -30,19 +32,13 @@ export class AdminUsersController {
    * 返回值：分页用户列表。
    */
   @Get()
-  listUsers(
-    @Query("search") search?: string,
-    @Query("role") role?: UserRole,
-    @Query("status") status?: UserStatus,
-    @Query("page") page?: string,
-    @Query("pageSize") pageSize?: string,
-  ) {
+  listUsers(@Query() query: AdminUserListQueryDto) {
     return this.adminUsersService.listUsers({
-      search,
-      role,
-      status,
-      page: page ? Number(page) : undefined,
-      pageSize: pageSize ? Number(pageSize) : undefined,
+      search: query.search,
+      role: query.role,
+      status: query.status,
+      page: query.page,
+      pageSize: query.pageSize,
     });
   }
 

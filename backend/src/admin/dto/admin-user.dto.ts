@@ -1,3 +1,4 @@
+import { Type } from "class-transformer";
 import { IsEmail, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 import { UserRole, UserStatus } from "@prisma/client";
 
@@ -50,11 +51,13 @@ export class AdminUserListQueryDto {
   status?: UserStatus;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)

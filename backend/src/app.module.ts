@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { validateEnv } from "./config/env.validation";
 import { AdminModule } from "./admin/admin.module";
 import { AttemptsModule } from "./attempts/attempts.module";
 import { AuthModule } from "./auth/auth.module";
@@ -20,7 +21,7 @@ import { UsersModule } from "./users/users.module";
 @Module({
   controllers: [HealthController],
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     PrismaModule,
     AuthModule,
