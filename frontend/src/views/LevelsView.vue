@@ -63,6 +63,10 @@ const mapNodes = computed(() => {
       levelCount: chapterLevels.length,
       completedCount,
       totalCount,
+    };
+  });
+});
+
 /** 展示用的最近通关（最多 3 条） */
 const displayRecentLevels = computed(() => recentPassedLevels.value.slice(0, 3));
 
