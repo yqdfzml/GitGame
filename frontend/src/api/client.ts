@@ -156,7 +156,7 @@ export const levelsApi = {
       title: string;
       description: string;
       initialState: import("../types").RepoState;
-      goalHints: string[];
+      goalHints: import("../types").LevelGoalHints;
       unlockCost: number;
       unlockStatus: import("../types").LevelUnlockStatus;
       canStart: boolean;

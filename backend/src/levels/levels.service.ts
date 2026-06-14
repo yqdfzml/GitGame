@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { RepoState } from "../git-engine/repo-state.types";
 import { fromPrismaJson } from "../common/json.util";
 import { PointsService } from "../points/points.service";
+import { getLevelLearningHints, type LevelGoalHintsBundle } from "./level-hints";
 
 /**
  * 关卡服务。
@@ -95,7 +96,7 @@ export class LevelsService {
       description: level.description,
       difficulty: level.difficulty,
       initialState,
-      goalHints: buildGoalHints(goal),
+      goalHints: buildLevelHints(goal, level.sortOrder),
       unlockCost: unlockState.unlockCost,
       unlockStatus: unlockState.unlockStatus,
       canStart: unlockState.canStart,
@@ -126,63 +127,79 @@ export class LevelsService {
 }
 
 /**
- * 从 goal 生成前端可展示的目标提示（不含答案细节）。
+ * 组装关卡完整提示包。
+ * 功能：合并三层教学提示与通关目标 checklist。
+ * 参数：goal - 关卡目标 JSON；sortOrder - 关卡排序号。
+ * 返回值：分层提示对象。
+ */
+const buildLevelHints = (goal: Record<string, unknown>, sortOrder: number): LevelGoalHintsBundle => {
+  const learning = getLevelLearningHints(sortOrder);
+  return {
+    concepts: learning.concepts,
+    directions: learning.directions,
+    keyPoints: learning.keyPoints,
+    targets: buildGoalTargets(goal),
+  };
+};
+
+/**
+ * 从 goal 生成通关目标 checklist（不含答案细节）。
  * 功能：让用户知道要达成什么，但不泄露具体 commit hash 等。
  * 参数：goal - 关卡目标 JSON。
- * 返回值：提示字符串数组。
+ * 返回值：目标提示字符串数组。
  */
-const buildGoalHints = (goal: Record<string, unknown>): string[] => {
-  const hints: string[] = [];
+const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
+  const targets: string[] = [];
   if (goal.currentBranch) {
-    hints.push(`当前分支应为 '${goal.currentBranch as string}'`);
+    targets.push(`当前分支应为 '${goal.currentBranch as string}'`);
   }
   if (goal.workingTreeClean) {
-    hints.push("工作区需要 clean");
+    targets.push("工作区需要 clean");
   }
   if (goal.indexEmpty) {
-    hints.push("暂存区需要为空");
+    targets.push("暂存区需要为空");
   }
   if (goal.noConflicts) {
-    hints.push("不能有未解决冲突");
+    targets.push("不能有未解决冲突");
   }
   if (goal.fileContents) {
     for (const path of Object.keys(goal.fileContents as Record<string, string>)) {
-      hints.push(`提交后 ${path} 需达到目标内容`);
+      targets.push(`提交后 ${path} 需达到目标内容`);
     }
   }
   if (goal.workingTreeContents) {
     for (const path of Object.keys(goal.workingTreeContents as Record<string, string>)) {
-      hints.push(`工作区 ${path} 需达到目标内容`);
+      targets.push(`工作区 ${path} 需达到目标内容`);
     }
   }
   if (goal.indexContents) {
     for (const path of Object.keys(goal.indexContents as Record<string, string>)) {
-      hints.push(`暂存区需包含 ${path}`);
+      targets.push(`暂存区需包含 ${path}`);
     }
   }
   if (goal.untrackedFiles) {
-    hints.push("部分文件需要保持未跟踪状态");
+    targets.push("部分文件需要保持未跟踪状态");
   }
   if (goal.branchHeads) {
-    hints.push("指定分支需要指向目标提交");
+    targets.push("指定分支需要指向目标提交");
   }
   if (goal.mergeCommitRequired) {
-    hints.push("需要产生 merge commit（两个父提交）");
+    targets.push("需要产生 merge commit（两个父提交）");
   }
   if (goal.stashContents) {
-    hints.push("需要将当前修改贮藏起来");
+    targets.push("需要将当前修改贮藏起来");
   }
   if (goal.requiredTags) {
-    hints.push("需要给指定提交打上标签");
+    targets.push("需要给指定提交打上标签");
   }
   if (goal.bisectFound) {
-    hints.push("需要通过 bisect 定位首个不良提交");
+    targets.push("需要通过 bisect 定位首个不良提交");
   }
   if (goal.branchMerged) {
-    hints.push("需要将指定分支合并到目标分支");
+    targets.push("需要将指定分支合并到目标分支");
   }
   if (goal.branchContains) {
-    hints.push("指定分支需要包含目标提交");
+    targets.push("指定分支需要包含目标提交");
   }
-  return hints;
+  return targets;
 };

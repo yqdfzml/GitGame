@@ -5,7 +5,8 @@ import { attemptsApi, levelsApi } from "../api/client";
 import CommitGraph from "../components/CommitGraph.vue";
 import GoalFeedback from "../components/GoalFeedback.vue";
 import WorkingTreePanel from "../components/WorkingTreePanel.vue";
-import type { AttemptDetail, NextLevelAfterComplete, RepoState } from "../types";
+import type { AttemptDetail, LevelGoalHints, NextLevelAfterComplete, RepoState } from "../types";
+import { EMPTY_LEVEL_GOAL_HINTS } from "../types";
 import { calcChallengeProgress } from "../utils/challengeProgress";
 
 const route = useRoute();
@@ -16,8 +17,8 @@ const levelId = route.params.levelId as string;
 const levelTitle = ref("");
 /** 关卡任务说明 */
 const levelDescription = ref("");
-/** 关卡目标提示列表 */
-const goalHints = ref<string[]>([]);
+/** 关卡分层提示 */
+const goalHints = ref<LevelGoalHints>({ ...EMPTY_LEVEL_GOAL_HINTS });
 /** 提示面板是否展开 */
 const hintOpen = ref(false);
 /** 当前 attempt id */
@@ -122,6 +123,22 @@ const appendNextLevelHint = (nextLevelInfo: NextLevelAfterComplete | null | unde
   }
   scrollTerminalToBottom();
 };
+
+/**
+ * 判断当前关卡是否有任何提示内容。
+ * 功能：控制顶栏提示按钮与面板的可用状态。
+ * 参数：无。
+ * 返回值：true 表示至少有一类提示非空。
+ */
+const hasAnyHints = computed(() => {
+  const hints = goalHints.value;
+  return (
+    hints.concepts.length > 0
+    || hints.directions.length > 0
+    || hints.keyPoints.length > 0
+    || hints.targets.length > 0
+  );
+});
 
 /**
  * 切换提示面板显示状态。
@@ -234,16 +251,41 @@ const goReplay = () => {
             type="button"
             class="meta-chip practice-hint-trigger"
             :class="{ active: hintOpen }"
-            :disabled="goalHints.length === 0"
+            :disabled="!hasAnyHints"
             @click="toggleHintPanel"
           >
             提示
           </button>
-          <div v-if="hintOpen && goalHints.length > 0" class="practice-hint-panel card">
+          <div v-if="hintOpen && hasAnyHints" class="practice-hint-panel card">
             <p class="practice-hint-panel-title">关卡提示</p>
-            <ul class="hint-list practice-hint-list">
-              <li v-for="hint in goalHints" :key="hint">{{ hint }}</li>
-            </ul>
+
+            <section v-if="goalHints.concepts.length > 0" class="practice-hint-section">
+              <h4 class="practice-hint-section-title">知识点</h4>
+              <ul class="hint-list practice-hint-list">
+                <li v-for="hint in goalHints.concepts" :key="`concept-${hint}`">{{ hint }}</li>
+              </ul>
+            </section>
+
+            <section v-if="goalHints.directions.length > 0" class="practice-hint-section">
+              <h4 class="practice-hint-section-title">解题方向</h4>
+              <ul class="hint-list practice-hint-list">
+                <li v-for="hint in goalHints.directions" :key="`direction-${hint}`">{{ hint }}</li>
+              </ul>
+            </section>
+
+            <section v-if="goalHints.keyPoints.length > 0" class="practice-hint-section">
+              <h4 class="practice-hint-section-title">关键点拨</h4>
+              <ul class="hint-list practice-hint-list">
+                <li v-for="hint in goalHints.keyPoints" :key="`key-${hint}`">{{ hint }}</li>
+              </ul>
+            </section>
+
+            <section v-if="goalHints.targets.length > 0" class="practice-hint-section">
+              <h4 class="practice-hint-section-title">通关目标</h4>
+              <ul class="hint-list practice-hint-list practice-hint-target-list">
+                <li v-for="hint in goalHints.targets" :key="`target-${hint}`">{{ hint }}</li>
+              </ul>
+            </section>
           </div>
         </div>
         <span class="meta-chip">步骤 {{ stepCount }}</span>

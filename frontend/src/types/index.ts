@@ -10,6 +10,22 @@ export interface AuthUser {
 /** 关卡解锁状态 */
 export type LevelUnlockStatus = "free" | "unlocked" | "completed" | "locked";
 
+/** 关卡分层提示 */
+export interface LevelGoalHints {
+  concepts: string[];
+  directions: string[];
+  keyPoints: string[];
+  targets: string[];
+}
+
+/** 空提示默认值 */
+export const EMPTY_LEVEL_GOAL_HINTS: LevelGoalHints = {
+  concepts: [],
+  directions: [],
+  keyPoints: [],
+  targets: [],
+};
+
 /** 关卡摘要 */
 export interface LevelSummary {
   id: string;
