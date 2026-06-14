@@ -146,6 +146,7 @@ const canContinue = computed(() => {
                 v-if="recentBadges.length > 0"
                 to="/achievements"
                 class="home-main-kpi home-main-kpi-link"
+                :title="recentBadges.map((badge) => badge.name).join('、')"
               >
                 <em>成就</em>
                 <strong>{{ recentBadges[0].name }}<template v-if="recentBadges.length > 1"> +{{ recentBadges.length - 1 }}</template></strong>
