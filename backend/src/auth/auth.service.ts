@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
@@ -8,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 import { createHash, randomBytes } from "crypto";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
+import { AvatarStorageService } from "./avatar-storage.service";
 import { LoginDto, RegisterDto } from "./dto/auth.dto";
 
 /** 认证成功返回的用户摘要 */
@@ -15,6 +17,7 @@ export interface AuthUserSummary {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl: string | null;
   role: string;
 }
 
@@ -36,31 +39,62 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly avatarStorage: AvatarStorageService,
   ) {}
 
   /**
    * 用户注册。
-   * 功能：校验邮箱唯一性，创建用户并建立登录会话。
-   * 参数：dto - 注册信息。
+   * 功能：校验英雄帖与邮箱唯一性，保存头像并创建用户。
+   * 参数：dto - 注册信息；avatarFile - 裁剪后的头像文件。
    * 返回值：用户摘要与会话令牌。
    */
-  async register(dto: RegisterDto): Promise<{ user: AuthUserSummary; tokens: AuthSessionTokens }> {
+  async register(
+    dto: RegisterDto,
+    avatarFile: Express.Multer.File,
+  ): Promise<{ user: AuthUserSummary; tokens: AuthSessionTokens }> {
+    const inviteCode = dto.heroInviteCode.trim();
+    const invite = await this.prisma.heroInvite.findUnique({ where: { code: inviteCode } });
+    if (!invite) {
+      throw new BadRequestException("英雄帖无效");
+    }
+    if (invite.usedAt) {
+      throw new BadRequestException("英雄帖已被使用");
+    }
+    if (invite.expiresAt && invite.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException("英雄帖已过期");
+    }
+
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) {
       throw new ConflictException("邮箱已被注册");
     }
 
+    const avatarUrl = await this.avatarStorage.saveAvatar(avatarFile);
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        passwordHash,
-        displayName: dto.displayName,
-      },
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          email: dto.email,
+          passwordHash,
+          displayName: dto.displayName,
+          avatarUrl,
+        },
+      });
+
+      await tx.heroInvite.update({
+        where: { id: invite.id },
+        data: {
+          usedById: created.id,
+          usedAt: new Date(),
+        },
+      });
+
+      return created;
     });
 
     const summary = this.toUserSummary(user);
-    const tokens = await this.createSession(BigInt(summary.id));
+    const tokens = await this.createSession(user.id);
     return { user: summary, tokens };
   }
 
@@ -228,12 +262,14 @@ export class AuthService {
     id: bigint;
     email: string;
     displayName: string;
+    avatarUrl: string | null;
     role: string;
   }): AuthUserSummary {
     return {
       id: user.id.toString(),
       email: user.email,
       displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
       role: user.role,
     };
   }

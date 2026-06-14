@@ -101,10 +101,45 @@ const request = <T>(path: string, options: RequestOptions = {}): Promise<T> => {
   });
 };
 
+/**
+ * 发送 multipart 注册请求。
+ * 功能：上传英雄帖、账号信息与头像文件。
+ * 参数：formData - 注册表单数据。
+ * 返回值：响应 JSON。
+ */
+const requestRegisterForm = (formData: FormData): Promise<{ user: AuthUser }> => {
+  return fetch(`${API_BASE}/auth/register`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  }).then((response) => {
+    if (!response.ok) {
+      return response.json().then((data: { message?: string | string[] }) => {
+        const msg = Array.isArray(data.message) ? data.message.join(", ") : data.message;
+        throw new Error(msg ?? `请求失败: ${response.status}`);
+      });
+    }
+    return response.json() as Promise<{ user: AuthUser }>;
+  });
+};
+
 /** 认证 API */
 export const authApi = {
-  register: (data: { email: string; password: string; displayName: string }) =>
-    request<{ user: AuthUser }>("/auth/register", { method: "POST", body: data, skipAuthRetry: true }),
+  register: (data: {
+    heroInviteCode: string;
+    email: string;
+    password: string;
+    displayName: string;
+    avatar: File;
+  }) => {
+    const formData = new FormData();
+    formData.append("heroInviteCode", data.heroInviteCode);
+    formData.append("email", data.email);
+    formData.append("password", data.password);
+    formData.append("displayName", data.displayName);
+    formData.append("avatar", data.avatar);
+    return requestRegisterForm(formData);
+  },
   login: (data: { email: string; password: string }) =>
     request<{ user: AuthUser }>("/auth/login", { method: "POST", body: data, skipAuthRetry: true }),
   refresh: () => request<{ user: AuthUser }>("/auth/refresh", { method: "POST", skipAuthRetry: true }),

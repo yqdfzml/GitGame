@@ -1,10 +1,26 @@
-import { Body, Controller, Post, Res, UseGuards, Req, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { Throttle } from "@nestjs/throttler";
 import { Response, Request } from "express";
+import { memoryStorage } from "multer";
 import { AuthService } from "./auth.service";
 import { LoginDto, RegisterDto } from "./dto/auth.dto";
 import { AuthRequest, JwtAuthGuard } from "./guards/jwt-auth.guard";
+
+/** 允许的头像 MIME 类型 */
+const AVATAR_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
  * 认证控制器。
@@ -21,14 +37,31 @@ export class AuthController {
 
   /**
    * 用户注册。
-   * 功能：创建账号并写入双 token Cookie。
-   * 参数：dto - RegisterDto；res - Express Response。
+   * 功能：校验英雄帖、创建账号并写入双 token Cookie。
+   * 参数：dto - RegisterDto；avatar - 头像文件；res - Express Response。
    * 返回值：用户摘要 JSON。
    */
   @Post("register")
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-    const { user, tokens } = await this.authService.register(dto);
+  @UseInterceptors(
+    FileInterceptor("avatar", {
+      storage: memoryStorage(),
+      limits: { fileSize: 2 * 1024 * 1024 },
+      fileFilter: (_req, file, callback) => {
+        if (!AVATAR_MIMES.has(file.mimetype)) {
+          callback(new BadRequestException("头像仅支持 JPEG、PNG、WebP"), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  async register(
+    @Body() dto: RegisterDto,
+    @UploadedFile() avatar: Express.Multer.File,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { user, tokens } = await this.authService.register(dto, avatar);
     this.setAuthCookies(res, tokens);
     return { user };
   }

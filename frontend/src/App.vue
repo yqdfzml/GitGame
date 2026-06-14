@@ -176,7 +176,13 @@ const handleDocumentClick = (event: MouseEvent) => {
             aria-haspopup="menu"
             @click="toggleUserMenu"
           >
-            <span class="user-avatar">{{ userInitial() }}</span>
+            <img
+              v-if="auth.user.avatarUrl"
+              :src="auth.user.avatarUrl"
+              alt=""
+              class="user-avatar-img"
+            />
+            <span v-else class="user-avatar">{{ userInitial() }}</span>
             <span class="user-menu-name">{{ auth.user.displayName || auth.user.id }}</span>
             <ChevronDown class="user-menu-chevron" aria-hidden="true" />
           </button>

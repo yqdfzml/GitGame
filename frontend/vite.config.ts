@@ -33,6 +33,7 @@ export default defineConfig({
       "/users": createApiProxy(),
       "/points": createApiProxy(),
       "/admin": createApiProxy(),
+      "/uploads": createApiProxy(),
       "/healthz": createApiProxy(),
     },
   },

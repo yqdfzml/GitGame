@@ -90,12 +90,18 @@ export const useAuthStore = defineStore("auth", {
 
     /**
      * 用户注册。
-     * 功能：注册并自动登录，写入持久化。
-     * 参数：email、password、displayName。
+     * 功能：持英雄帖注册并自动登录，写入持久化。
+     * 参数：payload - 注册信息含头像文件。
      * 返回值：Promise<void>。
      */
-    register(email: string, password: string, displayName: string) {
-      return authApi.register({ email, password, displayName }).then((data) => {
+    register(payload: {
+      heroInviteCode: string;
+      email: string;
+      password: string;
+      displayName: string;
+      avatar: File;
+    }) {
+      return authApi.register(payload).then((data) => {
         applyUser(this, data.user);
         this.bootstrapped = true;
       });

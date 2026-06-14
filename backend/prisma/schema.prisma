@@ -45,6 +45,7 @@ model User {
   email        String     @unique @db.VarChar(255)
   passwordHash String     @map("password_hash") @db.VarChar(255)
   displayName  String     @map("display_name") @db.VarChar(64)
+  avatarUrl    String?    @map("avatar_url") @db.VarChar(512)
   role         UserRole   @default(USER)
   status       UserStatus @default(ACTIVE)
   lastLoginAt  DateTime?  @map("last_login_at")
@@ -60,9 +61,25 @@ model User {
   dailyCheckIns      DailyCheckIn[]
   pointLedgers       PointLedger[]
   levelUnlocks       LevelUnlock[]
+  heroInvite         HeroInvite?
 
   @@index([status])
   @@map("users")
+}
+
+/** 英雄帖：注册邀请码，一帖一用 */
+model HeroInvite {
+  id        BigInt    @id @default(autoincrement())
+  code      String    @unique @db.VarChar(32)
+  note      String?   @db.VarChar(128)
+  usedById  BigInt?   @unique @map("used_by_id")
+  usedAt    DateTime? @map("used_at")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  usedBy User? @relation(fields: [usedById], references: [id])
+
+  @@map("hero_invites")
 }
 
 model RefreshToken {

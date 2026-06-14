@@ -2,6 +2,12 @@ import { IsEmail, IsString, MaxLength, MinLength } from "class-validator";
 
 /** 注册请求 DTO */
 export class RegisterDto {
+  /** 英雄帖邀请码 */
+  @IsString()
+  @MinLength(4)
+  @MaxLength(32)
+  heroInviteCode!: string;
+
   /** 用户邮箱 */
   @IsEmail()
   email!: string;

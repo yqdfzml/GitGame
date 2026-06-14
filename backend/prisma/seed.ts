@@ -36,6 +36,19 @@ async function main() {
     },
   });
 
+  const heroInvites = [
+    { code: "YINGXIONG-DEMO", note: "演示注册用英雄帖" },
+    { code: "YINGXIONG-2026", note: "通用英雄帖" },
+  ];
+
+  for (const invite of heroInvites) {
+    await prisma.heroInvite.upsert({
+      where: { code: invite.code },
+      update: {},
+      create: invite,
+    });
+  }
+
   // 下架旧版关卡
   await prisma.level.updateMany({
     where: { courseId: { in: ["basics", "workflow"] } },
