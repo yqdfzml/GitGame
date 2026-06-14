@@ -6,6 +6,7 @@ import {
   GitCommitHorizontal,
   History,
   Package,
+  Search,
   Sparkles,
 } from "lucide-vue-next";
 
@@ -17,7 +18,8 @@ export type LevelKind =
   | "merge"
   | "undo"
   | "stash"
-  | "cherry-pick";
+  | "cherry-pick"
+  | "debug";
 
 /** 修炼路径上的主题顺序，按 Git 心智模型递进 */
 export const TOPIC_CHAPTER_IDS = [
@@ -28,6 +30,7 @@ export const TOPIC_CHAPTER_IDS = [
   "undo",
   "stash",
   "cherry-pick",
+  "debug",
 ] as const;
 
 /** 主题章节 id */
@@ -58,6 +61,7 @@ export const kindIconMap: Record<LevelKind, Component> = {
   undo: History,
   stash: Package,
   "cherry-pick": Sparkles,
+  debug: Search,
 };
 
 /** chapterId 到展示信息的映射 */
@@ -113,9 +117,17 @@ const CHAPTER_PRESENTATION: Record<string, LevelPresentation> = {
   "cherry-pick": {
     kind: "cherry-pick",
     chapterLabel: "摘星移火",
-    skillLabel: "cherry-pick / 历史移植",
-    topicLabel: "摘取提交",
-    topicDesc: "将特定提交移植到目标分支",
+    skillLabel: "cherry-pick / rebase",
+    topicLabel: "历史移植",
+    topicDesc: "摘取提交、rebase 整理历史",
+    lockedHint: "关卡开发中，敬请期待",
+  },
+  debug: {
+    kind: "debug",
+    chapterLabel: "断案寻因",
+    skillLabel: "log / bisect / reflog",
+    topicLabel: "诊断恢复",
+    topicDesc: "追溯问题、二分定位、reflog 救回",
     lockedHint: "关卡开发中，敬请期待",
   },
 };

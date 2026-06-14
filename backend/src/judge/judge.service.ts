@@ -240,11 +240,61 @@ export class JudgeService {
       }
     }
 
-    const passed = gaps.length === 0;
+    // 11. 标签必须指向指定 commit
+    if (goal.requiredTags) {
+      for (const [tagName, expectedCommit] of Object.entries(goal.requiredTags)) {
+        const actualCommit = state.tags?.[tagName];
+        if (actualCommit === expectedCommit) {
+          satisfied.push(`requiredTags:${tagName}`);
+        } else {
+          gaps.push({
+            key: "requiredTags",
+            message: `标签 '${tagName}' 应指向 '${expectedCommit}'`,
+          });
+        }
+      }
+    }
+
+    // 12. bisect 必须定位到指定不良 commit
+    if (goal.bisectFound) {
+      if (state.bisect?.foundBadId === goal.bisectFound) {
+        satisfied.push("bisectFound");
+      } else {
+        gaps.push({
+          key: "bisectFound",
+          message: "尚未通过 bisect 定位到首个不良提交",
+        });
+      }
+    }
+
+    // 13. 指定分支必须不存在
+    if (goal.branchMustNotExist) {
+      for (const branchName of goal.branchMustNotExist) {
+        if (!state.branches[branchName]) {
+          satisfied.push(`branchMustNotExist:${branchName}`);
+        } else {
+          gaps.push({
+            key: "branchMustNotExist",
+            message: `分支 '${branchName}' 不应存在`,
+          });
+        }
+      }
+    }
+
     const baseScore = constraints.baseScore ?? 100;
     const stepPenalty = constraints.stepPenalty ?? 1;
-    const score = passed ? Math.max(0, baseScore - stepCount * stepPenalty) : 0;
 
-    return { passed, satisfied, gaps, score };
+    // 14. 最少步数约束：观察型关卡要求玩家至少执行一次命令
+    if (gaps.length === 0 && constraints.minSteps !== undefined && stepCount < constraints.minSteps) {
+      gaps.push({
+        key: "minSteps",
+        message: `请至少执行 ${constraints.minSteps} 次 git 命令`,
+      });
+    }
+
+    const finalPassed = gaps.length === 0;
+    const score = finalPassed ? Math.max(0, baseScore - stepCount * stepPenalty) : 0;
+
+    return { passed: finalPassed, satisfied, gaps, score };
   }
 }

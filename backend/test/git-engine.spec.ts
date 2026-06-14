@@ -16,6 +16,8 @@ const baseState: RepoState = {
   index: {},
   conflicts: {},
   stash: [],
+  tags: {},
+  reflog: [],
 };
 
 describe("GitEngineService", () => {

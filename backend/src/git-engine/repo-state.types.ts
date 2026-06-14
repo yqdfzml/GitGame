@@ -73,6 +73,44 @@ export interface RepoState {
   stash: StashEntry[];
   /** 进行中的合并操作，冲突解决后 commit 时用于生成双父提交 */
   merging?: { branch: string; commitId: string };
+  /** 标签名 -> commit id */
+  tags: Record<string, string>;
+  /** HEAD 引用日志，用于找回丢失提交 */
+  reflog: ReflogEntry[];
+  /** 进行中的 rebase 操作 */
+  rebasing?: {
+    /** 目标基底 commit id */
+    onto: string;
+    /** 待重放的提交 id 列表 */
+    commits: string[];
+    /** 当前重放进度索引 */
+    index: number;
+    /** 原分支名 */
+    branch: string;
+    /** 重放前的分支顶端 */
+    originalTip: string;
+  };
+  /** 进行中的 bisect 操作 */
+  bisect?: {
+    /** 已知良好 commit id */
+    goodId: string;
+    /** 已知不良 commit id */
+    badId: string;
+    /** 当前检出的 commit id */
+    currentId: string;
+    /** 已定位的首个不良 commit id */
+    foundBadId?: string;
+  };
+}
+
+/** reflog 条目 */
+export interface ReflogEntry {
+  /** 操作后的 commit id */
+  commitId: string;
+  /** 操作说明 */
+  message: string;
+  /** 关联分支名 */
+  branch: string;
 }
 
 /** 命令执行结果 */
@@ -117,6 +155,12 @@ export interface LevelGoal {
   mergeCommitRequired?: boolean;
   /** 贮藏栈中必须保存的工作区内容 */
   stashContents?: Record<string, string>;
+  /** 标签必须指向的 commit id */
+  requiredTags?: Record<string, string>;
+  /** bisect 必须定位到的不良 commit id */
+  bisectFound?: string;
+  /** 分支必须不存在（用于验证误删分支已恢复等场景） */
+  branchMustNotExist?: string[];
 }
 
 /** 关卡约束 */
@@ -127,6 +171,8 @@ export interface LevelConstraints {
   baseScore?: number;
   /** 每多一步扣分 */
   stepPenalty?: number;
+  /** 最少执行命令步数，观察型关卡用于防止开局即通关 */
+  minSteps?: number;
 }
 
 /** 判题结果 */

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { JudgeResult } from "../types";
-import { calcResolvedCount } from "../utils/challengeProgress";
+import { calcResolvedCount, calcTotalGoalCount } from "../utils/challengeProgress";
 
 const props = defineProps<{
   /** 判题结果 */
@@ -37,9 +37,25 @@ const visibleSatisfied = computed(() => {
 /** 本轮需要玩家完成的目标项总数 */
 const targetCount = computed(() => {
   if (props.initialGapCount !== undefined) {
-    return props.initialGapCount;
+    return calcTotalGoalCount(
+      props.judge,
+      props.initialGapCount,
+      props.initialSatisfiedKeys ?? [],
+    );
   }
   return props.judge.satisfied.length + props.judge.gaps.length;
+});
+
+/** 顶部状态文案：观察型关卡在状态符合但未通关时给出引导 */
+const statusLabel = computed(() => {
+  if (props.judge.passed) {
+    return "目标已达成";
+  }
+  const hasOnlyMinStepsGap = props.judge.gaps.length === 1 && props.judge.gaps[0]?.key === "minSteps";
+  if (hasOnlyMinStepsGap && props.judge.satisfied.length > 0) {
+    return "状态已符合";
+  }
+  return "距离通关";
 });
 </script>
 
@@ -50,7 +66,7 @@ const targetCount = computed(() => {
         <div class="progress-ring-inner">{{ progressPct }}%</div>
       </div>
       <div class="goal-progress-text">
-        <strong>{{ judge.passed ? '目标已达成' : '距离通关' }}</strong>
+        <strong>{{ statusLabel }}</strong>
         已完成 {{ resolvedCount }}/{{ targetCount }} 项，剩余 {{ judge.gaps.length }} 项
       </div>
     </div>

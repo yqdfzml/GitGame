@@ -1,8 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import type { CommandResult, RepoState } from "./repo-state.types";
 import {
+  appendReflog,
   checkoutRef,
   cloneRepoState,
+  collectCommitsAfter,
   createCommit,
   findMergeBase,
   formatLog,
@@ -75,6 +77,16 @@ export class GitEngineService {
           return this.handleStash(state, tokens.slice(2));
         case "cherry-pick":
           return this.handleCherryPick(state, tokens.slice(2));
+        case "tag":
+          return this.handleTag(state, tokens.slice(2));
+        case "show":
+          return this.handleShow(state, tokens.slice(2));
+        case "reflog":
+          return this.handleReflog(state);
+        case "rebase":
+          return this.handleRebase(state, tokens.slice(2));
+        case "bisect":
+          return this.handleBisect(state, tokens.slice(2));
         default:
           return {
             success: false,
@@ -174,6 +186,14 @@ export class GitEngineService {
     }
 
     const branchName = args[args.length - 1];
+    if (args.includes("-d")) {
+      if (!state.branches[branchName]) {
+        return { success: false, output: `分支 '${branchName}' 不存在`, feedback: `分支 '${branchName}' 不存在`, state };
+      }
+      delete state.branches[branchName];
+      return { success: true, output: `Deleted branch ${branchName}`, feedback: `已删除分支 '${branchName}'`, state };
+    }
+
     if (state.branches[branchName]) {
       return { success: false, output: `分支 '${branchName}' 已存在`, feedback: `分支 '${branchName}' 已存在`, state };
     }
@@ -363,6 +383,7 @@ export class GitEngineService {
     } else {
       state.head.ref = commitId;
     }
+    appendReflog(state, commitId, `reset: moving to ${commitId}`);
 
     if (mode === "soft") {
       return { success: true, output: "", feedback: "已 soft reset", state };
@@ -603,5 +624,252 @@ export class GitEngineService {
       feedback: `已将提交 ${commitId} 应用到当前分支`,
       state,
     };
+  }
+
+  /** 处理 git tag，创建或列出标签 */
+  private handleTag(state: RepoState, args: string[]): CommandResult {
+    if (!state.tags) {
+      state.tags = {};
+    }
+    if (args.length === 0) {
+      const lines = Object.keys(state.tags);
+      return { success: true, output: lines.join("\n"), feedback: "已列出标签", state };
+    }
+    const tagName = args[0];
+    const targetRef = args[1];
+    const commitId = targetRef ? resolveRef(state, targetRef) : getHeadCommitId(state);
+    if (!commitId) {
+      return { success: false, output: "无法解析目标提交", feedback: "无法解析目标提交", state };
+    }
+    state.tags[tagName] = commitId;
+    return { success: true, output: "", feedback: `已创建标签 '${tagName}' -> ${commitId}`, state };
+  }
+
+  /** 处理 git show，只读展示提交详情 */
+  private handleShow(state: RepoState, args: string[]): CommandResult {
+    const ref = args.find((a) => !a.startsWith("-"));
+    if (!ref) {
+      return { success: false, output: "请指定 commit", feedback: "请指定 commit", state };
+    }
+    const commitId = resolveRef(state, ref);
+    if (!commitId || !state.commits[commitId]) {
+      return { success: false, output: `无法解析 commit '${ref}'`, feedback: "commit 不存在", state };
+    }
+    const node = state.commits[commitId];
+    const fileLines = Object.entries(node.files).map(([path, content]) => ` ${path}: ${content}`);
+    const output = [`commit ${node.id}`, `    ${node.message}`, "", ...fileLines].join("\n");
+    return { success: true, output, feedback: `已显示提交 ${commitId}`, state };
+  }
+
+  /** 处理 git reflog，列出 HEAD 操作记录 */
+  private handleReflog(state: RepoState): CommandResult {
+    const entries = state.reflog ?? [];
+    if (entries.length === 0) {
+      return { success: true, output: "", feedback: "reflog 为空", state };
+    }
+    const lines = entries.map((entry, index) => `${entry.commitId} HEAD@{${index}}: ${entry.message}`);
+    return { success: true, output: lines.join("\n"), feedback: "已显示 reflog", state };
+  }
+
+  /**
+   * 处理 git rebase。
+   * 功能：将当前分支提交重放到目标基底上，支持 --continue/--abort。
+   * 参数：state - 仓库；args - rebase 参数。
+   * 返回值：CommandResult。
+   */
+  private handleRebase(state: RepoState, args: string[]): CommandResult {
+    if (args.includes("--abort")) {
+      if (!state.rebasing) {
+        return { success: false, output: "没有进行中的 rebase", feedback: "没有进行中的 rebase", state };
+      }
+      const originalTip = state.rebasing.originalTip;
+      if (state.head.type === "branch") {
+        state.branches[state.head.ref] = originalTip;
+      }
+      checkoutRef(state, state.rebasing.branch);
+      state.rebasing = undefined;
+      state.conflicts = {};
+      return { success: true, output: "已中止 rebase", feedback: "已中止 rebase", state };
+    }
+
+    if (args.includes("--continue")) {
+      if (!state.rebasing) {
+        return { success: false, output: "没有进行中的 rebase", feedback: "没有进行中的 rebase", state };
+      }
+      if (Object.keys(state.conflicts).length > 0) {
+        return { success: false, output: "仍有未解决冲突", feedback: "请先解决冲突", state };
+      }
+      if (Object.keys(state.index).length === 0) {
+        return { success: false, output: "没有可提交的变更", feedback: "请先 add 解决后的文件", state };
+      }
+      const headId = getHeadCommitId(state);
+      createCommit(state, "rebase continue", headId ? [headId] : []);
+      state.rebasing.index += 1;
+      return this.replayNextRebaseCommit(state);
+    }
+
+    const ontoRef = args.find((a) => !a.startsWith("-"));
+    if (!ontoRef) {
+      return { success: false, output: "请指定 rebase 目标", feedback: "请指定 rebase 目标", state };
+    }
+    const ontoId = resolveRef(state, ontoRef);
+    if (!ontoId) {
+      return { success: false, output: `无法解析 '${ontoRef}'`, feedback: "目标 ref 无效", state };
+    }
+    const currentBranch = state.head.type === "branch" ? state.head.ref : null;
+    const currentTip = getHeadCommitId(state);
+    if (!currentBranch || !currentTip) {
+      return { success: false, output: "请在分支上执行 rebase", feedback: "请在分支上执行 rebase", state };
+    }
+    if (isAncestor(state, currentTip, ontoId) || currentTip === ontoId) {
+      return { success: true, output: "Current branch is up to date.", feedback: "当前分支已是最新", state };
+    }
+    const mergeBase = ontoId;
+    const replayCommits = collectCommitsAfter(state, mergeBase, currentTip);
+    if (replayCommits.length === 0) {
+      return { success: true, output: "无需 rebase", feedback: "无需 rebase", state };
+    }
+    state.rebasing = {
+      onto: ontoId,
+      commits: replayCommits,
+      index: 0,
+      branch: currentBranch,
+      originalTip: currentTip,
+    };
+    state.branches[currentBranch] = ontoId;
+    checkoutRef(state, currentBranch);
+    return this.replayNextRebaseCommit(state);
+  }
+
+  /**
+   * 重放下一个 rebase 提交。
+   * 功能：逐个 replay commit，冲突时暂停等待玩家处理。
+   * 参数：state - 仓库状态。
+   * 返回值：CommandResult。
+   */
+  private replayNextRebaseCommit(state: RepoState): CommandResult {
+    if (!state.rebasing) {
+      return { success: false, output: "rebase 状态无效", feedback: "rebase 状态无效", state };
+    }
+    const rebasing = state.rebasing;
+    if (rebasing.index >= rebasing.commits.length) {
+      state.rebasing = undefined;
+      return { success: true, output: "Successfully rebased.", feedback: "rebase 完成", state };
+    }
+    const nextCommitId = rebasing.commits[rebasing.index];
+    const sourceCommit = state.commits[nextCommitId];
+    const parentId = sourceCommit.parents[0];
+    const parentFiles = parentId ? state.commits[parentId]?.files ?? {} : {};
+    const headFiles = getHeadFiles(state);
+    state.index = {};
+    state.conflicts = {};
+
+    for (const [path, content] of Object.entries(sourceCommit.files)) {
+      if (parentFiles[path] !== content && headFiles[path] !== content) {
+        if (headFiles[path] !== undefined && headFiles[path] !== content) {
+          state.conflicts[path] = {
+            base: headFiles[path],
+            ours: headFiles[path],
+            theirs: content,
+          };
+          state.index[path] = `<<<<<<< HEAD\n${headFiles[path]}\n=======\n${content}\n>>>>>>> rebase`;
+        } else {
+          state.index[path] = content;
+        }
+      }
+    }
+
+    if (Object.keys(state.conflicts).length > 0) {
+      state.workingTree = {};
+      for (const [path, content] of Object.entries(state.index)) {
+        state.workingTree[path] = { content, status: "modified" };
+      }
+      return {
+        success: false,
+        output: "Rebase conflict. Resolve, add, then git rebase --continue",
+        feedback: "rebase 产生冲突，请解决后继续",
+        state,
+      };
+    }
+
+    const headId = getHeadCommitId(state);
+    createCommit(state, sourceCommit.message, headId ? [headId] : []);
+    rebasing.index += 1;
+    return this.replayNextRebaseCommit(state);
+  }
+
+  /**
+   * 处理 git bisect 子命令。
+   * 功能：二分查找首个不良提交。
+   * 参数：state - 仓库；args - bisect 参数。
+   * 返回值：CommandResult。
+   */
+  private handleBisect(state: RepoState, args: string[]): CommandResult {
+    const sub = args[0] ?? "start";
+
+    if (sub === "reset") {
+      state.bisect = undefined;
+      return { success: true, output: "已退出 bisect", feedback: "已退出 bisect", state };
+    }
+
+    if (sub === "start") {
+      const refs = args.filter((a) => !a.startsWith("-") && a !== "start");
+      const badId = refs[0] ? resolveRef(state, refs[0]) : getHeadCommitId(state);
+      const goodId = refs[1] ? resolveRef(state, refs[1]) : null;
+      if (!badId || !goodId) {
+        return { success: false, output: "用法: git bisect start <bad> <good>", feedback: "请指定 bad 和 good 提交", state };
+      }
+      const middleId = this.pickBisectMiddle(state, goodId, badId);
+      state.bisect = { goodId, badId, currentId: middleId };
+      checkoutRef(state, middleId);
+      return { success: true, output: `Bisecting: ${middleId}`, feedback: `正在检出中间提交 ${middleId}`, state };
+    }
+
+    if (!state.bisect) {
+      return { success: false, output: "请先 git bisect start", feedback: "请先开始 bisect", state };
+    }
+
+    const currentId = getHeadCommitId(state) ?? state.bisect.currentId;
+
+    if (sub === "good") {
+      state.bisect.goodId = currentId;
+    } else if (sub === "bad") {
+      state.bisect.badId = currentId;
+    } else {
+      return { success: false, output: `不支持的 bisect 子命令: ${sub}`, feedback: "不支持的子命令", state };
+    }
+
+    const { goodId, badId } = state.bisect;
+    const candidates = collectCommitsAfter(state, goodId, badId);
+    if (candidates.length <= 1) {
+      const foundBad = candidates[0] ?? badId;
+      state.bisect.foundBadId = foundBad;
+      state.bisect.currentId = foundBad;
+      return {
+        success: true,
+        output: `${foundBad} is the first bad commit`,
+        feedback: `已定位首个不良提交 ${foundBad}`,
+        state,
+      };
+    }
+
+    const middleId = candidates[Math.floor(candidates.length / 2)];
+    state.bisect.currentId = middleId;
+    checkoutRef(state, middleId);
+    return { success: true, output: `Bisecting: ${middleId}`, feedback: `正在检出 ${middleId}`, state };
+  }
+
+  /**
+   * 选取 bisect 中间提交。
+   * 功能：在 good 与 bad 之间取中点。
+   * 参数：state - 仓库；goodId/badId - 两端提交。
+   * 返回值：中间 commit id。
+   */
+  private pickBisectMiddle(state: RepoState, goodId: string, badId: string): string {
+    const candidates = collectCommitsAfter(state, goodId, badId);
+    if (candidates.length === 0) {
+      return badId;
+    }
+    return candidates[Math.floor(candidates.length / 2)];
   }
 }

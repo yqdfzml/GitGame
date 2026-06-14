@@ -130,6 +130,12 @@ const buildGoalHints = (goal: Record<string, unknown>): string[] => {
   if (goal.stashContents) {
     hints.push("需要将当前修改贮藏起来");
   }
+  if (goal.requiredTags) {
+    hints.push("需要给指定提交打上标签");
+  }
+  if (goal.bisectFound) {
+    hints.push("需要通过 bisect 定位首个不良提交");
+  }
   if (goal.branchMerged) {
     hints.push("需要将指定分支合并到目标分支");
   }

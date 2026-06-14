@@ -11,6 +11,12 @@ export const cloneRepoState = (state: RepoState): RepoState => {
   if (!cloned.stash) {
     cloned.stash = [];
   }
+  if (!cloned.tags) {
+    cloned.tags = {};
+  }
+  if (!cloned.reflog) {
+    cloned.reflog = [];
+  }
   return cloned;
 };
 
@@ -123,6 +129,15 @@ export const resolveRef = (state: RepoState, ref: string): string | null => {
   if (normalized === "HEAD") {
     return getHeadCommitId(state);
   }
+  const headParentMatch = normalized.match(/^HEAD~(\d+)$/);
+  if (headParentMatch) {
+    let current = getHeadCommitId(state);
+    const steps = Number(headParentMatch[1]);
+    for (let i = 0; i < steps && current; i += 1) {
+      current = state.commits[current]?.parents[0] ?? null;
+    }
+    return current;
+  }
   if (state.branches[normalized]) {
     return state.branches[normalized];
   }
@@ -173,6 +188,7 @@ export const createCommit = (
     state.head = { type: "detached", ref: commitId };
   }
 
+  appendReflog(state, commitId, `commit: ${message}`);
   return commitId;
 };
 
@@ -215,6 +231,7 @@ export const checkoutRef = (state: RepoState, ref: string): string => {
     state.workingTree[path] = { content, status: "unchanged" };
   }
 
+  appendReflog(state, commitId, `checkout: ${ref}`);
   return state.head.type === "branch"
     ? `已切换到分支 '${ref}'`
     : `HEAD 目前位于 ${commitId}`;
@@ -472,6 +489,55 @@ export const hasLocalChanges = (state: RepoState): boolean => {
 };
 
 /**
+ * 记录 reflog 条目。
+ * 功能：在分支指针移动时留下可追溯记录。
+ * 参数：state - 仓库；commitId - 新指针；message - 操作说明。
+ * 返回值：无。
+ */
+export const appendReflog = (state: RepoState, commitId: string, message: string): void => {
+  if (!state.reflog) {
+    state.reflog = [];
+  }
+  const branchName = state.head.type === "branch" ? state.head.ref : "HEAD";
+  state.reflog.unshift({ commitId, message, branch: branchName });
+  if (state.reflog.length > 50) {
+    state.reflog.pop();
+  }
+};
+
+/**
+ * 收集从 base 到 tip 的提交链（不含 base，含 tip）。
+ * 功能：rebase 时确定需要重放的提交列表。
+ * 参数：state - 仓库；baseId - 基底提交；tipId - 分支顶端。
+ * 返回值：从旧到新的 commit id 数组。
+ */
+export const collectCommitsAfter = (
+  state: RepoState,
+  baseId: string,
+  tipId: string,
+): string[] => {
+  const chain: string[] = [];
+  const visited = new Set<string>();
+  const stack = [tipId];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    if (visited.has(current) || current === baseId) {
+      continue;
+    }
+    visited.add(current);
+    chain.push(current);
+    const node = state.commits[current];
+    if (!node) {
+      continue;
+    }
+    for (const parent of node.parents) {
+      stack.push(parent);
+    }
+  }
+  return chain.reverse();
+};
+
+/**
  * 解析用户输入的 Git 命令为 token 数组。
  * 功能：支持引号包裹的参数。
  * 参数：raw - 原始命令字符串。
@@ -544,6 +610,11 @@ export const ALLOWED_GIT_COMMANDS = new Set([
   "restore",
   "stash",
   "cherry-pick",
+  "tag",
+  "show",
+  "reflog",
+  "rebase",
+  "bisect",
 ]);
 
 /**
