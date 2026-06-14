@@ -6,6 +6,7 @@ import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
 import type {
   AdminBadgeDefinitionItem,
   AdminLeaderboardItem,
+  AdminLevelScoreLeaderboardItem,
   AdminLedgerListResult,
   AdminUnlockListItem,
   AdminWalletListItem,
@@ -260,6 +261,18 @@ const unlockEmpty = computed(() => unlockList.value.length === 0);
 const badgeEmpty = computed(() => badgeList.value.length === 0);
 /** 排行榜是否为空 */
 const leaderboardEmpty = computed(() => leaderboardList.value.length === 0);
+/** 是否按单关得分查询排行榜 */
+const isLevelLeaderboard = computed(() => leaderboardLevelId.value.trim().length > 0);
+
+/**
+ * 判断排行榜条目是否为单关得分数据。
+ * 功能：管理端表格按全局/单关切换列展示。
+ * 参数：item - 排行榜条目。
+ * 返回值：true 表示单关得分条目。
+ */
+const isLevelScoreLeaderboardItem = (item: AdminLeaderboardItem): item is AdminLevelScoreLeaderboardItem => {
+  return "levelId" in item;
+};
 
 onMounted(() => {
   loadWallets();
@@ -310,7 +323,7 @@ onMounted(() => {
         empty-text="暂无排行榜数据"
       >
         <div class="table-wrap">
-          <table class="table">
+          <table v-if="isLevelLeaderboard" class="table">
             <thead>
               <tr>
                 <th>排名</th>
@@ -321,12 +334,34 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in leaderboardList" :key="`${item.userId}-${item.levelId}`">
+              <tr
+                v-for="item in leaderboardList.filter(isLevelScoreLeaderboardItem)"
+                :key="`${item.userId}-${item.levelId}`"
+              >
                 <td>{{ item.rank }}</td>
                 <td>{{ item.displayName }}</td>
                 <td>{{ item.levelTitle }}</td>
                 <td>{{ item.score }}</td>
                 <td>{{ item.durationSeconds }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table v-else class="table">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>用户</th>
+                <th>做题积分</th>
+                <th>通关数</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in leaderboardList" :key="`${item.userId}-${item.rank}`">
+                <td>{{ item.rank }}</td>
+                <td>{{ item.displayName }}</td>
+                <td>{{ "practiceScore" in item ? item.practiceScore : 0 }}</td>
+                <td>{{ "completedLevels" in item ? item.completedLevels : 0 }}</td>
               </tr>
             </tbody>
           </table>

@@ -407,8 +407,17 @@ export interface AdminBadgeDefinitionItem {
   titleLevel: number | null;
 }
 
-/** 管理端排行榜条目 */
-export interface AdminLeaderboardItem {
+/** 管理端做题积分排行榜条目 */
+export interface AdminPracticeScoreLeaderboardItem {
+  rank: number;
+  userId: string;
+  displayName: string;
+  practiceScore: number;
+  completedLevels: number;
+}
+
+/** 管理端单关得分排行榜条目 */
+export interface AdminLevelScoreLeaderboardItem {
   rank: number;
   userId: string;
   levelId: string;
@@ -419,3 +428,6 @@ export interface AdminLeaderboardItem {
   durationSeconds: number;
   updatedAt: string;
 }
+
+/** 管理端排行榜条目（全局或单关） */
+export type AdminLeaderboardItem = AdminPracticeScoreLeaderboardItem | AdminLevelScoreLeaderboardItem;

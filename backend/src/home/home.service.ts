@@ -1,16 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { findBadgeDefinition } from "../badges/badge.definitions";
+import { LeaderboardService } from "../leaderboard/leaderboard.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 /** 首页排行榜条目 */
 export interface HomeLeaderboardItem {
   rank: number;
   displayName: string;
-  levelId: string;
-  levelTitle: string;
-  chapterId: string | null;
-  score: number;
-  durationSeconds: number;
+  practiceScore: number;
+  completedLevels: number;
 }
 
 /** 首页动态条目类型 */
@@ -40,17 +38,20 @@ export interface HomeOverviewResponse {
  */
 @Injectable()
 export class HomeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly leaderboardService: LeaderboardService,
+  ) {}
 
   /**
    * 获取首页概览数据。
-   * 功能：返回 Top 排行榜与按时间排序的通关动态。
+   * 功能：返回做题积分 Top 排行榜与按时间排序的通关动态。
    * 参数：leaderboardLimit - 排行榜条数；activityLimit - 动态条数。
    * 返回值：HomeOverviewResponse。
    */
   async getOverview(leaderboardLimit = 10, activityLimit = 20): Promise<HomeOverviewResponse> {
     const [leaderboardRows, levelActivities, badgeActivities] = await Promise.all([
-      this.loadLeaderboardRows(leaderboardLimit),
+      this.leaderboardService.getLeaderboard(undefined, leaderboardLimit),
       this.loadLevelClearActivities(activityLimit),
       this.loadBadgeUnlockActivities(activityLimit),
     ]);
@@ -60,36 +61,9 @@ export class HomeService {
       .slice(0, activityLimit);
 
     return {
-      leaderboard: leaderboardRows,
+      leaderboard: leaderboardRows as HomeLeaderboardItem[],
       activities,
     };
-  }
-
-  /**
-   * 读取排行榜数据。
-   * 功能：按得分优先、耗时次之排序。
-   * 参数：limit - 条数上限。
-   * 返回值：排行榜条目数组。
-   */
-  private async loadLeaderboardRows(limit: number): Promise<HomeLeaderboardItem[]> {
-    const results = await this.prisma.levelResult.findMany({
-      orderBy: [{ score: "desc" }, { durationSeconds: "asc" }],
-      take: limit,
-      include: {
-        user: { select: { displayName: true } },
-        level: { select: { title: true, chapterId: true } },
-      },
-    });
-
-    return results.map((entry, index) => ({
-      rank: index + 1,
-      displayName: entry.user.displayName,
-      levelId: entry.levelId.toString(),
-      levelTitle: entry.level.title,
-      chapterId: entry.level.chapterId,
-      score: entry.score,
-      durationSeconds: entry.durationSeconds,
-    }));
   }
 
   /**

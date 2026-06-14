@@ -232,15 +232,26 @@ export interface UserStats {
   recentResults: RecentLevelResult[];
 }
 
-/** 排行榜条目 */
+/** 排行榜条目（全局按做题积分） */
 export interface LeaderboardEntry {
   rank: number;
   displayName: string;
+  practiceScore: number;
+  completedLevels: number;
+  userId?: string;
+}
+
+/** 单关得分排行榜条目（管理端按关卡查询时使用） */
+export interface LevelScoreLeaderboardEntry {
+  rank: number;
+  displayName: string;
+  userId: string;
+  levelId: string;
+  levelTitle: string;
+  chapterId: string | null;
   score: number;
   durationSeconds: number;
-  levelId: string;
-  levelTitle?: string;
-  chapterId?: string | null;
+  updatedAt: string;
 }
 
 /** 首页动态类型 */

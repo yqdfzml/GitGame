@@ -38,19 +38,6 @@ const rankClass = (rank: number) => {
   if (rank === 3) return "rank-badge bronze";
   return "rank-badge";
 };
-
-/**
- * 展示关卡名称。
- * 功能：优先显示关卡标题，缺失时回退到 id。
- * 参数：entry - 排行榜条目。
- * 返回值：展示文案。
- */
-const levelLabel = (entry: LeaderboardEntry) => {
-  if (entry.levelTitle) {
-    return entry.levelTitle;
-  }
-  return `#${entry.levelId}`;
-};
 </script>
 
 <template>
@@ -68,21 +55,19 @@ const levelLabel = (entry: LeaderboardEntry) => {
           <tr>
             <th>排名</th>
             <th>玩家</th>
-            <th>关卡</th>
-            <th>得分</th>
-            <th>耗时</th>
+            <th>做题积分</th>
+            <th>通关数</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="entry in visibleEntries" :key="`${entry.rank}-${entry.displayName}-${entry.levelId}`">
+          <tr v-for="entry in visibleEntries" :key="`${entry.rank}-${entry.displayName}-${entry.userId ?? entry.practiceScore}`">
             <td><span :class="rankClass(entry.rank)">{{ entry.rank }}</span></td>
             <td>{{ entry.displayName }}</td>
-            <td>{{ levelLabel(entry) }}</td>
-            <td class="score-cell">{{ entry.score }}</td>
-            <td class="mono">{{ entry.durationSeconds }}s</td>
+            <td class="score-cell">{{ entry.practiceScore }}</td>
+            <td class="mono">{{ entry.completedLevels }}</td>
           </tr>
           <tr v-if="visibleEntries.length === 0">
-            <td colspan="5" class="empty-hint" style="text-align:center;padding:32px">
+            <td colspan="4" class="empty-hint" style="text-align:center;padding:32px">
               暂无记录
             </td>
           </tr>

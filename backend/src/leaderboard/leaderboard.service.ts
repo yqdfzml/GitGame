@@ -10,9 +10,31 @@ export interface LeaderboardUpsertInput {
   displayName: string;
 }
 
+/** 做题积分排行榜条目（各关通关得分之和） */
+export interface PracticeScoreLeaderboardItem {
+  rank: number;
+  userId: string;
+  displayName: string;
+  practiceScore: number;
+  completedLevels: number;
+}
+
+/** 单关得分排行榜条目 */
+export interface LevelScoreLeaderboardItem {
+  rank: number;
+  userId: string;
+  levelId: string;
+  levelTitle: string;
+  chapterId: string | null;
+  displayName: string;
+  score: number;
+  durationSeconds: number;
+  updatedAt: Date;
+}
+
 /**
  * 排行榜服务。
- * 功能：查询和更新排行榜条目。
+ * 功能：全局按做题积分（各关得分之和）排序，指定关卡时按单关得分排序。
  * 参数：levelId、limit 或 upsert 输入。
  * 返回值：排行榜数据。
  */
@@ -22,13 +44,61 @@ export class LeaderboardService {
 
   /**
    * 获取排行榜列表。
-   * 功能：从通关记录表查询，按 score 降序、duration 升序排列。
+   * 功能：未传 levelId 时按做题积分降序；传 levelId 时按关卡得分排序。
    * 参数：levelId - 可选关卡过滤；limit - 条数。
    * 返回值：排行榜条目。
    */
-  async getLeaderboard(levelId?: bigint, limit = 20) {
+  async getLeaderboard(levelId?: bigint, limit = 20): Promise<PracticeScoreLeaderboardItem[] | LevelScoreLeaderboardItem[]> {
+    if (levelId) {
+      return this.getLevelScoreLeaderboard(levelId, limit);
+    }
+    return this.getPracticeScoreLeaderboard(limit);
+  }
+
+  /**
+   * 获取做题积分排行榜。
+   * 功能：汇总各关 levelResult.score，按总分降序排列。
+   * 参数：limit - 返回条数上限。
+   * 返回值：做题积分排行榜条目数组。
+   */
+  private async getPracticeScoreLeaderboard(limit: number): Promise<PracticeScoreLeaderboardItem[]> {
+    const grouped = await this.prisma.levelResult.groupBy({
+      by: ["userId"],
+      _sum: { score: true },
+      _count: { levelId: true },
+      orderBy: [{ _sum: { score: "desc" } }, { _count: { levelId: "desc" } }],
+      take: limit,
+    });
+
+    if (grouped.length === 0) {
+      return [];
+    }
+
+    const userIds = grouped.map((row) => row.userId);
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, displayName: true },
+    });
+    const displayNameMap = new Map(users.map((user) => [user.id.toString(), user.displayName]));
+
+    return grouped.map((row, index) => ({
+      rank: index + 1,
+      userId: row.userId.toString(),
+      displayName: displayNameMap.get(row.userId.toString()) ?? "未知用户",
+      practiceScore: row._sum.score ?? 0,
+      completedLevels: row._count.levelId,
+    }));
+  }
+
+  /**
+   * 获取单关得分排行榜。
+   * 功能：按 score 降序、duration 升序排列。
+   * 参数：levelId - 关卡 id；limit - 返回条数上限。
+   * 返回值：单关得分排行榜条目数组。
+   */
+  private async getLevelScoreLeaderboard(levelId: bigint, limit: number): Promise<LevelScoreLeaderboardItem[]> {
     const results = await this.prisma.levelResult.findMany({
-      where: levelId ? { levelId } : undefined,
+      where: { levelId },
       orderBy: [{ score: "desc" }, { durationSeconds: "asc" }],
       take: limit,
       include: {

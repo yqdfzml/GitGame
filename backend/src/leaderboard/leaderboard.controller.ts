@@ -8,7 +8,7 @@ export class LeaderboardController {
 
   /**
    * 获取排行榜。
-   * 功能：按关卡或全局返回 Top N 记录。
+   * 功能：未传 levelId 时按做题积分排序；传 levelId 时按单关得分排序。
    * 参数：levelId - 可选关卡 id；limit - 条数上限。
    * 返回值：排行榜条目数组。
    */
