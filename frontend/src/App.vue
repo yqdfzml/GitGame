@@ -68,7 +68,7 @@ watch(() => auth.isLoggedIn, loadUserTitle);
       <nav class="nav-links">
         <RouterLink to="/levels">
           <BookOpenCheck aria-hidden="true" />
-          关卡
+          首页
         </RouterLink>
         <RouterLink to="/achievements">
           <Medal aria-hidden="true" />

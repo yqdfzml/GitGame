@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
 import { levelsApi, usersApi } from "../api/client";
+import LeaderboardPanel from "../components/LeaderboardPanel.vue";
 import LevelChallengeCard from "../components/LevelChallengeCard.vue";
 import type { LevelSummary } from "../types";
 import {
@@ -80,41 +82,55 @@ const routePercent = computed(() => {
 
 <template>
   <section class="page-stack levels-page">
-    <header class="page-header">
-      <span class="page-eyebrow">关卡</span>
-      <h1 class="page-title page-title-serif">修炼路径</h1>
-      <p class="page-desc">按主题选择关卡，在终端输入 Git 命令完成目标。系统只检查最终仓库状态。</p>
-    </header>
+    <section class="home-section card">
+      <header class="home-section-header">
+        <span class="page-eyebrow">Leaderboard</span>
+        <h2 class="home-section-title">排行榜</h2>
+        <p class="home-section-desc">按得分优先、耗时次之排列，看看谁走在修行前列。</p>
+      </header>
+      <LeaderboardPanel :preview-limit="10" />
+      <div class="home-section-footer">
+        <RouterLink to="/leaderboard" class="home-section-link">查看完整排行榜</RouterLink>
+      </div>
+    </section>
 
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner" />
-      <span>加载关卡中...</span>
-    </div>
+    <section class="home-section">
+      <header class="page-header">
+        <span class="page-eyebrow">Challenge</span>
+        <h1 class="page-title page-title-serif">我的挑战</h1>
+        <p class="page-desc">按主题选择关卡，在终端输入 Git 命令完成目标。系统只检查最终仓库状态。</p>
+      </header>
 
-    <p v-if="error" class="error-msg">{{ error }}</p>
-
-    <template v-if="!loading && !error">
-      <div class="levels-strip card">
-        <span>{{ completedCount }}/{{ levels.length }} 关已通关</span>
-        <div class="progress-track levels-strip-track" aria-label="全路径进度">
-          <div :style="{ width: `${routePercent}%` }" />
-        </div>
-        <strong>{{ routePercent }}%</strong>
+      <div v-if="loading" class="loading-state">
+        <div class="loading-spinner" />
+        <span>加载关卡中...</span>
       </div>
 
-      <div class="topic-lane card">
-        <div class="topic-lane-grid">
-          <LevelChallengeCard
-            v-for="topic in topicCards"
-            :key="topic.chapterId"
-            :chapter-id="topic.chapterId"
-            :presentation="topic.presentation"
-            :level-count="topic.levelCount"
-            :completed-count="topic.completedCount"
-            :total-count="topic.totalCount"
-          />
+      <p v-if="error" class="error-msg">{{ error }}</p>
+
+      <template v-if="!loading && !error">
+        <div class="levels-strip card">
+          <span>{{ completedCount }}/{{ levels.length }} 关已通关</span>
+          <div class="progress-track levels-strip-track" aria-label="全路径进度">
+            <div :style="{ width: `${routePercent}%` }" />
+          </div>
+          <strong>{{ routePercent }}%</strong>
         </div>
-      </div>
-    </template>
+
+        <div class="topic-lane card">
+          <div class="topic-lane-grid">
+            <LevelChallengeCard
+              v-for="topic in topicCards"
+              :key="topic.chapterId"
+              :chapter-id="topic.chapterId"
+              :presentation="topic.presentation"
+              :level-count="topic.levelCount"
+              :completed-count="topic.completedCount"
+              :total-count="topic.totalCount"
+            />
+          </div>
+        </div>
+      </template>
+    </section>
   </section>
 </template>
