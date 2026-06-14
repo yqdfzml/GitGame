@@ -65,31 +65,31 @@ export const ALL_LEVELS: LevelSeed[] = [
   // ══ 第 1 章：初入仓境（5 关）sortOrder 1-5 ══
   {
     courseId: "mvp", chapterId: "workspace", title: "山门初开", sortOrder: 1,
-    description: "当前在 main 分支。执行 git status 观察状态，保持 welcome.txt 为未跟踪文件，且不要加入暂存区。",
+    description: "仓库里有一份未跟踪的 welcome.txt。观察当前状态，保持它不被纳入版本库，暂存区保持为空。",
     difficulty: Difficulty.BEGINNER,
     initialState: { ...emptyRepoBase(), workingTree: { "welcome.txt": { content: "欢迎来到 GitGame", status: "untracked" } } },
     goal: { untrackedFiles: ["welcome.txt"], indexEmpty: true },
-    constraints: { baseScore: 100, stepPenalty: 1, maxSteps: 10, minSteps: 1 },
+    constraints: { baseScore: 30, stepPenalty: 1, maxSteps: 10, minSteps: 1 },
   },
   {
     courseId: "mvp", chapterId: "workspace", title: "灵气扰动", sortOrder: 2,
-    description: "当前在 main 分支。用 git status 确认 app.js 为已修改状态，保留工作区内容为 v2，不要提交或 restore。",
+    description: "app.js 在工作区已被改为 v2。确认这一改动并保留，不要提交或丢弃。",
     difficulty: Difficulty.BEGINNER,
     initialState: { ...makeRepoWithCommit("main", "w1a2b3c", "init", { "app.js": "v1" }), workingTree: { "app.js": { content: "v2", status: "modified" } } },
     goal: { workingTreeContents: { "app.js": "v2" }, indexEmpty: true },
-    constraints: { baseScore: 100, stepPenalty: 1, maxSteps: 10, minSteps: 1 },
+    constraints: { baseScore: 30, stepPenalty: 1, maxSteps: 10, minSteps: 1 },
   },
   {
     courseId: "mvp", chapterId: "workspace", title: "暂存之门", sortOrder: 3,
-    description: "当前在 main 分支。将 notes.md 的修改 git add 到暂存区，完成暂存即可，不要 commit。",
+    description: "notes.md 有本地修改。把修改放入暂存区即可，先不要提交。",
     difficulty: Difficulty.BEGINNER,
     initialState: { ...makeRepoWithCommit("main", "w2b3c4d", "init", { "notes.md": "旧笔记" }), workingTree: { "notes.md": { content: "新笔记内容", status: "modified" } } },
     goal: { indexContents: { "notes.md": "新笔记内容" }, workingTreeContents: { "notes.md": "新笔记内容" } },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15 },
   },
   {
     courseId: "mvp", chapterId: "workspace", title: "三境分明", sortOrder: 4,
-    description: "当前在 main 分支。只 git add notes.md；app.js 保持已修改未暂存，temp.log 保持未跟踪。",
+    description: "三份文件状态各不相同：只暂存 notes.md，app.js 保持已修改未暂存，temp.log 保持未跟踪。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "w3c4d5e", "base", { "notes.md": "旧", "app.js": "v1" }),
@@ -100,43 +100,43 @@ export const ALL_LEVELS: LevelSeed[] = [
       },
     },
     goal: { indexContents: { "notes.md": "新笔记" }, untrackedFiles: ["temp.log"], workingTreeContents: { "app.js": "v2" } },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20 },
   },
   {
     courseId: "mvp", chapterId: "workspace", title: "明镜无尘", sortOrder: 5,
-    description: "当前在 main 分支。用 git restore 丢弃 app.js 的本地误改，使工作区与 HEAD 一致（clean）。",
+    description: "app.js 被误改脏了。丢弃本地改动，使工作区回到与 HEAD 一致。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "w4d5e6f", "base", { "app.js": "clean" }),
       workingTree: { "app.js": { content: "dirty", status: "modified" } },
     },
     goal: { workingTreeClean: true, indexEmpty: true },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20 },
   },
 
   // ══ 第 2 章：快照成印（5 关）sortOrder 6-10 ══
   {
     courseId: "mvp", chapterId: "snapshot", title: "第一枚灵印", sortOrder: 6,
-    description: "当前在 main 分支。将 README.md git add 后 commit，使修改进入 main 的历史。",
+    description: "README.md 有尚未提交的新内容。将这次修改正式写入 main 的历史。",
     difficulty: Difficulty.BEGINNER,
     initialState: { ...makeRepoWithCommit("main", "s1a2b3c", "init", { "README.md": "# GitGame\n" }), workingTree: { "README.md": { content: "# GitGame\n\nLearn Git.", status: "modified" } } },
     goal: { workingTreeClean: true, indexEmpty: true, currentBranch: "main", fileContents: { "README.md": "# GitGame\n\nLearn Git." } },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20 },
   },
   {
     courseId: "mvp", chapterId: "snapshot", title: "只取所需", sortOrder: 7,
-    description: "当前在 main 分支。只 add 并 commit app.js(v2)；debug.log 保持工作区已修改，不要提交它。",
+    description: "app.js 和 debug.log 都有改动，但只想把 app.js 的 v2 记入历史，debug.log 的修改留在本地。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "s2b3c4d", "base", { "app.js": "v1", "debug.log": "old log" }),
       workingTree: { "app.js": { content: "v2", status: "modified" }, "debug.log": { content: "new log", status: "modified" } },
     },
     goal: { fileContents: { "app.js": "v2", "debug.log": "old log" }, workingTreeContents: { "debug.log": "new log" }, indexEmpty: true },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20 },
   },
   {
     courseId: "mvp", chapterId: "snapshot", title: "暂存与未暂存", sortOrder: 8,
-    description: "当前在 main 分支。app.js 已在暂存区，直接 commit；todo.txt 的 WIP 修改留在工作区，不要提交。",
+    description: "app.js 已在暂存区，todo.txt 仍有 WIP 改动。提交已暂存部分，todo.txt 不要进历史。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "s3c4d5e", "base", { "app.js": "v1", "todo.txt": "old" }),
@@ -144,40 +144,40 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "v2", status: "modified" }, "todo.txt": { content: "wip task", status: "modified" } },
     },
     goal: { fileContents: { "app.js": "v2", "todo.txt": "old" }, workingTreeContents: { "todo.txt": "wip task" }, indexEmpty: true },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15 },
   },
   {
     courseId: "mvp", chapterId: "snapshot", title: "错改回正", sortOrder: 9,
-    description: "当前在 main 分支。用 git restore config.json 将工作区恢复为 HEAD 版本（mode=prod）。",
+    description: "config.json 被误改为 broken，正确版本应为 mode=prod。撤销误改，使工作区恢复正确。",
     difficulty: Difficulty.BEGINNER,
     initialState: { ...makeRepoWithCommit("main", "s4d5e6f", "base", { "config.json": '{"mode":"prod"}' }), workingTree: { "config.json": { content: '{"mode":"broken"}', status: "modified" } } },
     goal: { workingTreeClean: true, indexEmpty: true, currentBranch: "main" },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20 },
   },
   {
     courseId: "mvp", chapterId: "snapshot", title: "纯净快照", sortOrder: 10,
-    description: "当前在 main 分支。只 add 并 commit app.js(v2)；junk.txt 不得加入版本库。",
+    description: "需要提交 app.js 的 v2，不要让 junk.txt 进入版本库。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "s5e6f7a", "base", { "app.js": "v1" }),
       workingTree: { "app.js": { content: "v2", status: "modified" }, "junk.txt": { content: "垃圾", status: "untracked" } },
     },
     goal: { fileContents: { "app.js": "v2" }, filesAbsentFromHead: ["junk.txt"], indexEmpty: true, currentBranch: "main" },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20 },
   },
 
   // ══ 第 3 章：分脉立道（5 关）sortOrder 11-15 ══
   {
     courseId: "mvp", chapterId: "branch", title: "另开一脉", sortOrder: 11,
-    description: "当前在 main 分支。创建 feature 分支并切换过去（git checkout -b feature），main 保持不动。",
+    description: "从 main 开出 feature 分支并切换过去，main 仍停留在原位。",
     difficulty: Difficulty.BEGINNER,
     initialState: makeRepoWithCommit("main", "b1a2b3c", "init project", { "app.js": "console.log('hi')" }),
     goal: { currentBranch: "feature", workingTreeClean: true, branchHeads: { main: "b1a2b3c", feature: "b1a2b3c" } },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15 },
   },
   {
     courseId: "mvp", chapterId: "branch", title: "身在何处", sortOrder: 12,
-    description: "当前在 feature 分支。切换到 main 分支，工作区保持 clean。",
+    description: "当前在 feature，需要回到 main，工作区保持干净。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "b2c3d4e", "init", { "app.js": "v1" }),
@@ -186,11 +186,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "v1", status: "unchanged" } },
     },
     goal: { currentBranch: "main", workingTreeClean: true },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 10 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 10 },
   },
   {
     courseId: "mvp", chapterId: "branch", title: "分支独修", sortOrder: 13,
-    description: "当前在 feature 分支。在此提交 app.js(v2)；main 分支仍停留在原提交。",
+    description: "在 feature 上把 app.js 提交为 v2，main 不要动。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "b3d4e5f", "init", { "app.js": "v1" }),
@@ -199,11 +199,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "v2", status: "modified" } },
     },
     goal: { currentBranch: "feature", workingTreeClean: true, indexEmpty: true, branchHeads: { main: "b3d4e5f" }, fileContents: { "app.js": "v2" } },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20 },
   },
   {
     courseId: "mvp", chapterId: "branch", title: "错路回头", sortOrder: 14,
-    description: "当前在 hotfix 分支（走错分支）。先切换到 feature，再提交 app.js(feature-fix)；main 与 hotfix 不动。",
+    description: "你在 hotfix 上误改了 app.js。切到正确分支并完成提交，main 与 hotfix 保持不动。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "b4e5f6a", "init", { "app.js": "v1" }),
@@ -212,11 +212,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "feature-fix", status: "modified" } },
     },
     goal: { currentBranch: "feature", workingTreeClean: true, fileContents: { "app.js": "feature-fix" }, branchHeads: { main: "b4e5f6a", hotfix: "b4e5f6a" } },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 25 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 25 },
   },
   {
     courseId: "mvp", chapterId: "branch", title: "双脉并行", sortOrder: 15,
-    description: "当前在 main 分支。先在 main 提交 main.txt(m1)，再切到 feature 新建 feature.txt(f1) 并提交。",
+    description: "先在 main 提交 main.txt 为 m1，再到 feature 新建 feature.txt 为 f1 并提交。",
     difficulty: Difficulty.BEGINNER,
     initialState: {
       ...makeRepoWithCommit("main", "b5f6a7b", "init", { "app.js": "base", "main.txt": "m0" }),
@@ -225,13 +225,13 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "base", status: "unchanged" }, "main.txt": { content: "m1", status: "modified" } },
     },
     goal: { currentBranch: "feature", workingTreeClean: true, fileContents: { "feature.txt": "f1" }, branchFileContents: { main: { "main.txt": "m1" } }, branchContains: [{ branch: "main", commit: "b5f6a7b" }] },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30 },
   },
 
   // ══ 第 4 章：合流破障（5 关）sortOrder 16-20 ══
   {
     courseId: "mvp", chapterId: "merge", title: "顺水合流", sortOrder: 16,
-    description: "当前在 main 分支。将 feature 快进合并到 main（git merge feature），合并后 app.js 为 feature 的内容。",
+    description: "feature 领先 main。在 main 上完成合并，最终 app.js 应为 feature 的内容。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -242,11 +242,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "main", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "main", workingTreeClean: true, indexEmpty: true, noConflicts: true, branchMerged: [{ source: "feature", target: "main" }], fileContents: { "app.js": "feature" } },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30 },
   },
   {
     courseId: "mvp", chapterId: "merge", title: "双亲之印", sortOrder: 17,
-    description: "当前在 main 分支。将 feature 合并到 main（git merge feature），产生 merge commit，main 同时包含 main.txt 与 feature.txt。",
+    description: "main 与 feature 各有独立提交，合并后 main 应同时保留两边的文件改动。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -259,11 +259,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "main", workingTreeClean: true, indexEmpty: true, noConflicts: true, mergeCommitRequired: true, branchMerged: [{ source: "feature", target: "main" }], fileContents: { "main.txt": "main only", "feature.txt": "feature only" } },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30 },
   },
   {
     courseId: "mvp", chapterId: "merge", title: "同文相争", sortOrder: 18,
-    description: "当前在 main 分支。将 feature 合并到 main，doc.md 不同行改动自动合并为 LINE1 与 LINE3 并存。",
+    description: "两分支改了 doc.md 的不同行，合并后应同时保留 LINE1 与 LINE3。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -275,11 +275,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "doc.md": { content: "LINE1\nline2\nline3", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "main", workingTreeClean: true, indexEmpty: true, noConflicts: true, branchMerged: [{ source: "feature", target: "main" }], fileContents: { "doc.md": "LINE1\nline2\nLINE3" } },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30 },
   },
   {
     courseId: "mvp", chapterId: "merge", title: "冲突调和", sortOrder: 19,
-    description: "当前在 main 分支。将 feature 合并到 main，config.json 冲突时用 checkout --theirs 取 feature 版本，再 commit 完成合并。",
+    description: "合并 feature 时 config.json 发生冲突，保留 feature 侧的配置并完成合并。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -291,11 +291,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "config.json": { content: '{"port":3000,"env":"main"}', status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "main", workingTreeClean: true, indexEmpty: true, noConflicts: true, mergeCommitRequired: true, branchMerged: [{ source: "feature", target: "main" }], fileContents: { "config.json": '{"port":3000,"env":"feature"}' } },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 40 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 40 },
   },
   {
     courseId: "mvp", chapterId: "merge", title: "合而不乱", sortOrder: 20,
-    description: "当前在 main 分支。将 feature 合并到 main，仅 config.json 冲突取 feature 版；readme.md 应自动变为 hello。",
+    description: "合并 feature：config.json 取 feature 版，readme.md 应自动变为 hello。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -308,13 +308,13 @@ export const ALL_LEVELS: LevelSeed[] = [
       index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "main", workingTreeClean: true, indexEmpty: true, noConflicts: true, mergeCommitRequired: true, branchMerged: [{ source: "feature", target: "main" }], fileContents: { "config.json": "feat-v", "readme.md": "hello" } },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 40 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 40 },
   },
 
   // ══ 第 5 章：回溯补过（5 关）sortOrder 21-25 ══
   {
     courseId: "mvp", chapterId: "undo", title: "撤回暂存", sortOrder: 21,
-    description: "当前在 main 分支。secret.key 已误暂存，用 git restore --staged secret.key 取消暂存，工作区保留 new-secret。",
+    description: "secret.key 被误加入暂存区。取消暂存，但保留工作区里的 new-secret。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       ...makeRepoWithCommit("main", "u1a2b3c", "base", { "secret.key": "old-secret" }),
@@ -322,19 +322,19 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "secret.key": { content: "new-secret", status: "modified" } },
     },
     goal: { indexEmpty: true, workingTreeContents: { "secret.key": "new-secret" }, currentBranch: "main" },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15 },
   },
   {
     courseId: "mvp", chapterId: "undo", title: "抹去误改", sortOrder: 22,
-    description: "当前在 main 分支。用 git restore app.js 将工作区恢复为 HEAD 内容 correct。",
+    description: "app.js 工作区被改成 wrong，HEAD 中是 correct。恢复为 HEAD 的内容。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: { ...makeRepoWithCommit("main", "u2b3c4d", "base", { "app.js": "correct" }), workingTree: { "app.js": { content: "wrong", status: "modified" } } },
     goal: { workingTreeClean: true, currentBranch: "main" },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15 },
   },
   {
     courseId: "mvp", chapterId: "undo", title: "重做一印", sortOrder: 23,
-    description: "当前在 main 分支。用 git reset --soft HEAD~1 撤销最新提交，改 app.js 为 v2 后重新 commit。",
+    description: "最新提交不完整。撤销这次提交，把 app.js 改为 v2 后重新提交一次。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -345,11 +345,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "v1", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { fileContents: { "app.js": "v2" }, workingTreeClean: true, indexEmpty: true, commitsExist: ["g01"], branchNotContains: [{ branch: "main", commit: "bad1" }] },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 25 },
   },
   {
     courseId: "mvp", chapterId: "undo", title: "公开补过", sortOrder: 24,
-    description: "当前在 main 分支。用 git revert 撤销 bad change 那次提交，使 config.json 恢复为 debug:false。",
+    description: "config.json 因某次错误提交变成了 debug:true，需要在不抹历史的前提下恢复为 debug:false。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -360,11 +360,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "config.json": { content: '{"debug":true}', status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { fileContents: { "config.json": '{"debug":false}' }, workingTreeClean: true, commitsExist: ["g02", "b02"], branchContains: [{ branch: "main", commit: "b02" }] },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 25 },
   },
   {
     courseId: "mvp", chapterId: "undo", title: "错误归位", sortOrder: 25,
-    description: "当前在 main 分支。将 main 重置回 g03（git reset --hard g03）；topic 分支保持 bad3 提交不动。",
+    description: "main 误到了错误提交，应恢复到 good 那次提交的状态；topic 分支上的错误提交要保留。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -375,13 +375,13 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "broken", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "main", branchHeads: { main: "g03", topic: "bad3" }, fileContents: { "app.js": "ok" }, workingTreeClean: true },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 25 },
   },
 
   // ══ 第 6 章：藏锋转身（5 关）sortOrder 26-30 ══
   {
     courseId: "mvp", chapterId: "stash", title: "临时收功", sortOrder: 26,
-    description: "当前在 feature 分支。git stash 贮藏 app.js 的 WIP，切换到 hotfix 分支，工作区需 clean。",
+    description: "feature 上 app.js 有 WIP。先收好改动，再切到 hotfix，工作区需干净。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -393,11 +393,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "wip-change", status: "modified" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "hotfix", workingTreeClean: true, stashContents: { "app.js": "wip-change" } },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 20 },
   },
   {
     courseId: "mvp", chapterId: "stash", title: "急救主线", sortOrder: 27,
-    description: "当前在 feature 分支。stash WIP → 切到 main 改 version.txt 为 1.0.1 并 commit → 回 feature 再 stash pop 恢复 WIP。",
+    description: "feature 上有 WIP。先处理 main 上 version.txt 紧急更新为 1.0.1，再回到 feature 恢复 WIP。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: { st1base: { id: "st1base", message: "init", parents: [], files: { "app.js": "stable", "version.txt": "1.0" }, timestamp: 1 } },
@@ -405,11 +405,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "wip", status: "modified" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { fileContents: { "version.txt": "1.0.1" }, workingTreeContents: { "app.js": "wip" }, currentBranch: "feature" },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30 },
   },
   {
     courseId: "mvp", chapterId: "stash", title: "藏而不失", sortOrder: 28,
-    description: "当前在 main 分支。从 stash 栈恢复较早那条（stash@{1}），使工作区 app.js=first-wip。",
+    description: "stash 里存了两份改动，恢复较早那份，使 app.js 变为 first-wip。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       ...makeRepoWithCommit("main", "st2base", "init", { "app.js": "base" }),
@@ -419,11 +419,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       ],
     },
     goal: { workingTreeContents: { "app.js": "first-wip" }, indexEmpty: true },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 25 },
   },
   {
     courseId: "mvp", chapterId: "stash", title: "立碑记名", sortOrder: 29,
-    description: "当前在 main 分支。给当前 HEAD（release v1.0 提交）打上 v1.0 标签。",
+    description: "release v1.0 已提交，给这个版本打上 v1.0 标签。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -434,11 +434,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "version.txt": { content: "1.0", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { requiredTags: { "v1.0": "st3rel" }, workingTreeClean: true },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 15 },
   },
   {
     courseId: "mvp", chapterId: "stash", title: "版本归档", sortOrder: 30,
-    description: "当前在 main 分支。找到 real fix 提交（app.js=fixed），给它打上 release 标签。",
+    description: "历史上有多次修复尝试，找到真正修好 app.js 的那次提交，打上 release 标签。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {
@@ -450,13 +450,13 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "fixed", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { requiredTags: { release: "st4c" }, fileContents: { "app.js": "fixed" } },
-    constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 2, maxSteps: 20 },
   },
 
   // ══ 第 7 章：摘星移火（5 关）sortOrder 31-35 ══
   {
     courseId: "mvp", chapterId: "cherry-pick", title: "摘一颗星", sortOrder: 31,
-    description: "当前在 main 分支。将 feature 上的 fix01 提交 cherry-pick 到 main，使 main 上 app.js=fixed。",
+    description: "feature 上有修复提交，main 需要 app.js=fixed，但不要整条合并 feature。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -468,11 +468,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "main", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "main", workingTreeClean: true, fileContents: { "app.js": "fixed" }, branchContains: [{ branch: "main", commit: "cp1base" }], branchNotContains: [{ branch: "main", commit: "fix01" }] },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 25 },
   },
   {
     courseId: "mvp", chapterId: "cherry-pick", title: "错峰移植", sortOrder: 32,
-    description: "当前在 main 分支。只 cherry-pick fix02 到 main，不要把 bad02 一并带过来。",
+    description: "只要 fix02 的修复效果到 main，不要把 bad02 的历史带过来。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -484,11 +484,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "main", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { fileContents: { "app.js": "fixed" }, commitsExist: ["cp2base", "bad02"], branchContains: [{ branch: "main", commit: "cp2base" }], branchNotContains: [{ branch: "main", commit: "bad02" }, { branch: "main", commit: "fix02" }] },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30 },
   },
   {
     courseId: "mvp", chapterId: "cherry-pick", title: "追上主脉", sortOrder: 33,
-    description: "当前在 feature 分支（落后 main）。在 feature 上执行 git rebase main，使 feature 基于最新 main 且 app.js=feat-v。",
+    description: "feature 落后于 main。让 feature 追上 main 的最新进展，并保持 app.js=feat-v。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -500,11 +500,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "feat-v", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "feature", fileContents: { "app.js": "feat-v" }, branchContains: [{ branch: "feature", commit: "rb1main" }], branchNotContains: [{ branch: "feature", commit: "rb1feat" }] },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30 },
   },
   {
     courseId: "mvp", chapterId: "cherry-pick", title: "整理三印", sortOrder: 34,
-    description: "当前在 main 分支。用 git reset --soft HEAD~3 撤销最近 3 个提交，再一次性 commit 合并为一条清晰记录。",
+    description: "main 上连续三个零散提交应合并为一条语义清晰的记录，内容保持 app.js=v3。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -517,11 +517,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "v3", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "main", fileContents: { "app.js": "v3" }, workingTreeClean: true, indexEmpty: true, commitsExist: ["sq1"], branchContains: [{ branch: "main", commit: "sq1" }], branchNotContains: [{ branch: "main", commit: "sq2" }, { branch: "main", commit: "sq3" }, { branch: "main", commit: "sq4" }] },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 25 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 25 },
   },
   {
     courseId: "mvp", chapterId: "cherry-pick", title: "移植解冲突", sortOrder: 35,
-    description: "当前在 feature 分支。git rebase main，解决 app.js 冲突后继续，最终 feature 基于 main 且 app.js=feat-version。",
+    description: "feature 需要基于最新 main 重新整理历史，解决 app.js 冲突后完成。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -533,13 +533,13 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "feat-version", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { currentBranch: "feature", fileContents: { "app.js": "feat-version" }, branchContains: [{ branch: "feature", commit: "rb2main" }], branchNotContains: [{ branch: "feature", commit: "rb2feat" }], noConflicts: true, workingTreeClean: true },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 40 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 40 },
   },
 
   // ══ 第 8 章：断案寻因（5 关）sortOrder 36-40 ══
   {
     courseId: "mvp", chapterId: "debug", title: "追溯因果", sortOrder: 36,
-    description: "当前在 main 分支。用 git log 找到 introduce bug 提交并 git revert，使 app.js 恢复为 ok。",
+    description: "app.js 当前是 broken。找出引入问题的提交并安全撤销其影响，恢复为 ok。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -551,11 +551,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "broken", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { fileContents: { "app.js": "ok" }, workingTreeClean: true, commitsExist: ["d36g", "d36b", "d36h"], branchContains: [{ branch: "main", commit: "d36h" }] },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 30 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 30 },
   },
   {
     courseId: "mvp", chapterId: "debug", title: "二分问道", sortOrder: 37,
-    description: "当前在 main 分支。用 git bisect 在 d37g（good）与 d37h（bad）之间定位首个不良提交 d37b。",
+    description: "历史里 good 与 bad 之间出现了首个问题提交，把它定位出来。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -567,11 +567,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       workingTree: { "app.js": { content: "worse", status: "unchanged" } }, index: {}, conflicts: {}, stash: [], tags: {}, reflog: [],
     },
     goal: { bisectFound: "d37b" },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 40 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 40 },
   },
   {
     courseId: "mvp", chapterId: "debug", title: "失足可返", sortOrder: 38,
-    description: "当前在 main 分支（被误 reset 到 d38old）。用 git reflog 找回 d38good，再 reset --hard 恢复 main。",
+    description: "main 被误 reset 到了旧版本，恢复到误操作之前的 good 状态。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -587,11 +587,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       ],
     },
     goal: { branchHeads: { main: "d38good" }, fileContents: { "app.js": "good" }, workingTreeClean: true },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 20 },
   },
   {
     courseId: "mvp", chapterId: "debug", title: "断线续命", sortOrder: 39,
-    description: "当前在 main 分支。feature 分支已误删，用 reflog 中的 d39feat 提交重建 feature 分支。",
+    description: "feature 分支被误删了，从操作记录里找回它的最新提交并重建分支。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -604,11 +604,11 @@ export const ALL_LEVELS: LevelSeed[] = [
       reflog: [{ commitId: "d39feat", message: "commit: feature work", branch: "feature" }],
     },
     goal: { branchHeads: { feature: "d39feat" }, fileContents: { "app.js": "base" } },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 20 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 20 },
   },
   {
     courseId: "mvp", chapterId: "debug", title: "终局试炼", sortOrder: 40,
-    description: "当前在 main 分支。依次完成：① git revert d40bad ② 将 hotfix 合并到 main ③ 给 d40fix 打 v2.0 标签。",
+    description: "依次完成：撤销 bad 提交的影响、合入 hotfix 修复、为 v2.0 版本打标签。",
     difficulty: Difficulty.ADVANCED,
     initialState: {
       commits: {
@@ -631,6 +631,6 @@ export const ALL_LEVELS: LevelSeed[] = [
       branchContains: [{ branch: "main", commit: "d40bad" }],
       commitsExist: ["d40base", "d40bad"],
     },
-    constraints: { baseScore: 100, stepPenalty: 3, maxSteps: 50 },
+    constraints: { baseScore: 30, stepPenalty: 3, maxSteps: 50 },
   },
 ];

@@ -199,7 +199,7 @@ const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
     }
   }
   if (goal.bisectFound) {
-    targets.push("需通过 git bisect 定位首个不良提交");
+    targets.push("需定位历史中的首个不良提交");
   }
   if (goal.branchContains) {
     targets.push("指定分支需保留应有的历史提交");

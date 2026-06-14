@@ -237,16 +237,16 @@ describe("mastery badges", () => {
     expect(isBadgeUnlocked("mastery_workspace_clean_5", cleanContext)).toBe(true);
   });
 
-  it("mastery_full_clear_plus 需要全通且 600 分", () => {
+  it("mastery_full_clear_plus 需要全通且 200 分", () => {
     const locked = makeContext({
       publishedLevelCount: 40,
       completedLevelIds: Array.from({ length: 40 }, (_, index) => BigInt(index + 1)),
-      totalScore: 500,
+      totalScore: 180,
     });
     const unlocked = makeContext({
       publishedLevelCount: 40,
       completedLevelIds: Array.from({ length: 40 }, (_, index) => BigInt(index + 1)),
-      totalScore: 600,
+      totalScore: 200,
     });
     expect(isBadgeUnlocked("mastery_full_clear_plus", locked)).toBe(false);
     expect(isBadgeUnlocked("mastery_full_clear_plus", unlocked)).toBe(true);

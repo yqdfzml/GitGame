@@ -66,8 +66,8 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
   },
   9: {
     concepts: ["误改已跟踪文件时，restore 可从 HEAD 恢复工作区正确内容。"],
-    directions: ["用 restore 撤销 config.json 的本地误改，使工作区与 HEAD 一致。"],
-    keyPoints: ["git restore config.json 或 git restore ."],
+    directions: ["撤销 config.json 的本地误改，使工作区与 HEAD 一致。"],
+    keyPoints: ["先 status 确认脏文件，再 restore 目标文件或整个工作区。"],
   },
   10: {
     concepts: ["untracked 文件不会被 git add . 以外的误操作自动提交，但要避免 add 未跟踪文件。"],

@@ -28,7 +28,7 @@ const DEFAULT_FORM: AdminLevelFormData = {
     stash: [],
   },
   goal: { workingTreeClean: true },
-  constraints: { baseScore: 100, stepPenalty: 2 },
+  constraints: { baseScore: 30, stepPenalty: 2 },
 };
 
 /** 关卡列表 */

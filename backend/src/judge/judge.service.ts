@@ -12,6 +12,7 @@ import {
   isWorkingTreeClean,
   refreshWorkingTreeStatus,
 } from "../git-engine/git-engine.utils";
+import { DEFAULT_LEVEL_BASE_SCORE } from "./scoring.constants";
 
 /**
  * 结果导向判题服务。
@@ -342,7 +343,7 @@ export class JudgeService {
       }
     }
 
-    const baseScore = constraints.baseScore ?? 100;
+    const baseScore = constraints.baseScore ?? DEFAULT_LEVEL_BASE_SCORE;
     const stepPenalty = constraints.stepPenalty ?? 1;
 
     // 14. 最大步数约束：超过关卡步数上限不能通关

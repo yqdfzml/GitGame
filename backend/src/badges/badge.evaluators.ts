@@ -7,6 +7,12 @@ import {
   hasStashSave,
   hasSubcommand,
 } from "./git-command.util";
+import {
+  FULL_CLEAR_PLUS_SCORE_THRESHOLD,
+  MASTERY_SCORE_TIER_1,
+  MASTERY_SCORE_TIER_2,
+  TITLE_HIGH_SCORE_THRESHOLD,
+} from "../judge/scoring.constants";
 
 /** 已发布关卡元数据，供 workflow 判定使用 */
 export interface PublishedLevelMeta {
@@ -75,7 +81,7 @@ export function isBadgeUnlocked(badgeId: string, context: BadgeEvalContext): boo
       return (
         context.publishedLevelCount > 0 &&
         completedCount >= context.publishedLevelCount &&
-        context.totalScore >= 400
+        context.totalScore >= TITLE_HIGH_SCORE_THRESHOLD
       );
     case "cmd_status":
       return hasCommandInAnyCompletedAttempt(context, "status");
@@ -140,9 +146,9 @@ export function isBadgeUnlocked(badgeId: string, context: BadgeEvalContext): boo
     case "mastery_low_steps_3":
       return countLowStepLevels(context, 5) >= 3;
     case "mastery_score_300":
-      return context.totalScore >= 300;
+      return context.totalScore >= MASTERY_SCORE_TIER_1;
     case "mastery_score_600":
-      return context.totalScore >= 600;
+      return context.totalScore >= MASTERY_SCORE_TIER_2;
     case "mastery_no_fail_5":
       return hasSuccessStreak(context, 5);
     case "mastery_recovery_3":
@@ -153,7 +159,7 @@ export function isBadgeUnlocked(badgeId: string, context: BadgeEvalContext): boo
       return (
         context.publishedLevelCount > 0 &&
         completedCount >= context.publishedLevelCount &&
-        context.totalScore >= 600
+        context.totalScore >= FULL_CLEAR_PLUS_SCORE_THRESHOLD
       );
     default:
       return false;
