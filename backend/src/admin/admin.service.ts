@@ -15,6 +15,79 @@ export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * 列出全部关卡。
+   * 功能：管理后台左侧列表，支持按章节筛选。
+   * 参数：chapterId - 可选章节 id。
+   * 返回值：关卡摘要数组。
+   */
+  async listLevels(chapterId?: string) {
+    const levels = await this.prisma.level.findMany({
+      where: chapterId ? { chapterId } : undefined,
+      orderBy: [{ courseId: "asc" }, { sortOrder: "asc" }],
+      select: {
+        id: true,
+        courseId: true,
+        chapterId: true,
+        title: true,
+        description: true,
+        difficulty: true,
+        sortOrder: true,
+        status: true,
+        publishedAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return levels.map((level) => ({
+      id: level.id.toString(),
+      courseId: level.courseId,
+      chapterId: level.chapterId,
+      title: level.title,
+      description: level.description,
+      difficulty: level.difficulty,
+      sortOrder: level.sortOrder,
+      status: level.status,
+      publishedAt: level.publishedAt,
+      updatedAt: level.updatedAt,
+    }));
+  }
+
+  /**
+   * 获取关卡编辑详情。
+   * 功能：返回完整配置与 schema 校验结果。
+   * 参数：levelId - 关卡 id。
+   * 返回值：关卡详情与校验信息。
+   */
+  async getLevel(levelId: bigint) {
+    const level = await this.prisma.level.findUnique({ where: { id: levelId } });
+    if (!level) {
+      throw new NotFoundException("关卡不存在");
+    }
+
+    const validation = validateLevelConfig({
+      initialState: level.initialState,
+      goal: level.goal,
+      constraints: level.constraints,
+    });
+
+    return {
+      id: level.id.toString(),
+      courseId: level.courseId,
+      chapterId: level.chapterId,
+      title: level.title,
+      description: level.description,
+      difficulty: level.difficulty,
+      sortOrder: level.sortOrder,
+      status: level.status,
+      publishedAt: level.publishedAt,
+      initialState: level.initialState,
+      goal: level.goal,
+      constraints: level.constraints,
+      validation,
+    };
+  }
+
+  /**
    * 创建草稿关卡。
    * 功能：schema 校验通过后写入数据库。
    * 参数：dto - 创建参数。

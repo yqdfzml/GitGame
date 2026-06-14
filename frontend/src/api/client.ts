@@ -147,8 +147,10 @@ export const attemptsApi = {
     }),
   replay: (id: string) =>
     request<{
+      attemptId: string;
+      status: string;
       commands: import("./types").CommandEntry[];
-      snapshots: Array<{ stepIndex: number; state: import("./types").RepoState }>;
+      snapshots: Array<{ stepIndex: number; state: import("./types").RepoState; createdAt?: string }>;
     }>(`/attempts/${id}/replay`),
 };
 
@@ -173,8 +175,44 @@ export const usersApi = {
 
 /** 管理 API */
 export const adminApi = {
+  listLevels: (chapterId?: string) =>
+    request<Array<{
+      id: string;
+      courseId: string;
+      chapterId: string | null;
+      title: string;
+      description: string;
+      difficulty: string;
+      sortOrder: number;
+      status: string;
+      publishedAt: string | null;
+      updatedAt: string;
+    }>>(chapterId ? `/admin/levels?chapterId=${chapterId}` : "/admin/levels"),
+  getLevel: (id: string) =>
+    request<{
+      id: string;
+      courseId: string;
+      chapterId: string | null;
+      title: string;
+      description: string;
+      difficulty: string;
+      sortOrder: number;
+      status: string;
+      publishedAt: string | null;
+      initialState: Record<string, unknown>;
+      goal: Record<string, unknown>;
+      constraints: Record<string, unknown>;
+      validation: { valid: boolean; errors: string[] };
+    }>(`/admin/levels/${id}`),
   createLevel: (data: Record<string, unknown>) =>
     request<{ id: string }>("/admin/levels", { method: "POST", body: data }),
+  updateLevel: (id: string, data: Record<string, unknown>) =>
+    request<{ id: string; status: string; title: string }>(`/admin/levels/${id}`, {
+      method: "PATCH",
+      body: data,
+    }),
   publishLevel: (id: string) =>
     request<{ id: string; status: string }>(`/admin/levels/${id}/publish`, { method: "POST" }),
+  archiveLevel: (id: string) =>
+    request<{ id: string; status: string }>(`/admin/levels/${id}/archive`, { method: "POST" }),
 };

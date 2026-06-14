@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
 import { levelsApi } from "../api/client";
-import CheckInPanel from "../components/CheckInPanel.vue";
 import LevelChallengeCard from "../components/LevelChallengeCard.vue";
+import UserStatusPanel from "../components/UserStatusPanel.vue";
 import { usePointsStore } from "../stores/points";
 import type { LevelSummary } from "../types";
+import { findNextRecommendedLevel } from "../utils/levelProgress";
 import {
   getLevelPresentation,
   TOPIC_CHAPTER_IDS,
@@ -13,7 +15,7 @@ import {
 
 /** 关卡列表 */
 const levels = ref<LevelSummary[]>([]);
-/** 积分钱包 Store，与签到面板、顶栏共享余额 */
+/** 积分钱包 Store */
 const pointsStore = usePointsStore();
 /** 加载中 */
 const loading = ref(true);
@@ -44,61 +46,56 @@ const loadLevels = () => {
 };
 
 /**
- * 签到成功后刷新页面数据。
- * 功能：重新拉取关卡列表与积分钱包，保证余额展示一致。
+ * 签到或解锁后刷新页面数据。
+ * 功能：重新拉取关卡列表与积分钱包。
  * 参数：无。
  * 返回值：无。
  */
-const handleCheckedIn = () => {
+const handleRefresh = () => {
   loadLevels();
+  pointsStore.loadWallet();
 };
 
-onMounted(loadLevels);
+onMounted(() => {
+  loadLevels();
+  pointsStore.loadWallet();
+});
 
-/** 页面展示的积分余额 */
-const pointBalance = computed(() => pointsStore.balance);
-
-/**
- * 修炼路径主题卡片数据。
- * 功能：按固定主题顺序聚合关卡与通关进度。
- * 参数：无。
- * 返回值：主题卡片数组。
- */
-const topicCards = computed(() => {
-  return TOPIC_CHAPTER_IDS.map((chapterId: TopicChapterId) => {
+/** 学习地图节点数据 */
+const mapNodes = computed(() => {
+  return TOPIC_CHAPTER_IDS.map((chapterId: TopicChapterId, index) => {
     const presentation = getLevelPresentation(chapterId);
     const chapterLevels = levels.value
       .filter((level) => level.chapterId === chapterId)
       .sort((a, b) => a.sortOrder - b.sortOrder);
     const completedCount = chapterLevels.filter((level) => level.unlockStatus === "completed").length;
     const totalCount = chapterLevels.length;
+    const nextLevel = chapterLevels.find((level) => level.unlockStatus !== "completed");
+    const isCurrent = nextLevel !== undefined && totalCount > 0;
 
     return {
       chapterId,
+      index,
       presentation,
       levelCount: chapterLevels.length,
       completedCount,
       totalCount,
+      nextLevel,
+      isCurrent,
+      isDone: totalCount > 0 && completedCount >= totalCount,
     };
   });
 });
 
-/** 已通关关卡数 */
-const completedCount = computed(() =>
-  levels.value.filter((level) => level.unlockStatus === "completed").length,
-);
-
-/** 全路径通关百分比 */
-const routePercent = computed(() => {
-  if (levels.value.length === 0) return 0;
-  return Math.round((completedCount.value / levels.value.length) * 100);
-});
+/** 当前推荐关卡 */
+const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
 </script>
 
 <template>
   <section class="page-stack levels-page">
     <header class="page-header">
-      <h1 class="page-title page-title-serif">修炼路径</h1>
+      <h1 class="page-title page-title-serif">学习地图</h1>
+      <p class="page-desc">按章节顺序推进，当前节点与下一关始终可见。</p>
     </header>
 
     <div v-if="loading" class="loading-state">
@@ -108,31 +105,95 @@ const routePercent = computed(() => {
 
     <p v-if="error" class="error-msg">{{ error }}</p>
 
-    <template v-if="!loading && !error">
-      <CheckInPanel @checked-in="handleCheckedIn" />
-
-      <div class="levels-strip card">
-        <span>{{ completedCount }}/{{ levels.length }} 关已通关</span>
-        <span v-if="pointBalance !== null" class="levels-balance">积分 {{ pointBalance }}</span>
-        <div class="progress-track levels-strip-track" aria-label="全路径进度">
-          <div :style="{ width: `${routePercent}%` }" />
+    <div v-if="!loading && !error" class="learning-map-layout">
+      <section class="learning-map-main card">
+        <div v-if="recommendedLevel" class="learning-map-banner">
+          <span class="learning-map-banner-label">当前推荐</span>
+          <strong>{{ recommendedLevel.title }}</strong>
+          <RouterLink
+            v-if="recommendedLevel.canStart && recommendedLevel.unlockStatus !== 'completed'"
+            :to="`/practice/${recommendedLevel.id}`"
+            class="btn-primary"
+          >
+            继续下一关
+          </RouterLink>
+          <RouterLink
+            v-else-if="recommendedLevel.chapterId"
+            :to="`/levels/${recommendedLevel.chapterId}`"
+            class="btn-ghost"
+          >
+            查看解锁条件
+          </RouterLink>
         </div>
-        <strong>{{ routePercent }}%</strong>
-      </div>
 
-      <div class="topic-lane card">
-        <div class="topic-lane-grid">
+        <ol class="learning-map-route">
+          <li
+            v-for="node in mapNodes"
+            :key="node.chapterId"
+            class="learning-map-node"
+            :class="{
+              current: node.isCurrent && !node.isDone,
+              done: node.isDone,
+              empty: node.levelCount === 0,
+            }"
+          >
+            <div class="learning-map-node-marker">
+              <span class="learning-map-node-index">{{ node.index + 1 }}</span>
+            </div>
+
+            <div class="learning-map-node-body">
+              <div class="learning-map-node-head">
+                <strong>{{ node.presentation.chapterLabel }}</strong>
+                <span v-if="node.isDone" class="learning-map-node-badge done">已完成</span>
+                <span v-else-if="node.isCurrent" class="learning-map-node-badge current">进行中</span>
+                <span v-else-if="node.levelCount === 0" class="learning-map-node-badge locked">开发中</span>
+              </div>
+              <p class="learning-map-node-desc">{{ node.presentation.topicDesc }}</p>
+              <p class="learning-map-node-progress">{{ node.completedCount }}/{{ node.totalCount }} 关</p>
+
+              <div v-if="node.nextLevel" class="learning-map-node-next">
+                <span>下一关：{{ node.nextLevel.title }}</span>
+                <RouterLink
+                  v-if="node.nextLevel.canStart"
+                  :to="`/practice/${node.nextLevel.id}`"
+                  class="learning-map-node-link"
+                >
+                  开始
+                </RouterLink>
+                <RouterLink
+                  v-else
+                  :to="`/levels/${node.chapterId}`"
+                  class="learning-map-node-link"
+                >
+                  解锁
+                </RouterLink>
+              </div>
+
+              <RouterLink
+                v-if="node.levelCount > 0"
+                :to="`/levels/${node.chapterId}`"
+                class="learning-map-node-entry"
+              >
+                进入章节
+              </RouterLink>
+            </div>
+          </li>
+        </ol>
+
+        <div class="topic-lane-grid learning-map-cards">
           <LevelChallengeCard
-            v-for="topic in topicCards"
-            :key="topic.chapterId"
-            :chapter-id="topic.chapterId"
-            :presentation="topic.presentation"
-            :level-count="topic.levelCount"
-            :completed-count="topic.completedCount"
-            :total-count="topic.totalCount"
+            v-for="node in mapNodes"
+            :key="`card-${node.chapterId}`"
+            :chapter-id="node.chapterId"
+            :presentation="node.presentation"
+            :level-count="node.levelCount"
+            :completed-count="node.completedCount"
+            :total-count="node.totalCount"
           />
         </div>
-      </div>
-    </template>
+      </section>
+
+      <UserStatusPanel :levels="levels" @checked-in="handleRefresh" />
+    </div>
   </section>
 </template>

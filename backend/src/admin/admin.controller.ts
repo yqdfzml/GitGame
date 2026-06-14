@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { AdminGuard } from "../auth/guards/admin.guard";
@@ -17,6 +19,28 @@ import { CreateLevelDto, UpdateLevelDto } from "./dto/admin-level.dto";
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  /**
+   * 列出全部关卡。
+   * 功能：供管理后台左侧列表与章节筛选使用。
+   * 参数：chapterId - 可选章节筛选。
+   * 返回值：关卡摘要数组。
+   */
+  @Get()
+  listLevels(@Query("chapterId") chapterId?: string) {
+    return this.adminService.listLevels(chapterId);
+  }
+
+  /**
+   * 获取关卡编辑详情。
+   * 功能：返回完整配置供表单与预览使用。
+   * 参数：id - 关卡 id。
+   * 返回值：关卡详情。
+   */
+  @Get(":id")
+  getLevel(@Param("id", ParseIntPipe) id: number) {
+    return this.adminService.getLevel(BigInt(id));
+  }
 
   /**
    * 创建草稿关卡。
