@@ -15,7 +15,7 @@ import type {
   LevelGoal,
   RepoState,
 } from "../git-engine/repo-state.types";
-import { cloneRepoState, resolveConflictFile } from "../git-engine/git-engine.utils";
+import { cloneRepoState, resolveConflictFile, shouldPersistRepoStateAfterFailedCommand } from "../git-engine/git-engine.utils";
 import { fromPrismaJson, toPrismaJson } from "../common/json.util";
 
 /** 单次命令提交的最大步数上限 */
@@ -143,8 +143,10 @@ export class AttemptsService {
     const constraints = fromPrismaJson<LevelConstraints>(level.constraints);
     const judgeResult = this.judge.evaluate(result.state, goal, constraints, newStepCount);
 
-    // 只有命令成功或只读命令（status/log）才更新状态
-    const nextState = result.success ? result.state : currentState;
+    /** 命令失败时，冲突类场景仍要保留仓库变更 */
+    const shouldUpdateState = result.success
+      || shouldPersistRepoStateAfterFailedCommand(result.state, currentState);
+    const nextState = shouldUpdateState ? result.state : currentState;
     const newStatus = judgeResult.passed ? "COMPLETED" : "IN_PROGRESS";
 
     await this.prisma.$transaction(async (tx) => {
@@ -159,7 +161,7 @@ export class AttemptsService {
         },
       });
 
-      if (result.success) {
+      if (shouldUpdateState) {
         await tx.attemptSnapshot.create({
           data: {
             attemptId,

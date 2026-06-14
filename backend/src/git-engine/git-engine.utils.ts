@@ -882,6 +882,31 @@ export const hasConflictMarkers = (content: string): boolean => {
 };
 
 /**
+ * 判断失败的 git 命令是否仍应保留仓库变更。
+ * 功能：merge/rebase 冲突时 success=false，但工作区与 conflicts 已更新，需持久化。
+ * 参数：resultState - 命令执行后的状态；previousState - 执行前状态。
+ * 返回值：true 表示应写入 resultState。
+ */
+export const shouldPersistRepoStateAfterFailedCommand = (
+  resultState: RepoState,
+  previousState: RepoState,
+): boolean => {
+  /** 是否存在未解决冲突 */
+  const hasConflicts = Object.keys(resultState.conflicts).length > 0;
+  if (hasConflicts) {
+    return true;
+  }
+  /** 是否进入 merge 进行中状态 */
+  const enteredMerge = Boolean(resultState.merging) && !previousState.merging;
+  if (enteredMerge) {
+    return true;
+  }
+  /** 是否进入 rebase 进行中状态 */
+  const enteredRebase = Boolean(resultState.rebasing) && !previousState.rebasing;
+  return enteredRebase;
+};
+
+/**
  * 将玩家编辑后的内容写入冲突文件并清除冲突状态。
  * 功能：更新工作区、移除 conflicts 记录，后续仍需 git add。
  * 参数：state - 仓库状态；path - 冲突文件路径；content - 解决后的全文。

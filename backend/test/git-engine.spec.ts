@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveConflictFile, hasConflictMarkers } from "../src/git-engine/git-engine.utils";
+import { resolveConflictFile, hasConflictMarkers, shouldPersistRepoStateAfterFailedCommand, cloneRepoState } from "../src/git-engine/git-engine.utils";
 import { GitEngineService } from "../src/git-engine/git-engine.service";
 import type { RepoState } from "../src/git-engine/repo-state.types";
 import { JudgeService } from "../src/judge/judge.service";
@@ -572,5 +572,37 @@ describe("resolveConflictFile", () => {
   it("hasConflictMarkers 可识别标记行", () => {
     expect(hasConflictMarkers("<<<<<<< HEAD")).toBe(true);
     expect(hasConflictMarkers("clean content")).toBe(false);
+  });
+});
+
+describe("shouldPersistRepoStateAfterFailedCommand", () => {
+  it("merge 冲突失败时应保留仓库变更", () => {
+    const conflictState: RepoState = {
+      commits: {
+        base03: { id: "base03", message: "init", parents: [], files: { "config.json": '{"port":3000}' }, timestamp: 1 },
+        main03: { id: "main03", message: "main edit", parents: ["base03"], files: { "config.json": '{"port":3000,"env":"main"}' }, timestamp: 2 },
+        feat03: { id: "feat03", message: "feature edit", parents: ["base03"], files: { "config.json": '{"port":3000,"env":"feature"}' }, timestamp: 3 },
+      },
+      branches: { main: "main03", feature: "feat03" },
+      head: { type: "branch", ref: "main" },
+      workingTree: {},
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+    };
+
+    const beforeMerge = cloneRepoState(conflictState);
+    const merged = gitEngine.executeCommand("git merge feature", conflictState);
+    expect(merged.success).toBe(false);
+    expect(Object.keys(merged.state.conflicts)).toContain("config.json");
+    expect(shouldPersistRepoStateAfterFailedCommand(merged.state, beforeMerge)).toBe(true);
+  });
+
+  it("普通失败命令不应保留仓库变更", () => {
+    const failed = gitEngine.executeCommand("git commit", baseState);
+    expect(failed.success).toBe(false);
+    expect(shouldPersistRepoStateAfterFailedCommand(failed.state, baseState)).toBe(false);
   });
 });
