@@ -131,7 +131,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       ...makeRepoWithCommit("main", "s2b3c4d", "base", { "app.js": "v1", "debug.log": "old log" }),
       workingTree: { "app.js": { content: "v2", status: "modified" }, "debug.log": { content: "new log", status: "modified" } },
     },
-    goal: { fileContents: { "app.js": "v2" }, workingTreeContents: { "debug.log": "new log" }, indexEmpty: true },
+    goal: { fileContents: { "app.js": "v2", "debug.log": "old log" }, workingTreeContents: { "debug.log": "new log" }, indexEmpty: true },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
   },
   {
@@ -143,7 +143,7 @@ export const ALL_LEVELS: LevelSeed[] = [
       index: { "app.js": "v2" },
       workingTree: { "app.js": { content: "v2", status: "modified" }, "todo.txt": { content: "wip task", status: "modified" } },
     },
-    goal: { fileContents: { "app.js": "v2" }, workingTreeContents: { "todo.txt": "wip task" }, indexEmpty: true },
+    goal: { fileContents: { "app.js": "v2", "todo.txt": "old" }, workingTreeContents: { "todo.txt": "wip task" }, indexEmpty: true },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 15 },
   },
   {

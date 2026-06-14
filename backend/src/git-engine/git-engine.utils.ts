@@ -215,6 +215,9 @@ export const createCommit = (
     files[path] = content;
   }
 
+  // 提交前备份工作区，后续恢复未纳入本次提交的本地改动
+  const previousWorkingTree = JSON.parse(JSON.stringify(state.workingTree)) as RepoState["workingTree"];
+
   const commit: CommitNode = {
     id: commitId,
     message,
@@ -230,6 +233,19 @@ export const createCommit = (
   for (const [path, content] of Object.entries(files)) {
     state.workingTree[path] = { content, status: "unchanged" };
   }
+
+  // 只提交部分文件时，未暂存文件的本地修改应保留在工作区
+  for (const [path, file] of Object.entries(previousWorkingTree)) {
+    const committedContent = files[path];
+    if (committedContent === undefined) {
+      state.workingTree[path] = { ...file };
+      continue;
+    }
+    if (file.content !== committedContent) {
+      state.workingTree[path] = { content: file.content, status: "modified" };
+    }
+  }
+  refreshWorkingTreeStatus(state);
 
   if (state.head.type === "branch") {
     state.branches[state.head.ref] = commitId;

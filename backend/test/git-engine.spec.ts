@@ -89,6 +89,53 @@ describe("GitEngineService", () => {
   });
 });
 
+describe("只取所需关卡判题", () => {
+  /** 关卡初始仓库：base 提交含 app.js v1 与 debug.log old log，两文件工作区均有新改动 */
+  const selectiveAddState: RepoState = {
+    commits: {
+      s2b3c4d: {
+        id: "s2b3c4d",
+        message: "base",
+        parents: [],
+        files: { "app.js": "v1", "debug.log": "old log" },
+        timestamp: 1,
+      },
+    },
+    branches: { main: "s2b3c4d" },
+    head: { type: "branch", ref: "main" },
+    workingTree: {
+      "app.js": { content: "v2", status: "modified" },
+      "debug.log": { content: "new log", status: "modified" },
+    },
+    index: {},
+    conflicts: {},
+    stash: [],
+    tags: {},
+    reflog: [],
+  };
+  /** 只取所需目标：app.js 已提交、debug.log 仍保留本地修改且未进入最新提交 */
+  const selectiveAddGoal = {
+    fileContents: { "app.js": "v2", "debug.log": "old log" },
+    workingTreeContents: { "debug.log": "new log" },
+    indexEmpty: true,
+  };
+
+  it("git add . 误提交全部文件时不应通关", () => {
+    const addAll = gitEngine.executeCommand("git add .", selectiveAddState);
+    const commitAll = gitEngine.executeCommand('git commit -m "demo"', addAll.state);
+    const result = judge.evaluate(commitAll.state, selectiveAddGoal, { baseScore: 100 }, 2);
+    expect(result.passed).toBe(false);
+    expect(result.gaps.some((gap) => gap.key === "fileContents:debug.log")).toBe(true);
+  });
+
+  it("git add app.js 只提交目标文件时应通关", () => {
+    const addOne = gitEngine.executeCommand("git add app.js", selectiveAddState);
+    const commitOne = gitEngine.executeCommand('git commit -m "demo"', addOne.state);
+    const result = judge.evaluate(commitOne.state, selectiveAddGoal, { baseScore: 100 }, 2);
+    expect(result.passed).toBe(true);
+  });
+});
+
 describe("JudgeService", () => {
   it("按最终状态判题而非命令路径", () => {
     const goal = {

@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { attemptsApi, levelsApi } from "../api/client";
 import CommitGraph from "../components/CommitGraph.vue";
 import GoalFeedback from "../components/GoalFeedback.vue";
 import WorkingTreePanel from "../components/WorkingTreePanel.vue";
+import { usePointsStore } from "../stores/points";
 import type { AttemptDetail, LevelGoalHints, NextLevelAfterComplete, RepoState } from "../types";
 import { EMPTY_LEVEL_GOAL_HINTS } from "../types";
 import { calcChallengeProgress } from "../utils/challengeProgress";
 
 const route = useRoute();
 const router = useRouter();
-const levelId = route.params.levelId as string;
+/** 积分 Store，自动解锁下一关后刷新顶栏余额 */
+const pointsStore = usePointsStore();
+/** 当前练习关卡 id，随路由参数变化 */
+const levelId = computed(() => route.params.levelId as string);
 
 /** 关卡标题 */
 const levelTitle = ref("");
@@ -51,6 +55,8 @@ const commandInputRef = ref<HTMLInputElement | null>(null);
 const terminalOutputRef = ref<HTMLDivElement | null>(null);
 /** 通关后下一关信息，来自服务端（含自动解锁结果） */
 const completedNextLevel = ref<NextLevelAfterComplete | null>(null);
+/** 自动跳转下一关的定时器 id，组件卸载或切换关卡前需清除 */
+let nextLevelNavigateTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** 目标完成百分比，以开局差距为基准从 0% 起算 */
 const progressPct = computed(() => {
@@ -90,8 +96,115 @@ const scrollTerminalToBottom = () => {
 };
 
 /**
+ * 清除自动跳转下一关的定时器。
+ * 功能：避免组件卸载或重复通关后仍触发旧跳转。
+ * 参数：无。
+ * 返回值：无。
+ */
+const clearNextLevelNavigateTimer = () => {
+  if (nextLevelNavigateTimer !== null) {
+    clearTimeout(nextLevelNavigateTimer);
+    nextLevelNavigateTimer = null;
+  }
+};
+
+/**
+ * 重置练习页全部状态。
+ * 功能：切换关卡或重新进入练习前清空上一关残留数据。
+ * 参数：无。
+ * 返回值：无。
+ */
+const resetPracticeState = () => {
+  clearNextLevelNavigateTimer();
+  levelTitle.value = "";
+  levelDescription.value = "";
+  goalHints.value = { ...EMPTY_LEVEL_GOAL_HINTS };
+  hintOpen.value = false;
+  attemptId.value = "";
+  repoState.value = null;
+  judge.value = null;
+  initialGapCount.value = 0;
+  initialSatisfiedKeys.value = [];
+  terminalLines.value = [];
+  commandInput.value = "";
+  submitting.value = false;
+  completed.value = false;
+  stepCount.value = 0;
+  error.value = "";
+  lockedError.value = false;
+  completedNextLevel.value = null;
+};
+
+/**
+ * 加载并开启指定关卡的练习。
+ * 功能：拉取关卡详情并创建新的 attempt 会话。
+ * 参数：targetLevelId - 目标关卡 id。
+ * 返回值：无。
+ */
+const initPracticeLevel = (targetLevelId: string) => {
+  resetPracticeState();
+
+  levelsApi.get(targetLevelId).then((level) => {
+    levelTitle.value = level.title;
+    levelDescription.value = level.description;
+    goalHints.value = level.goalHints;
+  }).catch((err: Error) => {
+    if (err.message.includes("未解锁")) {
+      lockedError.value = true;
+    }
+    error.value = err.message;
+  });
+
+  attemptsApi.create(targetLevelId).then((attempt) => {
+    attemptId.value = attempt.id;
+    repoState.value = attempt.state;
+    judge.value = attempt.judge;
+    initialGapCount.value = attempt.judge.gaps.length;
+    initialSatisfiedKeys.value = [...attempt.judge.satisfied];
+    stepCount.value = attempt.stepCount;
+    terminalLines.value.push({ text: "练习已开始。输入 git 命令并按 Enter 执行。", type: "success" });
+    scrollTerminalToBottom();
+    focusCommandInput();
+  }).catch((err: Error) => {
+    if (err.message.includes("未解锁")) {
+      lockedError.value = true;
+    }
+    error.value = err.message;
+  });
+};
+
+/**
+ * 跳转到下一关练习页。
+ * 功能：通关且下一关可开始时进入对应路由。
+ * 参数：nextLevelInfo - 服务端返回的下一关摘要。
+ * 返回值：无。
+ */
+const goNextLevel = (nextLevelInfo: NextLevelAfterComplete) => {
+  router.push(`/practice/${nextLevelInfo.levelId}`);
+};
+
+/**
+ * 自动解锁下一关后延迟跳转。
+ * 功能：让玩家看到通关与解锁提示，再进入下一关。
+ * 参数：nextLevelInfo - 已自动解锁的下一关摘要。
+ * 返回值：无。
+ */
+const scheduleAutoNavigateToNextLevel = (nextLevelInfo: NextLevelAfterComplete) => {
+  clearNextLevelNavigateTimer();
+  terminalLines.value.push({
+    text: `即将进入下一关：${nextLevelInfo.title}...`,
+    type: "success",
+  });
+  scrollTerminalToBottom();
+  nextLevelNavigateTimer = setTimeout(() => {
+    nextLevelNavigateTimer = null;
+    goNextLevel(nextLevelInfo);
+  }, 1200);
+};
+
+/**
  * 通关后在终端提示下一关信息。
- * 功能：展示服务端返回的下一关状态，含是否已自动解锁。
+ * 功能：展示服务端返回的下一关状态；已自动解锁时安排跳转。
  * 参数：nextLevelInfo - 服务端下一关摘要，null 表示已全部通关。
  * 返回值：无。
  */
@@ -110,6 +223,10 @@ const appendNextLevelHint = (nextLevelInfo: NextLevelAfterComplete | null | unde
       text: `已自动解锁下一关：${nextLevelInfo.title}（消耗 ${nextLevelInfo.unlockCost} 积分）`,
       type: "success",
     });
+    pointsStore.loadWallet();
+    if (nextLevelInfo.canStart) {
+      scheduleAutoNavigateToNextLevel(nextLevelInfo);
+    }
   } else if (nextLevelInfo.canStart) {
     terminalLines.value.push({
       text: `下一关：${nextLevelInfo.title}，点击下方「下一关」继续`,
@@ -150,34 +267,19 @@ const toggleHintPanel = () => {
   hintOpen.value = !hintOpen.value;
 };
 
-onMounted(() => {
-  levelsApi.get(levelId).then((level) => {
-    levelTitle.value = level.title;
-    levelDescription.value = level.description;
-    goalHints.value = level.goalHints;
-  }).catch((err: Error) => {
-    if (err.message.includes("未解锁")) {
-      lockedError.value = true;
+watch(
+  levelId,
+  (newLevelId) => {
+    if (!newLevelId) {
+      return;
     }
-    error.value = err.message;
-  });
+    initPracticeLevel(newLevelId);
+  },
+  { immediate: true },
+);
 
-  attemptsApi.create(levelId).then((attempt) => {
-    attemptId.value = attempt.id;
-    repoState.value = attempt.state;
-    judge.value = attempt.judge;
-    initialGapCount.value = attempt.judge.gaps.length;
-    initialSatisfiedKeys.value = [...attempt.judge.satisfied];
-    stepCount.value = attempt.stepCount;
-    terminalLines.value.push({ text: "练习已开始。输入 git 命令并按 Enter 执行。", type: "success" });
-    scrollTerminalToBottom();
-    focusCommandInput();
-  }).catch((err: Error) => {
-    if (err.message.includes("未解锁")) {
-      lockedError.value = true;
-    }
-    error.value = err.message;
-  });
+onUnmounted(() => {
+  clearNextLevelNavigateTimer();
 });
 
 /**
@@ -362,13 +464,14 @@ const goReplay = () => {
             </button>
           </div>
           <div v-if="completed" class="terminal-actions">
-            <RouterLink
+            <button
               v-if="completedNextLevel && completedNextLevel.canStart"
-              :to="`/practice/${completedNextLevel.levelId}`"
+              type="button"
               class="btn-primary"
+              @click="goNextLevel(completedNextLevel)"
             >
               下一关
-            </RouterLink>
+            </button>
             <RouterLink
               v-else-if="completedNextLevel && !completedNextLevel.canStart"
               to="/levels"
