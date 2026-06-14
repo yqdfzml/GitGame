@@ -2018,7 +2018,7 @@ a:hover { color: var(--accent-hover); }
 }
 .terminal-input-row input:focus { outline: none; }
 .terminal-input-row input::placeholder { color: var(--text-faint); }
-.terminal-actions { display: flex; gap: 10px; margin-top: 12px; }
+.terminal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 
 .commit-graph { font-family: var(--font-mono); font-size: 0.8rem; }
 .commit-node {
