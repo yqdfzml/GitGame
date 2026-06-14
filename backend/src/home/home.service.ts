@@ -7,6 +7,8 @@ import { PrismaService } from "../prisma/prisma.service";
 export interface HomeLeaderboardItem {
   rank: number;
   displayName: string;
+  /** 玩家头像 URL，未设置时为 null */
+  avatarUrl: string | null;
   practiceScore: number;
   completedLevels: number;
 }

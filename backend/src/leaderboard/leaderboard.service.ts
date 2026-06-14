@@ -15,6 +15,8 @@ export interface PracticeScoreLeaderboardItem {
   rank: number;
   userId: string;
   displayName: string;
+  /** 玩家头像 URL，未设置时为 null */
+  avatarUrl: string | null;
   practiceScore: number;
   completedLevels: number;
 }
@@ -27,6 +29,8 @@ export interface LevelScoreLeaderboardItem {
   levelTitle: string;
   chapterId: string | null;
   displayName: string;
+  /** 玩家头像 URL，未设置时为 null */
+  avatarUrl: string | null;
   score: number;
   durationSeconds: number;
   updatedAt: Date;
@@ -77,14 +81,18 @@ export class LeaderboardService {
     const userIds = grouped.map((row) => row.userId);
     const users = await this.prisma.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, displayName: true },
+      select: { id: true, displayName: true, avatarUrl: true },
     });
+    /** 用户展示名映射，key 为 userId 字符串 */
     const displayNameMap = new Map(users.map((user) => [user.id.toString(), user.displayName]));
+    /** 用户头像映射，key 为 userId 字符串 */
+    const avatarUrlMap = new Map(users.map((user) => [user.id.toString(), user.avatarUrl]));
 
     return grouped.map((row, index) => ({
       rank: index + 1,
       userId: row.userId.toString(),
       displayName: displayNameMap.get(row.userId.toString()) ?? "未知用户",
+      avatarUrl: avatarUrlMap.get(row.userId.toString()) ?? null,
       practiceScore: row._sum.score ?? 0,
       completedLevels: row._count.levelId,
     }));
@@ -102,7 +110,7 @@ export class LeaderboardService {
       orderBy: [{ score: "desc" }, { durationSeconds: "asc" }],
       take: limit,
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, avatarUrl: true } },
         level: { select: { title: true, chapterId: true } },
       },
     });
@@ -114,6 +122,7 @@ export class LeaderboardService {
       levelTitle: entry.level.title,
       chapterId: entry.level.chapterId,
       displayName: entry.user.displayName,
+      avatarUrl: entry.user.avatarUrl,
       score: entry.score,
       durationSeconds: entry.durationSeconds,
       updatedAt: entry.completedAt,

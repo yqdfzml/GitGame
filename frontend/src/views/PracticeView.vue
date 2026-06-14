@@ -390,11 +390,11 @@ const goReplay = () => {
       <div class="practice-sidebar">
         <div class="practice-sidebar-row">
           <div class="card practice-panel-compact">
-            <p class="panel-title">Commit Graph</p>
+            <p class="panel-title">提交图谱</p>
             <CommitGraph :state="repoState" />
           </div>
           <div class="card practice-panel-compact">
-            <p class="panel-title">Working Tree</p>
+            <p class="panel-title">工作区</p>
             <WorkingTreePanel :state="repoState" />
           </div>
         </div>
@@ -415,15 +415,17 @@ const goReplay = () => {
           <span class="terminal-dot red" />
           <span class="terminal-dot yellow" />
           <span class="terminal-dot green" />
-          <span class="terminal-chrome-title">git — zsh</span>
+          <span class="terminal-chrome-title">Git 终端</span>
         </div>
-        <div ref="terminalOutputRef" class="terminal">
-          <div
-            v-for="(line, i) in terminalLines"
-            :key="i"
-            class="terminal-line"
-            :class="line.type"
-          >{{ line.text }}</div>
+        <div class="terminal-body">
+          <div ref="terminalOutputRef" class="terminal">
+            <div
+              v-for="(line, i) in terminalLines"
+              :key="i"
+              class="terminal-line"
+              :class="line.type"
+            >{{ line.text }}</div>
+          </div>
         </div>
         <div class="terminal-input-area">
           <div class="terminal-input-row">

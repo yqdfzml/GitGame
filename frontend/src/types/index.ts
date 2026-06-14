@@ -106,6 +106,18 @@ export interface CommitNode {
   timestamp: number;
 }
 
+/** 贮藏栈条目 */
+export interface StashEntry {
+  /** stash 引用 id，如 stash@{0} */
+  id: string;
+  /** 贮藏说明 */
+  message: string;
+  /** 贮藏时的工作区文件快照 */
+  workingTree?: Record<string, WorkingFile>;
+  /** 贮藏时的暂存区快照 */
+  index?: Record<string, string>;
+}
+
 /** 仓库状态 */
 export interface RepoState {
   commits: Record<string, CommitNode>;
@@ -115,7 +127,7 @@ export interface RepoState {
   index: Record<string, string>;
   conflicts: Record<string, unknown>;
   /** 贮藏栈 */
-  stash?: Array<{ id: string; message: string }>;
+  stash?: StashEntry[];
 }
 
 /** 命令历史条目 */
@@ -236,6 +248,8 @@ export interface UserStats {
 export interface LeaderboardEntry {
   rank: number;
   displayName: string;
+  /** 玩家头像 URL，未设置时为 null */
+  avatarUrl: string | null;
   practiceScore: number;
   completedLevels: number;
   userId?: string;
@@ -245,6 +259,8 @@ export interface LeaderboardEntry {
 export interface LevelScoreLeaderboardEntry {
   rank: number;
   displayName: string;
+  /** 玩家头像 URL，未设置时为 null */
+  avatarUrl: string | null;
   userId: string;
   levelId: string;
   levelTitle: string;

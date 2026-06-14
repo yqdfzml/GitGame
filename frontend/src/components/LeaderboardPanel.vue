@@ -27,6 +27,17 @@ const visibleEntries = computed(() => {
 });
 
 /**
+ * 获取玩家名称首字母，用于无头像时的占位。
+ * 功能：取 displayName 或 userId 的首字符并大写。
+ * 参数：displayName - 展示名；userId - 可选用户 id。
+ * 返回值：单字符字符串。
+ */
+const playerInitial = (displayName: string, userId?: string) => {
+  const name = displayName || userId || "?";
+  return name.charAt(0).toUpperCase();
+};
+
+/**
  * 获取排名徽章样式。
  * 功能：前三名使用金银铜样式。
  * 参数：rank - 排名数字。
@@ -62,7 +73,18 @@ const rankClass = (rank: number) => {
         <tbody>
           <tr v-for="entry in visibleEntries" :key="`${entry.rank}-${entry.displayName}-${entry.userId ?? entry.practiceScore}`">
             <td><span :class="rankClass(entry.rank)">{{ entry.rank }}</span></td>
-            <td>{{ entry.displayName }}</td>
+            <td>
+              <div class="leaderboard-player">
+                <img
+                  v-if="entry.avatarUrl"
+                  :src="entry.avatarUrl"
+                  alt=""
+                  class="leaderboard-avatar-img"
+                />
+                <span v-else class="leaderboard-avatar">{{ playerInitial(entry.displayName, entry.userId) }}</span>
+                <span class="leaderboard-name">{{ entry.displayName }}</span>
+              </div>
+            </td>
             <td class="score-cell">{{ entry.practiceScore }}</td>
             <td class="mono">{{ entry.completedLevels }}</td>
           </tr>

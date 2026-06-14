@@ -808,6 +808,42 @@ a:hover { color: var(--accent-hover); }
   min-height: 120px;
 }
 
+.leaderboard-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.leaderboard-avatar,
+.leaderboard-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.leaderboard-avatar {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--bg);
+}
+
+.leaderboard-avatar-img {
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.leaderboard-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── 首页通关动态：全宽横向滚动播报条 ── */
 .activity-marquee-bar {
   display: flex;
@@ -1954,6 +1990,11 @@ a:hover { color: var(--accent-hover); }
   overflow: hidden;
 }
 
+.practice-layout > * {
+  min-height: 0;
+  min-width: 0;
+}
+
 .practice-sidebar,
 .terminal-panel {
   min-height: 0;
@@ -2000,15 +2041,15 @@ a:hover { color: var(--accent-hover); }
   flex-direction: column;
 }
 
-.practice-panel-compact .panel-title {
-  flex-shrink: 0;
-  margin-bottom: 8px;
-}
-
 .practice-panel-compact > :not(.panel-title) {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
+}
+
+.practice-panel-compact .panel-title {
+  flex-shrink: 0;
+  margin-bottom: 8px;
 }
 
 .practice-panel-compact .head-badge {
@@ -2078,7 +2119,16 @@ a:hover { color: var(--accent-hover); }
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-height: 100%;
   height: 100%;
+}
+
+.terminal-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .terminal-chrome {
   display: flex; align-items: center; gap: 8px; padding: 10px 14px;
@@ -2097,11 +2147,14 @@ a:hover { color: var(--accent-hover); }
   font-family: var(--font-mono);
   font-size: 0.82rem;
   line-height: 1.55;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
-.terminal-line { margin-bottom: 3px; white-space: pre-wrap; word-break: break-all; }
+.terminal-line { margin-bottom: 3px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 .terminal-line.output { color: #8a8278; }
 .terminal-line.error { color: #e8705a; }
 .terminal-line.success { color: var(--accent-2); }
@@ -2112,6 +2165,7 @@ a:hover { color: var(--accent-hover); }
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   min-height: 56px;
+  overflow: hidden;
 }
 .terminal-input-row { display: flex; gap: 10px; align-items: center; }
 .prompt-symbol { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); flex-shrink: 0; }
@@ -2123,7 +2177,15 @@ a:hover { color: var(--accent-hover); }
 .terminal-input-row input::placeholder { color: var(--text-faint); }
 .terminal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 
-.commit-graph { font-family: var(--font-mono); font-size: 0.8rem; }
+.commit-graph {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .commit-node {
   display: flex; align-items: center; gap: 10px; padding: 8px 10px;
   border-radius: 6px; margin-bottom: 4px; transition: background var(--transition);
@@ -2146,15 +2208,60 @@ a:hover { color: var(--accent-hover); }
 }
 .head-badge strong { color: var(--accent); }
 
-.file-list { list-style: none; }
+.working-tree-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.working-tree-head {
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
+.working-tree-detached {
+  color: var(--text-faint);
+}
+
+.working-tree-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.working-tree-footer {
+  flex-shrink: 0;
+}
+
+.file-list { list-style: none; margin: 0; }
 .file-item {
-  display: flex; justify-content: space-between; align-items: center; padding: 9px 10px;
-  border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; transition: background var(--transition);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  transition: background var(--transition);
+}
+.file-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .file-item:hover { background: var(--surface-hover); }
 .file-status {
-  font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;
-  text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .file-status.unchanged { color: var(--text-faint); background: var(--bg-elevated); }
 .file-status.modified { color: var(--warn); background: rgba(232, 168, 56, 0.12); }
@@ -2173,6 +2280,80 @@ a:hover { color: var(--accent-hover); }
 }
 .staging-banner { color: var(--warn); background: rgba(232, 168, 56, 0.1); border: 1px solid rgba(232, 168, 56, 0.2); }
 .conflict-banner { color: var(--danger); background: var(--danger-soft); border: 1px solid rgba(217, 78, 45, 0.2); }
+
+.working-tree-section-title {
+  margin: 8px 0 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+.working-tree-stash {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.stash-list {
+  list-style: none;
+  margin: 0;
+}
+
+.stash-item {
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  background: rgba(242, 189, 75, 0.06);
+  border: 1px solid rgba(242, 189, 75, 0.16);
+}
+
+.stash-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.stash-id {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.stash-message {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stash-file-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding-left: 8px;
+}
+
+.stash-file-item {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.practice-panel-compact .stash-item {
+  padding: 5px 6px;
+  margin-bottom: 3px;
+}
+
+.practice-panel-compact .working-tree-section-title {
+  margin-top: 4px;
+  font-size: 0.66rem;
+}
 
 .goal-progress {
   display: flex; align-items: center; gap: 14px; margin-bottom: 18px; padding: 14px;
