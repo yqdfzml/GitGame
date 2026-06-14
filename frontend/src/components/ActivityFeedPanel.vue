@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { ScrollText } from "lucide-vue-next";
 import type { HomeActivityItem } from "../types";
 
 const props = defineProps<{
@@ -9,24 +10,18 @@ const props = defineProps<{
   loading: boolean;
   /** 错误信息 */
   error: string;
+  /** 是否显示流式头部 */
+  showHeader?: boolean;
 }>();
 
-/**
- * 滚动播报条目（复制两份，实现无缝循环）。
- * 功能：把原始动态列表拼接成两倍长度，供 CSS 动画循环播放。
- * 参数：无（读取 props.activities）。
- * 返回值：用于滚动的条目数组。
- */
-const marqueeItems = computed(() => {
-  if (props.activities.length === 0) {
-    return [];
-  }
-  return [...props.activities, ...props.activities];
+/** 去重后的动态列表，首页只展示最近条目 */
+const visibleActivities = computed(() => {
+  return props.activities.slice(0, 12);
 });
 
 /**
  * 格式化相对时间。
- * 功能：把 ISO 时间转成「刚刚 / 3 分钟前」等文案。
+ * 功能：把 ISO 时间转成短格式相对时间。
  * 参数：isoTime - ISO 时间字符串。
  * 返回值：相对时间文案。
  */
@@ -34,65 +29,121 @@ const formatRelativeTime = (isoTime: string) => {
   const diffMs = Date.now() - new Date(isoTime).getTime();
   const diffMinutes = Math.floor(diffMs / 60000);
   if (diffMinutes <= 0) {
-    return "刚刚";
+    return "now";
   }
   if (diffMinutes < 60) {
-    return `${diffMinutes} 分钟前`;
+    return `${diffMinutes}m`;
   }
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours} 小时前`;
+    return `${diffHours}h`;
   }
   const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays} 天前`;
+  return `${diffDays}d`;
 };
 
 /**
- * 获取动态类型标签文案。
+ * 获取动态圆点样式。
+ * 功能：通关与徽章解锁使用不同颜色。
+ * 参数：type - 动态类型。
+ * 返回值：CSS class 名。
+ */
+const activityDotClass = (type: HomeActivityItem["type"]) => {
+  if (type === "badge_unlock") {
+    return "log-stream-dot accent";
+  }
+  return "log-stream-dot";
+};
+
+/**
+ * 获取动态状态徽章样式。
+ * 功能：为日志流条目提供状态标签颜色。
+ * 参数：type - 动态类型。
+ * 返回值：CSS class 名。
+ */
+const activityBadgeClass = (type: HomeActivityItem["type"]) => {
+  if (type === "badge_unlock") {
+    return "log-stream-status accent";
+  }
+  return "log-stream-status";
+};
+
+/**
+ * 获取动态状态标签文案。
  * 功能：区分通关与徽章解锁。
  * 参数：type - 动态类型。
  * 返回值：标签文字。
  */
-const activityTypeLabel = (type: HomeActivityItem["type"]) => {
+const activityStatusLabel = (type: HomeActivityItem["type"]) => {
   if (type === "badge_unlock") {
-    return "徽章";
+    return "BADGE";
   }
-  return "通关";
+  return "CLEARED";
+};
+
+/**
+ * 获取用户名首字母。
+ * 功能：用于头像占位圆标。
+ * 参数：name - 玩家昵称。
+ * 返回值：单字符。
+ */
+const userInitial = (name: string) => {
+  return name.charAt(0).toUpperCase();
 };
 </script>
 
 <template>
-  <div class="activity-marquee-bar">
-    <span class="activity-marquee-label">
-      <span class="activity-marquee-live-dot" />
-      通关动态
-    </span>
+  <div class="log-stream-panel activity-log">
+    <header v-if="showHeader !== false" class="log-stream-head">
+      <div class="log-stream-title">
+        <ScrollText class="log-stream-icon" aria-hidden="true" />
+        <h3>宗门动态</h3>
+      </div>
+      <span class="log-stream-live">Live</span>
+    </header>
 
-    <div v-if="loading" class="activity-marquee-status">
-      <div class="loading-spinner activity-marquee-spinner" />
-      <span>加载动态中...</span>
+    <div v-if="loading" class="loading-state log-stream-loading">
+      <div class="loading-spinner" />
+      <span>加载中...</span>
     </div>
 
-    <p v-else-if="error" class="activity-marquee-status activity-marquee-error">{{ error }}</p>
+    <p v-else-if="error" class="error-msg">{{ error }}</p>
 
-    <div v-else-if="activities.length === 0" class="activity-marquee-status">
-      暂无通关动态，完成关卡后会在这里播报
-    </div>
+    <ul v-else class="log-stream-list">
+      <li
+        v-for="item in visibleActivities"
+        :key="item.id"
+        class="log-stream-item"
+      >
+        <span :class="activityDotClass(item.type)" />
 
-    <div v-else class="activity-marquee-viewport">
-      <ul class="activity-marquee-track">
-        <li
-          v-for="(item, index) in marqueeItems"
-          :key="`${item.id}-${index}`"
-          class="activity-marquee-item"
-        >
-          <span class="activity-feed-dot" :class="item.type" />
-          <strong>{{ item.displayName }}</strong>
-          <span class="activity-feed-tag">{{ activityTypeLabel(item.type) }}</span>
-          <span class="activity-marquee-message">{{ item.message }}</span>
-          <span class="activity-marquee-time">{{ formatRelativeTime(item.happenedAt) }}</span>
-        </li>
-      </ul>
-    </div>
+        <div class="log-stream-body">
+          <p class="log-stream-event">
+            <template v-if="item.type === 'badge_unlock'">
+              解锁
+              <em class="log-highlight-badge">{{ item.badgeName }}</em>
+            </template>
+            <template v-else>
+              通关
+              <em class="log-highlight-level">{{ item.levelTitle }}</em>
+              <template v-if="item.score !== null">
+                · 得分
+                <em class="log-highlight-score">{{ item.score }}</em>
+              </template>
+            </template>
+          </p>
+
+          <div class="log-stream-user-row">
+            <span class="log-stream-avatar">{{ userInitial(item.displayName) }}</span>
+            <span class="log-stream-user">{{ item.displayName }}</span>
+            <span :class="activityBadgeClass(item.type)">{{ activityStatusLabel(item.type) }}</span>
+          </div>
+        </div>
+
+        <span class="log-stream-time">{{ formatRelativeTime(item.happenedAt) }}</span>
+      </li>
+
+      <li v-if="visibleActivities.length === 0" class="log-stream-empty">—</li>
+    </ul>
   </div>
 </template>

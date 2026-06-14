@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
 import { leaderboardApi } from "../api/client";
 import LeaderboardPanel from "../components/LeaderboardPanel.vue";
 import type { LeaderboardEntry } from "../types";
@@ -27,18 +28,19 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="page-stack">
-    <header class="page-header">
-      <h1 class="page-title">排行榜</h1>
-      <p class="page-desc">按得分优先、耗时次之排列</p>
+  <section class="page-stack leaderboard-page">
+    <header class="page-header page-header-compact">
+      <h1 class="page-title page-title-serif">排行榜</h1>
+      <RouterLink to="/" class="home-section-link">返回</RouterLink>
     </header>
 
-    <div class="card">
+    <div class="card leaderboard-page-card">
       <LeaderboardPanel
         :entries="entries"
         :preview-limit="0"
         :loading="loading"
         :error="error"
+        title="修行榜"
       />
     </div>
   </section>

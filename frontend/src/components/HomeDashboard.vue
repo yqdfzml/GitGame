@@ -100,20 +100,19 @@ const canContinue = computed(() => {
       <div class="home-dashboard-main">
         <section class="home-hero card">
           <template v-if="nextLevel">
-            <div class="home-hero-top">
-              <span v-if="nextPresentation" class="ui-chip">{{ nextPresentation.chapterLabel }}</span>
-              <span
-                class="ui-chip"
-                :class="canContinue ? 'ui-chip-ok' : 'ui-chip-warn'"
-              >
-                {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
-              </span>
-            </div>
+            <div class="home-hero-content">
+              <div class="home-hero-top">
+                <span v-if="nextPresentation" class="ui-chip ui-chip-muted">{{ nextPresentation.chapterLabel }}</span>
+                <span class="ui-chip" :class="canContinue ? 'ui-chip-ok' : 'ui-chip-warn'">
+                  {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
+                </span>
+              </div>
 
-            <h2 class="home-hero-title">{{ nextLevel.title }}</h2>
-            <p v-if="nextPresentation" class="home-hero-meta">
-              {{ nextPresentation.skillLabel }}
-            </p>
+              <h2 class="home-hero-title">{{ nextLevel.title }}</h2>
+              <p v-if="nextPresentation" class="home-hero-meta">
+                {{ nextPresentation.skillLabel }}
+              </p>
+            </div>
 
             <div class="home-hero-actions">
               <RouterLink
@@ -130,18 +129,20 @@ const canContinue = computed(() => {
               >
                 解锁
               </RouterLink>
-              <RouterLink to="/levels" class="btn-ghost">地图</RouterLink>
+              <RouterLink to="/levels" class="btn-ghost home-hero-map">地图</RouterLink>
             </div>
           </template>
 
           <template v-else>
-            <div class="home-hero-top">
-              <span class="ui-chip ui-chip-ok">主线完成</span>
+            <div class="home-hero-content">
+              <div class="home-hero-top">
+                <span class="ui-chip ui-chip-ok">主线完成</span>
+              </div>
+              <h2 class="home-hero-title">全部通关</h2>
             </div>
-            <h2 class="home-hero-title">全部通关</h2>
             <div class="home-hero-actions">
               <RouterLink to="/achievements" class="btn-primary home-hero-cta">成就</RouterLink>
-              <RouterLink to="/leaderboard" class="btn-ghost">排行</RouterLink>
+              <RouterLink to="/leaderboard" class="btn-ghost home-hero-map">排行</RouterLink>
             </div>
           </template>
         </section>
@@ -164,8 +165,10 @@ const canContinue = computed(() => {
 
             <div class="home-stat-card">
               <span class="home-stat-label">连签</span>
-              <strong class="home-stat-value">{{ pointsStore.wallet?.currentStreak ?? 0 }}</strong>
-              <span class="home-stat-sub">天</span>
+              <div class="home-stat-inline">
+                <strong class="home-stat-value">{{ pointsStore.wallet?.currentStreak ?? 0 }}</strong>
+                <span class="home-stat-unit">天</span>
+              </div>
             </div>
 
             <div class="home-stat-card home-stat-card-wide">
@@ -183,22 +186,16 @@ const canContinue = computed(() => {
 
       <section class="home-dashboard-secondary">
         <div class="home-dashboard-block">
-          <div class="home-dashboard-block-head">
-            <h3>动态</h3>
-          </div>
           <ActivityFeedPanel :activities="activities" :loading="false" :error="''" />
         </div>
 
         <div class="home-dashboard-block home-dashboard-leaderboard">
-          <div class="home-dashboard-block-head">
-            <h3>排行</h3>
-            <RouterLink to="/leaderboard" class="home-section-link">全部</RouterLink>
-          </div>
           <LeaderboardPanel
             :entries="leaderboard"
             :preview-limit="5"
             :loading="false"
             :error="''"
+            more-href="/leaderboard"
           />
         </div>
       </section>
