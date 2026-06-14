@@ -136,6 +136,43 @@ describe("只取所需关卡判题", () => {
   });
 });
 
+describe("错改回正关卡判题", () => {
+  /** 关卡初始仓库：HEAD 为正确 config，工作区被误改为 broken */
+  const restoreLevelState: RepoState = {
+    commits: {
+      s4d5e6f: {
+        id: "s4d5e6f",
+        message: "base",
+        parents: [],
+        files: { "config.json": '{"mode":"prod"}' },
+        timestamp: 1,
+      },
+    },
+    branches: { main: "s4d5e6f" },
+    head: { type: "branch", ref: "main" },
+    workingTree: {
+      "config.json": { content: '{"mode":"broken"}', status: "modified" },
+    },
+    index: {},
+    conflicts: {},
+    stash: [],
+    tags: {},
+    reflog: [],
+  };
+  /** 错改回正目标：restore 后工作区 clean，无需额外 commit */
+  const restoreLevelGoal = {
+    workingTreeClean: true,
+    indexEmpty: true,
+    currentBranch: "main",
+  };
+
+  it("git restore . 恢复工作区后应通关", () => {
+    const restoreResult = gitEngine.executeCommand("git restore .", restoreLevelState);
+    const result = judge.evaluate(restoreResult.state, restoreLevelGoal, { baseScore: 100 }, 1);
+    expect(result.passed).toBe(true);
+  });
+});
+
 describe("JudgeService", () => {
   it("按最终状态判题而非命令路径", () => {
     const goal = {

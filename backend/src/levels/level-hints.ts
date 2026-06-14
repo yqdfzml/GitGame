@@ -65,9 +65,9 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
     keyPoints: ["git commit -m \"...\" 即可，无需再次 add app.js。"],
   },
   9: {
-    concepts: ["误改已跟踪文件时，restore 可从 HEAD 恢复正确内容，再重新走 add → commit。"],
-    directions: ["先用 restore 恢复 config.json，再提交正确版本。"],
-    keyPoints: ["git restore config.json → git add config.json → git commit -m \"...\""],
+    concepts: ["误改已跟踪文件时，restore 可从 HEAD 恢复工作区正确内容。"],
+    directions: ["用 restore 撤销 config.json 的本地误改，使工作区与 HEAD 一致。"],
+    keyPoints: ["git restore config.json 或 git restore ."],
   },
   10: {
     concepts: ["untracked 文件不会被 git add . 以外的误操作自动提交，但要避免 add 未跟踪文件。"],

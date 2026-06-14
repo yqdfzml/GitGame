@@ -148,10 +148,10 @@ export const ALL_LEVELS: LevelSeed[] = [
   },
   {
     courseId: "mvp", chapterId: "snapshot", title: "错改回正", sortOrder: 9,
-    description: "config.json 被误改，restore 恢复后提交。",
+    description: "config.json 被误改，用 restore 将工作区恢复为 HEAD 版本。",
     difficulty: Difficulty.BEGINNER,
     initialState: { ...makeRepoWithCommit("main", "s4d5e6f", "base", { "config.json": '{"mode":"prod"}' }), workingTree: { "config.json": { content: '{"mode":"broken"}', status: "modified" } } },
-    goal: { workingTreeClean: true, indexEmpty: true, fileContents: { "config.json": '{"mode":"prod"}' }, currentBranch: "main" },
+    goal: { workingTreeClean: true, indexEmpty: true, currentBranch: "main" },
     constraints: { baseScore: 100, stepPenalty: 2, maxSteps: 20 },
   },
   {

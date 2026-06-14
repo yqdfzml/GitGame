@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { attemptsApi, levelsApi } from "../api/client";
 import CommitGraph from "../components/CommitGraph.vue";
@@ -55,8 +55,6 @@ const commandInputRef = ref<HTMLInputElement | null>(null);
 const terminalOutputRef = ref<HTMLDivElement | null>(null);
 /** 通关后下一关信息，来自服务端（含自动解锁结果） */
 const completedNextLevel = ref<NextLevelAfterComplete | null>(null);
-/** 自动跳转下一关的定时器 id，组件卸载或切换关卡前需清除 */
-let nextLevelNavigateTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** 目标完成百分比，以开局差距为基准从 0% 起算 */
 const progressPct = computed(() => {
@@ -96,26 +94,12 @@ const scrollTerminalToBottom = () => {
 };
 
 /**
- * 清除自动跳转下一关的定时器。
- * 功能：避免组件卸载或重复通关后仍触发旧跳转。
- * 参数：无。
- * 返回值：无。
- */
-const clearNextLevelNavigateTimer = () => {
-  if (nextLevelNavigateTimer !== null) {
-    clearTimeout(nextLevelNavigateTimer);
-    nextLevelNavigateTimer = null;
-  }
-};
-
-/**
  * 重置练习页全部状态。
  * 功能：切换关卡或重新进入练习前清空上一关残留数据。
  * 参数：无。
  * 返回值：无。
  */
 const resetPracticeState = () => {
-  clearNextLevelNavigateTimer();
   levelTitle.value = "";
   levelDescription.value = "";
   goalHints.value = { ...EMPTY_LEVEL_GOAL_HINTS };
@@ -184,27 +168,8 @@ const goNextLevel = (nextLevelInfo: NextLevelAfterComplete) => {
 };
 
 /**
- * 自动解锁下一关后延迟跳转。
- * 功能：让玩家看到通关与解锁提示，再进入下一关。
- * 参数：nextLevelInfo - 已自动解锁的下一关摘要。
- * 返回值：无。
- */
-const scheduleAutoNavigateToNextLevel = (nextLevelInfo: NextLevelAfterComplete) => {
-  clearNextLevelNavigateTimer();
-  terminalLines.value.push({
-    text: `即将进入下一关：${nextLevelInfo.title}...`,
-    type: "success",
-  });
-  scrollTerminalToBottom();
-  nextLevelNavigateTimer = setTimeout(() => {
-    nextLevelNavigateTimer = null;
-    goNextLevel(nextLevelInfo);
-  }, 1200);
-};
-
-/**
  * 通关后在终端提示下一关信息。
- * 功能：展示服务端返回的下一关状态；已自动解锁时安排跳转。
+ * 功能：展示服务端返回的下一关状态，引导玩家手动点击「下一关」。
  * 参数：nextLevelInfo - 服务端下一关摘要，null 表示已全部通关。
  * 返回值：无。
  */
@@ -220,13 +185,10 @@ const appendNextLevelHint = (nextLevelInfo: NextLevelAfterComplete | null | unde
 
   if (nextLevelInfo.autoUnlocked) {
     terminalLines.value.push({
-      text: `已自动解锁下一关：${nextLevelInfo.title}（消耗 ${nextLevelInfo.unlockCost} 积分）`,
+      text: `已自动解锁下一关：${nextLevelInfo.title}（消耗 ${nextLevelInfo.unlockCost} 积分），点击下方「下一关」继续`,
       type: "success",
     });
     pointsStore.loadWallet();
-    if (nextLevelInfo.canStart) {
-      scheduleAutoNavigateToNextLevel(nextLevelInfo);
-    }
   } else if (nextLevelInfo.canStart) {
     terminalLines.value.push({
       text: `下一关：${nextLevelInfo.title}，点击下方「下一关」继续`,
@@ -277,10 +239,6 @@ watch(
   },
   { immediate: true },
 );
-
-onUnmounted(() => {
-  clearNextLevelNavigateTimer();
-});
 
 /**
  * 提交 Git 命令。
