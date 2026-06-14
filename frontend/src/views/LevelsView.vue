@@ -50,7 +50,6 @@ const loadLevels = () => {
  * 返回值：无。
  */
 const handleCheckedIn = () => {
-  pointsStore.loadWallet();
   loadLevels();
 };
 

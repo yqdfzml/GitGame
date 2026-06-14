@@ -61,7 +61,6 @@ const loadChapterLevels = () => {
  * 返回值：无。
  */
 const handleCheckedIn = () => {
-  pointsStore.loadWallet();
   loadChapterLevels();
 };
 
