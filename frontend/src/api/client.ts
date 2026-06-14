@@ -150,6 +150,11 @@ export const leaderboardApi = {
     ),
 };
 
+/** 首页 API */
+export const homeApi = {
+  overview: () => request<import("./types").HomeOverview>("/home/overview"),
+};
+
 /** 用户 API */
 export const usersApi = {
   stats: () => request<import("./types").UserStats>("/users/me/stats"),

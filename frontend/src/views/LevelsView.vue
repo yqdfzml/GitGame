@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { RouterLink } from "vue-router";
 import { levelsApi, usersApi } from "../api/client";
-import LeaderboardPanel from "../components/LeaderboardPanel.vue";
+import HomeDashboard from "../components/HomeDashboard.vue";
 import LevelChallengeCard from "../components/LevelChallengeCard.vue";
 import type { LevelSummary } from "../types";
 import {
@@ -82,17 +81,7 @@ const routePercent = computed(() => {
 
 <template>
   <section class="page-stack levels-page">
-    <section class="home-section card">
-      <header class="home-section-header">
-        <span class="page-eyebrow">Leaderboard</span>
-        <h2 class="home-section-title">排行榜</h2>
-        <p class="home-section-desc">按得分优先、耗时次之排列，看看谁走在修行前列。</p>
-      </header>
-      <LeaderboardPanel :preview-limit="10" />
-      <div class="home-section-footer">
-        <RouterLink to="/leaderboard" class="home-section-link">查看完整排行榜</RouterLink>
-      </div>
-    </section>
+    <HomeDashboard />
 
     <section class="home-section">
       <header class="page-header">

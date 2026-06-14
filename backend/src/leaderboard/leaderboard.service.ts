@@ -33,6 +33,7 @@ export class LeaderboardService {
       take: limit,
       include: {
         user: { select: { displayName: true } },
+        level: { select: { title: true, chapterId: true } },
       },
     });
 
@@ -40,6 +41,8 @@ export class LeaderboardService {
       rank: index + 1,
       userId: entry.userId.toString(),
       levelId: entry.levelId.toString(),
+      levelTitle: entry.level.title,
+      chapterId: entry.level.chapterId,
       displayName: entry.user.displayName,
       score: entry.score,
       durationSeconds: entry.durationSeconds,

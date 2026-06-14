@@ -8,6 +8,7 @@ import { AuthModule } from "./auth/auth.module";
 import { BadgesModule } from "./badges/badges.module";
 import { GitEngineModule } from "./git-engine/git-engine.module";
 import { HealthController } from "./health/health.controller";
+import { HomeModule } from "./home/home.module";
 import { JudgeModule } from "./judge/judge.module";
 import { LeaderboardModule } from "./leaderboard/leaderboard.module";
 import { LevelsModule } from "./levels/levels.module";
@@ -29,6 +30,7 @@ import { UsersModule } from "./users/users.module";
     GitEngineModule,
     JudgeModule,
     LeaderboardModule,
+    HomeModule,
     AdminModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

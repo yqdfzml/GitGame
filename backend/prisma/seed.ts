@@ -97,7 +97,7 @@ async function main() {
           status: "COMPLETED",
           currentState: toPrismaJson(firstLevelSeed.initialState),
           stepCount: 1,
-          completedAt: new Date(),
+          completedAt: new Date(Date.now() - 5 * 60 * 1000),
         },
       });
 
@@ -109,6 +109,7 @@ async function main() {
           score: 99,
           durationSeconds: 30,
           commandCount: 1,
+          completedAt: new Date(Date.now() - 5 * 60 * 1000),
         },
       });
 
@@ -119,6 +120,53 @@ async function main() {
           score: 99,
           durationSeconds: 30,
           displayName: demoUser.displayName,
+        },
+      });
+    }
+
+    // 追加几条演示动态，让首页播报区有内容
+    const extraLevels = await prisma.level.findMany({
+      where: { courseId: "mvp", sortOrder: { in: [2, 3, 6] } },
+      orderBy: { sortOrder: "asc" },
+    });
+    const extraSeeds = ALL_LEVELS.filter((level) => [2, 3, 6].includes(level.sortOrder));
+    const extraOffsetsMinutes = [18, 42, 95];
+
+    for (let index = 0; index < extraLevels.length; index += 1) {
+      const level = extraLevels[index];
+      const levelSeed = extraSeeds.find((item) => item.sortOrder === level.sortOrder);
+      if (!levelSeed) {
+        continue;
+      }
+
+      const existed = await prisma.levelResult.findUnique({
+        where: { userId_levelId: { userId: demoUser.id, levelId: level.id } },
+      });
+      if (existed) {
+        continue;
+      }
+
+      const completedAt = new Date(Date.now() - extraOffsetsMinutes[index] * 60 * 1000);
+      const demoAttempt = await prisma.attempt.create({
+        data: {
+          userId: demoUser.id,
+          levelId: level.id,
+          status: "COMPLETED",
+          currentState: toPrismaJson(levelSeed.initialState),
+          stepCount: 3,
+          completedAt,
+        },
+      });
+
+      await prisma.levelResult.create({
+        data: {
+          userId: demoUser.id,
+          levelId: level.id,
+          attemptId: demoAttempt.id,
+          score: 96 - index,
+          durationSeconds: 45 + index * 10,
+          commandCount: 3,
+          completedAt,
         },
       });
     }

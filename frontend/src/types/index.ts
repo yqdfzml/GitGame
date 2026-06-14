@@ -163,4 +163,27 @@ export interface LeaderboardEntry {
   score: number;
   durationSeconds: number;
   levelId: string;
+  levelTitle?: string;
+  chapterId?: string | null;
+}
+
+/** 首页动态类型 */
+export type HomeActivityType = "level_clear" | "badge_unlock";
+
+/** 首页通关动态 */
+export interface HomeActivityItem {
+  id: string;
+  type: HomeActivityType;
+  displayName: string;
+  levelTitle: string | null;
+  badgeName: string | null;
+  score: number | null;
+  happenedAt: string;
+  message: string;
+}
+
+/** 首页概览 */
+export interface HomeOverview {
+  leaderboard: LeaderboardEntry[];
+  activities: HomeActivityItem[];
 }
