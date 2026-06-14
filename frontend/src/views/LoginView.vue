@@ -57,7 +57,7 @@ const handleSubmit = () => {
         <p v-if="error" class="error-msg">{{ error }}</p>
       </form>
       <p class="auth-footer">
-        还没有账号？<RouterLink to="/register">注册</RouterLink>
+        还没有账号？<RouterLink to="/register">持英雄帖注册</RouterLink>
       </p>
     </div>
   </div>
