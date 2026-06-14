@@ -1965,34 +1965,73 @@ a:hover { color: var(--accent-hover); }
 .auth-card { width: 100%; max-width: 420px; padding: 36px 32px; }
 .auth-card-wide { max-width: 520px; }
 
-.avatar-crop-picker {
+.register-card .register-form {
   display: grid;
-  gap: 10px;
+  gap: 4px;
+}
+
+.register-error {
+  margin-bottom: 4px;
+}
+
+.avatar-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar-picker-preview {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 1px dashed rgba(242, 189, 75, 0.35);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.avatar-picker-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-picker-placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+}
+
+.avatar-picker-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.avatar-picker-hint {
+  font-size: 0.78rem;
 }
 
 .avatar-crop-input {
   display: none;
 }
 
-.avatar-crop-main {
+.avatar-crop-modal {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
-  gap: 14px;
-  align-items: start;
+  gap: 16px;
 }
 
 .avatar-crop-stage {
   position: relative;
   aspect-ratio: 1;
   border-radius: var(--radius-md);
-  border: 1px dashed var(--border-strong);
-  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.25);
   overflow: hidden;
-}
-
-.avatar-crop-stage.empty {
-  display: grid;
-  place-items: center;
 }
 
 .avatar-crop-source {
@@ -2009,28 +2048,20 @@ a:hover { color: var(--accent-hover); }
   pointer-events: none;
 }
 
-.avatar-crop-placeholder {
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 0.88rem;
-}
-
-.avatar-crop-side {
+.avatar-crop-controls {
   display: grid;
-  gap: 10px;
-  justify-items: center;
+  gap: 8px;
 }
 
-.avatar-crop-label {
-  font-size: 0.72rem;
-  color: var(--text-faint);
+.avatar-crop-modal-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .avatar-crop-preview-wrap {
-  width: 88px;
-  height: 88px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   border: 1px solid var(--border);
   overflow: hidden;
@@ -2046,39 +2077,17 @@ a:hover { color: var(--accent-hover); }
 }
 
 .avatar-crop-preview-empty {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--text-faint);
+  padding: 0 6px;
+  text-align: center;
 }
 
-.avatar-crop-zoom {
-  display: grid;
-  gap: 6px;
-  width: 100%;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.avatar-crop-zoom input {
-  width: 100%;
-}
-
-.avatar-crop-repick {
-  width: 100%;
-  padding: 6px 10px;
-  font-size: 0.78rem;
-}
-
-@media (max-width: 560px) {
-  .avatar-crop-main {
-    grid-template-columns: 1fr;
-  }
-
-  .avatar-crop-side {
-    grid-template-columns: 88px 1fr;
-    grid-auto-flow: column;
-    align-items: center;
-    width: 100%;
-  }
+.user-avatar-img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 .auth-logo { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 28px; }
 .auth-logo-mark {

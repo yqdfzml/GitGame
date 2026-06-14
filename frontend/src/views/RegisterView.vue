@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { GitBranch } from "lucide-vue-next";
+import {
+  NAlert,
+  NButton,
+  NConfigProvider,
+  NForm,
+  NFormItem,
+  NInput,
+} from "naive-ui";
 import { useRouter } from "vue-router";
 import AvatarCropPicker from "../components/AvatarCropPicker.vue";
+import { gitgameDarkTheme, gitgameThemeOverrides } from "../naiveTheme";
 import { useAuthStore } from "../stores/auth";
 
 const auth = useAuthStore();
@@ -42,6 +51,22 @@ const handleAvatarChange = (file: File | null) => {
 const handleSubmit = () => {
   error.value = "";
 
+  if (!displayName.value.trim()) {
+    error.value = "请填写昵称";
+    return;
+  }
+  if (!email.value.trim()) {
+    error.value = "请填写邮箱";
+    return;
+  }
+  if (password.value.length < 6) {
+    error.value = "密码至少 6 位";
+    return;
+  }
+  if (!heroInviteCode.value.trim()) {
+    error.value = "请填写英雄帖";
+    return;
+  }
   if (!avatarFile.value) {
     error.value = "请先选择并裁剪头像";
     return;
@@ -67,55 +92,78 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <div class="auth-layout">
-    <div class="card auth-card auth-card-wide">
-      <div class="auth-logo">
-        <div class="auth-logo-mark auth-logo-icon">
-          <GitBranch aria-hidden="true" />
+  <NConfigProvider :theme="gitgameDarkTheme" :theme-overrides="gitgameThemeOverrides">
+    <div class="auth-layout">
+      <div class="card auth-card auth-card-wide register-card">
+        <div class="auth-logo">
+          <div class="auth-logo-mark auth-logo-icon">
+            <GitBranch aria-hidden="true" />
+          </div>
+          <h1>拜入 GitGame</h1>
+          <p>择头像定形，持英雄帖入门</p>
         </div>
-        <h1>拜入 GitGame</h1>
-        <p>持英雄帖入门，择头像定形</p>
+
+        <NForm class="register-form" label-placement="top" :show-require-mark="false">
+          <NFormItem label="头像（必选）">
+            <AvatarCropPicker @change="handleAvatarChange" />
+          </NFormItem>
+
+          <NFormItem label="昵称">
+            <NInput
+              v-model:value="displayName"
+              maxlength="64"
+              autocomplete="nickname"
+              placeholder="你的修行名号"
+            />
+          </NFormItem>
+
+          <NFormItem label="邮箱">
+            <NInput
+              v-model:value="email"
+              type="text"
+              autocomplete="email"
+              placeholder="name@example.com"
+            />
+          </NFormItem>
+
+          <NFormItem label="密码（至少 6 位）">
+            <NInput
+              v-model:value="password"
+              type="password"
+              autocomplete="new-password"
+              show-password-on="click"
+              placeholder="设置登录密码"
+            />
+          </NFormItem>
+
+          <NFormItem label="英雄帖">
+            <NInput
+              v-model:value="heroInviteCode"
+              maxlength="32"
+              autocomplete="off"
+              placeholder="输入邀请码"
+            />
+          </NFormItem>
+
+          <NAlert v-if="error" type="error" :bordered="false" class="register-error">
+            {{ error }}
+          </NAlert>
+
+          <NButton
+            type="primary"
+            block
+            size="large"
+            :loading="submitting"
+            @click="handleSubmit"
+          >
+            注册
+          </NButton>
+        </NForm>
+
+        <p class="auth-footer">
+          已有账号？<RouterLink to="/login">登录</RouterLink>
+        </p>
       </div>
-
-      <form @submit.prevent="handleSubmit">
-        <div class="form-group">
-          <label>英雄帖</label>
-          <input
-            v-model="heroInviteCode"
-            required
-            maxlength="32"
-            autocomplete="off"
-            placeholder="输入邀请码"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>头像（必选）</label>
-          <AvatarCropPicker @change="handleAvatarChange" />
-        </div>
-
-        <div class="form-group">
-          <label>昵称</label>
-          <input v-model="displayName" required maxlength="64" autocomplete="nickname" />
-        </div>
-        <div class="form-group">
-          <label>邮箱</label>
-          <input v-model="email" type="email" required autocomplete="email" />
-        </div>
-        <div class="form-group">
-          <label>密码（至少 6 位）</label>
-          <input v-model="password" type="password" required minlength="6" autocomplete="new-password" />
-        </div>
-
-        <button type="submit" class="btn-primary btn-block" :disabled="submitting">
-          {{ submitting ? "注册中..." : "注册" }}
-        </button>
-        <p v-if="error" class="error-msg">{{ error }}</p>
-      </form>
-
-      <p class="auth-footer">
-        已有账号？<RouterLink to="/login">登录</RouterLink>
-      </p>
     </div>
-  </div>
+  </NConfigProvider>
 </template>
