@@ -43,6 +43,50 @@ describe("GitEngineService", () => {
     const commitResult = gitEngine.executeCommand('git commit -m "update"', addResult.state);
     expect(commitResult.success).toBe(true);
   });
+
+  it("明镜无尘：git restore . 可恢复工作区", () => {
+    const dirtyState: RepoState = {
+      commits: {
+        w4d5e6f: { id: "w4d5e6f", message: "base", parents: [], files: { "app.js": "clean" }, timestamp: 1 },
+      },
+      branches: { main: "w4d5e6f" },
+      head: { type: "branch", ref: "main" },
+      workingTree: { "app.js": { content: "dirty", status: "modified" } },
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+    };
+    const goal = { workingTreeClean: true, indexEmpty: true };
+
+    const restoreResult = gitEngine.executeCommand("git restore .", dirtyState);
+    expect(restoreResult.success).toBe(true);
+    const judgeResult = judge.evaluate(restoreResult.state, goal, { baseScore: 100 }, 1);
+    expect(judgeResult.passed).toBe(true);
+  });
+
+  it("明镜无尘：git restore --staged --worktree . 可恢复工作区与暂存区", () => {
+    const dirtyState: RepoState = {
+      commits: {
+        w4d5e6f: { id: "w4d5e6f", message: "base", parents: [], files: { "app.js": "clean" }, timestamp: 1 },
+      },
+      branches: { main: "w4d5e6f" },
+      head: { type: "branch", ref: "main" },
+      workingTree: { "app.js": { content: "dirty", status: "modified" } },
+      index: { "app.js": "dirty" },
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+    };
+    const goal = { workingTreeClean: true, indexEmpty: true };
+
+    const restoreResult = gitEngine.executeCommand("git restore --staged --worktree .", dirtyState);
+    expect(restoreResult.success).toBe(true);
+    const judgeResult = judge.evaluate(restoreResult.state, goal, { baseScore: 100 }, 1);
+    expect(judgeResult.passed).toBe(true);
+  });
 });
 
 describe("JudgeService", () => {

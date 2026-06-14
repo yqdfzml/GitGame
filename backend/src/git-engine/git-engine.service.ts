@@ -16,6 +16,7 @@ import {
   refreshWorkingTreeStatus,
   resetWorkingTreeToHead,
   resolveRef,
+  resolveRestorePaths,
   tryLineMerge,
   validateCommandInput,
 } from "./git-engine.utils";
@@ -437,27 +438,32 @@ export class GitEngineService {
 
   /** 处理 git restore，恢复工作区或暂存区 */
   private handleRestore(state: RepoState, args: string[]): CommandResult {
-    const fromIndex = args.includes("--staged");
-    const paths = args.filter((a) => !a.startsWith("-") && a !== "--staged" && a !== "--worktree");
+    refreshWorkingTreeStatus(state);
+    const restoreStaged = args.includes("--staged");
+    const restoreWorktree = args.includes("--worktree") || !restoreStaged;
+    const pathArgs = args.filter((a) => !a.startsWith("-"));
+    const headFiles = getHeadFiles(state);
+    const paths = resolveRestorePaths(state, pathArgs, restoreStaged, restoreWorktree);
 
     if (paths.length === 0) {
-      return { success: false, output: "请指定文件路径", feedback: "请指定文件路径", state };
+      return { success: false, output: "没有可恢复的文件", feedback: "没有可恢复的文件", state };
     }
 
-    const headFiles = getHeadFiles(state);
     for (const path of paths) {
-      if (fromIndex) {
+      if (restoreStaged) {
         delete state.index[path];
-      } else {
-        const headContent = headFiles[path];
-        if (headContent !== undefined) {
-          state.workingTree[path] = { content: headContent, status: "unchanged" };
-        } else {
+      }
+      if (restoreWorktree) {
+        const sourceContent = state.index[path] ?? headFiles[path];
+        if (sourceContent !== undefined) {
+          state.workingTree[path] = { content: sourceContent, status: "unchanged" };
+        } else if (state.workingTree[path]?.status === "untracked") {
           delete state.workingTree[path];
         }
       }
     }
 
+    refreshWorkingTreeStatus(state);
     return { success: true, output: "", feedback: "已恢复文件", state };
   }
 

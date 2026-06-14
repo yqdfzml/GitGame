@@ -119,6 +119,55 @@ export const isIndexEmpty = (state: RepoState): boolean => {
 };
 
 /**
+ * 解析 git restore 的路径参数，支持 . 展开为具体文件。
+ * 功能：按 --staged / --worktree 标志收集需要处理的文件路径。
+ * 参数：state - 仓库状态；pathArgs - 非选项参数；restoreStaged - 是否恢复暂存区；restoreWorktree - 是否恢复工作区。
+ * 返回值：需要 restore 的文件路径列表。
+ */
+export const resolveRestorePaths = (
+  state: RepoState,
+  pathArgs: string[],
+  restoreStaged: boolean,
+  restoreWorktree: boolean,
+): string[] => {
+  refreshWorkingTreeStatus(state);
+  const headFiles = getHeadFiles(state);
+  const useAllPaths = pathArgs.length === 0 || pathArgs.includes(".");
+
+  if (!useAllPaths) {
+    return pathArgs;
+  }
+
+  const paths = new Set<string>();
+
+  if (restoreStaged) {
+    const indexPaths = Object.keys(state.index);
+    if (indexPaths.length > 0) {
+      for (const path of indexPaths) {
+        paths.add(path);
+      }
+    } else {
+      for (const path of Object.keys(headFiles)) {
+        paths.add(path);
+      }
+    }
+  }
+
+  if (restoreWorktree) {
+    for (const path of Object.keys(headFiles)) {
+      paths.add(path);
+    }
+    for (const [path, file] of Object.entries(state.workingTree)) {
+      if (file.status !== "unchanged") {
+        paths.add(path);
+      }
+    }
+  }
+
+  return [...paths];
+};
+
+/**
  * 解析 ref 到 commit id。
  * 功能：支持 HEAD、分支名、短 hash。
  * 参数：state - 仓库；ref - 引用字符串。
