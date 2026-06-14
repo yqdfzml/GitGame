@@ -2137,15 +2137,15 @@ a:hover { color: var(--accent-hover); }
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  height: clamp(248px, 32vh, 292px);
-  max-height: 292px;
+  height: clamp(200px, 24vh, 232px);
+  max-height: 232px;
   min-height: 0;
   overflow: hidden;
   overflow-x: clip;
 }
 
 .practice-panel-goal {
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
   min-width: 0;
   max-width: 100%;
@@ -2162,7 +2162,7 @@ a:hover { color: var(--accent-hover); }
 }
 
 .practice-panel-goal .goal-feedback-body {
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
   min-width: 0;
   max-width: 100%;

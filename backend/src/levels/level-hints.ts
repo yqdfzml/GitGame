@@ -100,54 +100,54 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
     keyPoints: ["git switch -c feature 或 git checkout -b feature。"],
   },
   16: {
-    concepts: ["HEAD 指向当前分支；切换分支只移动 HEAD。"],
-    directions: ["先确认当前在 feature，再切回 main。"],
-    keyPoints: ["git switch main。"],
-  },
-  17: {
-    concepts: ["各分支独立前进；在 feature 上的 commit 不会自动出现在 main。"],
-    directions: ["status 确认在 feature 且 app.js 已修改，再 add 并 commit。"],
-    keyPoints: ["git add app.js → git commit -m \"...\""],
-  },
-  18: {
-    concepts: ["在错误分支上的未提交修改，可以随分支切换一起带走。"],
-    directions: ["先切到 feature，再完成 app.js 提交。"],
-    keyPoints: ["git switch feature → git add app.js → git commit。"],
-  },
-  19: {
-    concepts: ["不同分支可以各自提交，形成并行开发的历史。"],
-    directions: ["先在 main 提交 main.txt，再切 feature 新建 feature.txt 并提交。"],
-    keyPoints: ["main 上 commit main.txt → switch feature → 新建 feature.txt → add → commit。"],
-  },
-  20: {
     concepts: ["快进合并发生在 main 无新提交、feature 领先时。"],
     directions: ["log 看清两分支位置，在 main 上 merge feature。"],
     keyPoints: ["git merge feature，合并后 app.js 应为 feature 内容。"],
   },
-  21: {
+  17: {
     concepts: ["两分支各有独立提交时，merge 会产生 merge commit。"],
     directions: ["先在 main 提交 main.txt，再到 feature 新建 feature.txt 并提交，最后回 main merge。"],
     keyPoints: ["分步 commit 后 git merge feature，两文件均保留。"],
   },
-  22: {
-    concepts: ["修改不同行时 Git 可自动合并。"],
-    directions: ["log 看分支差异，在 main 上 merge feature。"],
-    keyPoints: ["git merge feature，doc.md 应同时包含 LINE1 与 LINE3。"],
+  18: {
+    concepts: ["同一文件修改了不同行时，Git 可自动合并，不会出现冲突标记。"],
+    directions: ["log 看 doc.md 两分支差异，在 main 上 merge feature。"],
+    keyPoints: ["git merge feature 即可，doc.md 应同时包含 LINE1 与 LINE3，无需手动解决冲突。"],
   },
-  23: {
-    concepts: ["同一文件冲突时需选择保留哪一方，或手动编辑合并结果。"],
+  19: {
+    concepts: ["同一文件同一位置被双方修改时才会产生冲突，需手动编辑后 add 并 commit。"],
     directions: ["merge 后选择 Vim 或可视化编辑器，config.json 取 feature 版。"],
     keyPoints: ["git merge feature → 编辑 config.json → git add → git commit；也可用 checkout --theirs。"],
   },
-  24: {
+  20: {
     concepts: ["部分文件冲突、部分自动合并时，只需解决冲突文件。"],
     directions: ["merge 后观察哪些文件自动合并、哪些需要手动处理。"],
     keyPoints: ["config.json 取 feature 版，readme.md 应自动变为 hello。"],
   },
+  21: {
+    concepts: ["git restore --staged 只取消暂存，不丢弃工作区修改。"],
+    directions: ["status 看 secret.key 已在暂存区，再取消 staged。"],
+    keyPoints: ["git restore --staged secret.key。"],
+  },
+  22: {
+    concepts: ["restore 默认恢复工作区，把已跟踪文件还原为 HEAD 内容。"],
+    directions: ["status 确认 app.js 被改错，再 restore。"],
+    keyPoints: ["git restore app.js。"],
+  },
+  23: {
+    concepts: ["soft reset 只移动分支指针，保留工作区和暂存区。"],
+    directions: ["log 看最新提交，reset 后修改 app.js 为 v2 再 commit。"],
+    keyPoints: ["git reset --soft HEAD~1 → 改 app.js → git commit。"],
+  },
+  24: {
+    concepts: ["revert 通过新提交反向抵消旧改动，适合已共享的历史。"],
+    directions: ["log 找到 bad change，revert 它而不是 reset。"],
+    keyPoints: ["git revert <bad-commit-id>。"],
+  },
   25: {
-    concepts: ["git clone 把远程仓库复制到本地，并自动添加 origin 远程。"],
-    directions: ["当前目录未初始化，用 clone 拉取 demo 仓库。"],
-    keyPoints: ["git clone https://gitgame.local/demo.git ."],
+    concepts: ["hard reset 会移动分支指针并重置工作区；只应重置需要修复的分支。"],
+    directions: ["log 确认 g03 与 bad3 位置，只 reset main。"],
+    keyPoints: ["git reset --hard g03，不要动 topic 分支。"],
   },
   26: {
     concepts: ["git remote -v 列出远程名称与 URL。"],

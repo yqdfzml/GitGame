@@ -65,9 +65,9 @@ describe("judge-messages", () => {
     );
   });
 
-  it("merge commit 提示应包含 merge 操作说明", () => {
+  it("merge commit 提示不写出具体命令", () => {
     const message = formatMergeCommitRequiredGap("main");
-    expect(message).toContain("git merge");
     expect(message).toContain("main");
+    expect(message).not.toContain("git merge");
   });
 });

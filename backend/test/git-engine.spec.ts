@@ -487,6 +487,54 @@ describe("merge 多路径", () => {
     );
     expect(judgeResult.passed).toBe(true);
   });
+
+  /** 关卡「同文相争」：不同行自动合并后工作区应为 clean */
+  it("同文相争 merge 后 doc.md 应自动合并且工作区 clean", () => {
+    const lineMergeState: RepoState = {
+      commits: {
+        base02: { id: "base02", message: "init", parents: [], files: { "doc.md": "line1\nline2\nline3" }, timestamp: 1 },
+        main02: { id: "main02", message: "edit line1", parents: ["base02"], files: { "doc.md": "LINE1\nline2\nline3" }, timestamp: 2 },
+        feat02: { id: "feat02", message: "edit line3", parents: ["base02"], files: { "doc.md": "line1\nline2\nLINE3" }, timestamp: 3 },
+      },
+      branches: { main: "main02", feature: "feat02" },
+      head: { type: "branch", ref: "main" },
+      workingTree: { "doc.md": { content: "LINE1\nline2\nline3", status: "unchanged" } },
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+    };
+
+    const merged = gitEngine.executeCommand("git merge feature", lineMergeState);
+    expect(merged.success).toBe(true);
+    expect(Object.keys(merged.state.conflicts)).toHaveLength(0);
+
+    const headId = merged.state.branches.main;
+    expect(merged.state.commits[headId].files["doc.md"]).toBe("LINE1\nline2\nLINE3");
+    expect(merged.state.workingTree["doc.md"]).toEqual({
+      content: "LINE1\nline2\nLINE3",
+      status: "unchanged",
+    });
+
+    const status = gitEngine.executeCommand("git status", merged.state);
+    expect(status.output).toContain("无文件要提交，干净的工作区");
+
+    const level = ALL_LEVELS.find((item) => item.title === "同文相争");
+    expect(level).toBeTruthy();
+    const judgeResult = judge.evaluate(merged.state, level!.goal, level!.constraints, 1);
+    expect(judgeResult.passed).toBe(true);
+    expect(judgeResult.gaps).toEqual([]);
+
+    const beforeMerge = judge.evaluate(lineMergeState, level!.goal, level!.constraints, 0);
+    expect(beforeMerge.passed).toBe(false);
+    expect(beforeMerge.gaps.some((gap) => gap.key === "branchMerged")).toBe(true);
+    // 合并未完成时不单独列出文件内容差距，避免泄题
+    expect(beforeMerge.gaps.some((gap) => gap.key === "fileContents:doc.md")).toBe(false);
+    expect(beforeMerge.gaps.some((gap) => gap.message.includes("尚未合并"))).toBe(true);
+    expect(beforeMerge.gaps.some((gap) => gap.message.includes("git merge"))).toBe(false);
+    expect(beforeMerge.gaps.some((gap) => gap.message.includes("请将"))).toBe(false);
+  });
 });
 
 describe("resolveConflictFile", () => {

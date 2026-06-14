@@ -781,7 +781,7 @@ const goReplay = () => {
         </div>
         <div class="card practice-panel-goal">
           <p class="panel-title">目标反馈</p>
-          <div class="goal-feedback-body">
+          <div class="goal-feedback-body dark-scroll">
             <GoalFeedback
               :judge="judge"
               :task-description="levelDescription"

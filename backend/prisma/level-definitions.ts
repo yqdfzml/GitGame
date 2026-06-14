@@ -302,7 +302,7 @@ const LEGACY_LEVELS: LevelSeed[] = [
   },
   {
     courseId: "mvp", chapterId: "merge", title: "同文相争", sortOrder: 18,
-    description: "两分支改了 doc.md 的不同行，合并后应同时保留 LINE1 与 LINE3。",
+    description: "两分支改了 doc.md 的不同行，Git 会自动合并（不会产生冲突），合并后 doc.md 应同时包含 LINE1 与 LINE3。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       commits: {

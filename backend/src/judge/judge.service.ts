@@ -20,6 +20,7 @@ import {
   formatFileContentGap,
   formatIndexContentGap,
   formatMergeCommitRequiredGap,
+  formatMergeFileContentGap,
   formatWorkingTreeContentGap,
 } from "./judge-messages";
 
@@ -47,6 +48,15 @@ export class JudgeService {
     const gaps: Array<{ key: string; message: string }> = [];
     /** 关卡要求最终所在分支，用于文件类提示文案 */
     const goalBranch = goal.currentBranch ?? null;
+    /** 是否存在尚未完成的合并目标 */
+    const hasPendingMerge = goal.branchMerged?.some((item) => {
+      const sourceTip = state.branches[item.source];
+      const targetTip = state.branches[item.target];
+      if (!sourceTip || !targetTip) {
+        return true;
+      }
+      return !isAncestor(state, sourceTip, targetTip);
+    }) ?? false;
 
     // 1. 检查当前分支
     if (goal.currentBranch !== undefined) {
@@ -152,6 +162,17 @@ export class JudgeService {
         const actual = headFiles[path];
         if (actual === expected) {
           satisfied.push(`fileContents:${path}`);
+          continue;
+        }
+        // 合并尚未完成时，文件内容差距由 branchMerged 提示承担，此处跳过以免泄题
+        if (hasPendingMerge) {
+          continue;
+        }
+        if (goal.branchMerged && goal.branchMerged.length > 0) {
+          gaps.push({
+            key: `fileContents:${path}`,
+            message: formatMergeFileContentGap(path),
+          });
         } else {
           gaps.push({
             key: `fileContents:${path}`,

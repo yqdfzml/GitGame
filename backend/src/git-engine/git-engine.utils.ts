@@ -257,16 +257,21 @@ export const createCommit = (
       continue;
     }
     if (file.content !== committedContent) {
+      // merge 等场景下，提交前与 HEAD 一致的文件应以新提交为准，不还原旧内容
+      if (file.status === "unchanged") {
+        continue;
+      }
       state.workingTree[path] = { content: file.content, status: "modified" };
     }
   }
-  refreshWorkingTreeStatus(state);
 
   if (state.head.type === "branch") {
     state.branches[state.head.ref] = commitId;
   } else {
     state.head = { type: "detached", ref: commitId };
   }
+
+  refreshWorkingTreeStatus(state);
 
   appendReflog(state, commitId, `commit: ${message}`);
   return commitId;

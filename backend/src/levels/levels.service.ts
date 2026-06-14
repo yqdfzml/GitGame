@@ -5,6 +5,7 @@ import { fromPrismaJson } from "../common/json.util";
 import { PointsService } from "../points/points.service";
 import {
   formatBranchFileTarget,
+  formatContentForDisplay,
   formatFileContentTarget,
   formatWorkingTreeContentTarget,
   isFilePreseededInWorkingTree,
@@ -191,7 +192,13 @@ const buildGoalTargets = (goal: Record<string, unknown>, initialState: RepoState
     }
   }
   if (goal.fileContents) {
+    /** 本关是否以 merge 写入目标文件内容 */
+    const mergeWritesFiles = Array.isArray(goal.branchMerged) && goal.branchMerged.length > 0;
     for (const [path, content] of Object.entries(goal.fileContents as Record<string, string>)) {
+      if (mergeWritesFiles) {
+        targets.push(`合并完成后「${path}」内容需正确（见关卡说明）`);
+        continue;
+      }
       const preseeded = isFilePreseededInWorkingTree(initialWorkingTree, path, content);
       targets.push(formatFileContentTarget(path, content, goalBranch, preseeded));
     }

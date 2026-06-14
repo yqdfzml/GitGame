@@ -1,6 +1,19 @@
 import type { RepoState } from "../git-engine/repo-state.types";
 
 /**
+ * 将文件内容格式化为界面可读的展示文本。
+ * 功能：多行内容用「 / 」连接，避免换行在列表里变成空格造成误解。
+ * 参数：content - 原始文件全文。
+ * 返回值：适合展示的单行描述。
+ */
+export const formatContentForDisplay = (content: string): string => {
+  if (!content.includes("\n")) {
+    return content;
+  }
+  return content.split("\n").join(" / ");
+};
+
+/**
  * 判断开局工作区是否已写好目标文件内容。
  * 功能：用于通关条件文案，前置内容不再重复写出，避免与 commit 备注混淆。
  * 参数：workingTree - 开局工作区；path - 文件路径；expectedContent - 目标内容。
@@ -70,9 +83,9 @@ export const formatFileContentTarget = (
     return `分支「${branchLabel}」最终需包含已提交的「${path}」`;
   }
   if (branch) {
-    return `分支「${branchLabel}」最终需包含「${path}」，内容为「${content}」`;
+    return `分支「${branchLabel}」最终需包含「${path}」，内容为「${formatContentForDisplay(content)}」`;
   }
-  return `「${path}」最终内容应为「${content}」`;
+  return `「${path}」最终内容应为「${formatContentForDisplay(content)}」`;
 };
 
 /**
@@ -116,11 +129,11 @@ const buildFileCommitGapMessage = (
 
   // 工作区有文件但内容不对，需先改再提交
   if (wtExists) {
-    return `请将「${path}」的内容改为「${expected}」，在${branchPart}提交`;
+    return `请将「${path}」的内容改为「${formatContentForDisplay(expected)}」，在${branchPart}提交`;
   }
 
   // 工作区还没有这份文件，需新建
-  return `在${branchPart}创建「${path}」，内容为「${expected}」，然后提交`;
+  return `在${branchPart}创建「${path}」，内容为「${formatContentForDisplay(expected)}」，然后提交`;
 };
 
 /**
@@ -184,7 +197,7 @@ export const formatIndexContentGap = (path: string): string => {
  */
 export const formatMergeCommitRequiredGap = (targetBranch: string | null): string => {
   const branchLabel = targetBranch ?? "目标分支";
-  return `两分支各自提交后，在「${branchLabel}」执行 git merge 以产生合并提交`;
+  return `两分支各自提交后，需在「${branchLabel}」完成合并并产生 merge commit`;
 };
 
 /**
@@ -204,5 +217,15 @@ export const formatCurrentBranchGap = (expected: string, actual: string): string
  * 返回值：待完成提示文案。
  */
 export const formatBranchMergedGap = (source: string, target: string): string => {
-  return `请在「${target}」上执行 git merge ${source}`;
+  return `分支「${source}」尚未合并到「${target}」`;
+};
+
+/**
+ * 合并后文件内容未达标时的提示。
+ * 功能：只说明文件结果不对，不写出目标全文，避免泄题。
+ * 参数：path - 文件路径。
+ * 返回值：待完成提示文案。
+ */
+export const formatMergeFileContentGap = (path: string): string => {
+  return `「${path}」的合并结果与目标不符，请检查 merge 是否正确完成`;
 };
