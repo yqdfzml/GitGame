@@ -120,32 +120,6 @@ const canContinue = computed(() => {
             </template>
           </div>
 
-          <div class="home-main-actions">
-            <template v-if="nextLevel">
-              <RouterLink
-                v-if="canContinue"
-                :to="`/practice/${nextLevel.id}`"
-                class="btn-primary home-main-cta"
-              >
-                继续
-              </RouterLink>
-              <RouterLink
-                v-else-if="nextLevel.chapterId"
-                :to="`/levels/${nextLevel.chapterId}`"
-                class="btn-primary home-main-cta"
-              >
-                解锁
-              </RouterLink>
-              <RouterLink to="/levels" class="btn-ghost home-main-map">地图</RouterLink>
-            </template>
-            <template v-else>
-              <RouterLink to="/achievements" class="btn-primary home-main-cta">成就</RouterLink>
-              <RouterLink to="/leaderboard" class="btn-ghost home-main-map">排行</RouterLink>
-            </template>
-          </div>
-
-          <div class="home-main-split" />
-
           <div class="home-main-progress">
             <div class="home-main-progress-top">
               <span class="home-main-kpi-label">进度</span>
@@ -156,8 +130,6 @@ const canContinue = computed(() => {
             </div>
             <span class="home-main-progress-sub">{{ routeProgress.completed }}/{{ routeProgress.total }}</span>
           </div>
-
-          <div class="home-main-split" />
 
           <div class="home-main-kpis">
             <span class="home-main-kpi">

@@ -338,24 +338,19 @@ a:hover { color: var(--accent-hover); }
 }
 
 .home-main-body {
-  display: flex;
-  align-items: center;
-  gap: 18px;
+  display: grid;
+  gap: 14px;
   min-width: 0;
 }
 
 .home-main-lead {
-  flex: 1;
   min-width: 0;
   display: grid;
   gap: 3px;
 }
 
 .home-main-split {
-  width: 1px;
-  align-self: stretch;
-  flex-shrink: 0;
-  background: var(--border);
+  display: none;
 }
 
 .home-main-eyebrow {
@@ -391,9 +386,6 @@ a:hover { color: var(--accent-hover); }
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .home-main-meta {
@@ -402,42 +394,8 @@ a:hover { color: var(--accent-hover); }
   font-family: var(--font-mono);
 }
 
-.home-main-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 5px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.22);
-}
-
-.home-main-cta {
-  min-width: 76px;
-  padding: 7px 16px;
-  font-size: 0.84rem;
-  font-weight: 600;
-  background: rgba(242, 189, 75, 0.9);
-  box-shadow: none;
-}
-
-.home-main-cta:hover:not(:disabled) {
-  background: var(--accent);
-  transform: none;
-}
-
-.home-main-map {
-  min-width: 52px;
-  padding: 7px 12px;
-  font-size: 0.8rem;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: var(--text-muted);
-}
-
 .home-main-progress {
-  width: 148px;
-  flex-shrink: 0;
+  width: 100%;
   display: grid;
   gap: 4px;
 }
@@ -477,7 +435,7 @@ a:hover { color: var(--accent-hover); }
 .home-main-kpis {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  width: 100%;
   gap: 0;
   padding: 6px 4px;
   border-radius: var(--radius-md);
@@ -488,6 +446,8 @@ a:hover { color: var(--accent-hover); }
 .home-main-kpi {
   display: inline-flex;
   align-items: baseline;
+  justify-content: center;
+  flex: 1;
   gap: 6px;
   padding: 4px 14px;
   white-space: nowrap;
@@ -578,7 +538,7 @@ a:hover { color: var(--accent-hover); }
 
 .home-dashboard-secondary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: start;
 }
@@ -781,56 +741,16 @@ a:hover { color: var(--accent-hover); }
 }
 
 @media (max-width: 960px) {
-  .home-main-body {
-    flex-wrap: wrap;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .home-main-lead {
-    flex: 1 1 100%;
-  }
-
-  .home-main-title {
-    white-space: normal;
-  }
-
-  .home-main-split {
-    display: none;
-  }
-
-  .home-main-actions {
-    flex: 1;
-    justify-content: stretch;
-  }
-
-  .home-main-cta,
-  .home-main-map {
-    flex: 1;
-  }
-
-  .home-main-progress {
-    width: 100%;
-  }
-
   .home-main-kpis {
-    flex: 1 1 100%;
     flex-wrap: wrap;
-    justify-content: center;
   }
 
   .home-main-kpi {
-    flex: 1;
-    justify-content: center;
     min-width: 80px;
   }
 
   .home-main-kpi:not(:last-child) {
     border-right: none;
-  }
-
-  .home-dashboard-secondary {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -2218,10 +2138,8 @@ a:hover { color: var(--accent-hover); }
 }
 
 .achievements-hero-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px 20px;
+  display: grid;
+  gap: 14px;
 }
 
 .achievements-titles {
@@ -2229,7 +2147,7 @@ a:hover { color: var(--accent-hover); }
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 14px;
-  min-width: 0;
+  width: 100%;
 }
 
 .achievements-title-item {
@@ -2245,7 +2163,7 @@ a:hover { color: var(--accent-hover); }
 }
 
 .achievements-hero-kpis {
-  flex-shrink: 0;
+  width: 100%;
 }
 
 .achievements-hero-foot {
@@ -2276,6 +2194,7 @@ a:hover { color: var(--accent-hover); }
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .achievements-next-title.muted {
@@ -2364,6 +2283,7 @@ a:hover { color: var(--accent-hover); }
   font-size: 1.15rem;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .achievements-active-title.muted {
@@ -2463,19 +2383,12 @@ a:hover { color: var(--accent-hover); }
     grid-template-columns: 1fr;
   }
 
-  .achievements-hero-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .achievements-hero-kpis {
-    width: 100%;
-    justify-content: stretch;
-  }
-
   .achievements-hero-kpis .home-main-kpi {
-    flex: 1;
-    justify-content: center;
+    min-width: 80px;
+  }
+
+  .achievements-hero-kpis .home-main-kpi:not(:last-child) {
+    border-right: none;
   }
 
   .title-badge-chip { display: none; }
