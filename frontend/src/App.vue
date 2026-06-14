@@ -2,13 +2,15 @@
 import { BookOpenCheck, GitBranch, Home, Medal, Shield, Trophy } from "lucide-vue-next";
 import { onMounted, ref, watch } from "vue";
 import { RouterLink, RouterView } from "vue-router";
-import { usersApi } from "./api/client";
+import { pointsApi, usersApi } from "./api/client";
 import { useAuthStore } from "./stores/auth";
 import type { ActiveTitle } from "./types";
 
 const auth = useAuthStore();
 /** 当前主线称号，用于顶栏展示 */
 const activeTitle = ref<ActiveTitle | null>(null);
+/** 当前积分余额，用于顶栏展示 */
+const pointBalance = ref<number | null>(null);
 
 /**
  * 获取用户名首字母，用于头像占位。
@@ -43,6 +45,38 @@ const loadUserTitle = () => {
 };
 
 /**
+ * 加载用户积分余额。
+ * 功能：登录状态下请求钱包摘要并更新顶栏积分展示。
+ * 参数：无。
+ * 返回值：无。
+ */
+const loadPointBalance = () => {
+  if (!auth.isLoggedIn) {
+    pointBalance.value = null;
+    return;
+  }
+  pointsApi
+    .summary()
+    .then((wallet) => {
+      pointBalance.value = wallet.balance;
+    })
+    .catch(() => {
+      pointBalance.value = null;
+    });
+};
+
+/**
+ * 加载顶栏用户相关数据。
+ * 功能：登录后同时刷新称号与积分。
+ * 参数：无。
+ * 返回值：无。
+ */
+const loadUserHeader = () => {
+  loadUserTitle();
+  loadPointBalance();
+};
+
+/**
  * 处理登出点击。
  * 功能：调用 store 登出并跳转登录页。
  * 参数：无。
@@ -54,8 +88,8 @@ const handleLogout = () => {
   });
 };
 
-onMounted(loadUserTitle);
-watch(() => auth.isLoggedIn, loadUserTitle);
+onMounted(loadUserHeader);
+watch(() => auth.isLoggedIn, loadUserHeader);
 </script>
 
 <template>
@@ -88,6 +122,14 @@ watch(() => auth.isLoggedIn, loadUserTitle);
         </RouterLink>
       </nav>
       <div class="user-area">
+        <RouterLink
+          v-if="pointBalance !== null"
+          to="/levels"
+          class="topbar-points-chip"
+          title="前往关卡页签到与解锁"
+        >
+          积分 {{ pointBalance }}
+        </RouterLink>
         <span
           v-if="activeTitle"
           class="title-badge-chip"
