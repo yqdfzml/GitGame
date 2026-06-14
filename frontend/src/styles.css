@@ -2668,21 +2668,18 @@ a:hover { color: var(--accent-hover); }
 }
 
 .conflict-dialog {
-  width: min(560px, 100%);
-  padding: 24px;
+  width: min(480px, 100%);
+  padding: 20px;
 }
 
 .conflict-dialog-title {
-  margin: 0 0 10px;
-  font-size: 1.15rem;
+  margin: 0 0 8px;
+  font-size: 1.05rem;
 }
 
-.conflict-dialog-desc,
-.conflict-dialog-files,
-.conflict-dialog-hint,
-.conflict-dialog-note {
-  margin: 0 0 10px;
-  font-size: 0.88rem;
+.conflict-dialog-summary {
+  margin: 0 0 14px;
+  font-size: 0.86rem;
   color: var(--text-muted);
   line-height: 1.5;
 }
@@ -2695,16 +2692,16 @@ a:hover { color: var(--accent-hover); }
 .conflict-dialog-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 16px 0;
+  gap: 10px;
+  margin: 0;
 }
 
 .conflict-option-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 16px;
+  gap: 4px;
+  padding: 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--bg-elevated);
@@ -2729,13 +2726,9 @@ a:hover { color: var(--accent-hover); }
 }
 
 .conflict-option-desc {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
-  line-height: 1.45;
-}
-
-.conflict-dialog-later {
-  margin-top: 4px;
+  line-height: 1.4;
 }
 
 .conflict-editor {
