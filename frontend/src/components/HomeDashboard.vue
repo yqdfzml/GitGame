@@ -99,50 +99,58 @@ const canContinue = computed(() => {
     <template v-if="!loading && !error">
       <section class="home-main card">
         <div class="home-main-head">
-          <div class="home-main-info">
-            <template v-if="nextLevel">
-              <div class="home-main-tags">
-                <span v-if="nextPresentation" class="ui-chip ui-chip-muted">{{ nextPresentation.chapterLabel }}</span>
-                <span class="ui-chip" :class="canContinue ? 'ui-chip-ok' : 'ui-chip-warn'">
-                  {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
-                </span>
-              </div>
-              <h2 class="home-main-title">{{ nextLevel.title }}</h2>
-              <p v-if="nextPresentation" class="home-main-meta">{{ nextPresentation.skillLabel }}</p>
-            </template>
+          <template v-if="nextLevel">
+            <p class="home-main-eyebrow">
+              <span v-if="nextPresentation">{{ nextPresentation.chapterLabel }}</span>
+              <span v-if="nextPresentation" class="home-main-eyebrow-sep">·</span>
+              <span :class="canContinue ? 'is-ok' : 'is-warn'">
+                {{ canContinue ? "可继续" : `${nextLevel.unlockCost} 积分` }}
+              </span>
+            </p>
 
-            <template v-else>
-              <div class="home-main-tags">
-                <span class="ui-chip ui-chip-ok">主线完成</span>
+            <div class="home-main-title-row">
+              <div class="home-main-title-wrap">
+                <h2 class="home-main-title">{{ nextLevel.title }}</h2>
+                <p v-if="nextPresentation" class="home-main-meta">{{ nextPresentation.skillLabel }}</p>
               </div>
-              <h2 class="home-main-title">全部通关</h2>
-              <p class="home-main-meta">主线关卡已全部完成，去成就页看看收获吧</p>
-            </template>
-          </div>
 
-          <div class="home-main-actions">
-            <template v-if="nextLevel">
-              <RouterLink
-                v-if="canContinue"
-                :to="`/practice/${nextLevel.id}`"
-                class="btn-primary home-main-cta"
-              >
-                继续
-              </RouterLink>
-              <RouterLink
-                v-else-if="nextLevel.chapterId"
-                :to="`/levels/${nextLevel.chapterId}`"
-                class="btn-primary home-main-cta"
-              >
-                解锁
-              </RouterLink>
-              <RouterLink to="/levels" class="btn-ghost home-main-map">地图</RouterLink>
-            </template>
-            <template v-else>
-              <RouterLink to="/achievements" class="btn-primary home-main-cta">成就</RouterLink>
-              <RouterLink to="/leaderboard" class="btn-ghost home-main-map">排行</RouterLink>
-            </template>
-          </div>
+              <div class="home-main-actions">
+                <RouterLink
+                  v-if="canContinue"
+                  :to="`/practice/${nextLevel.id}`"
+                  class="btn-primary home-main-cta"
+                >
+                  继续
+                </RouterLink>
+                <RouterLink
+                  v-else-if="nextLevel.chapterId"
+                  :to="`/levels/${nextLevel.chapterId}`"
+                  class="btn-primary home-main-cta"
+                >
+                  解锁
+                </RouterLink>
+                <RouterLink to="/levels" class="btn-ghost home-main-map">地图</RouterLink>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <p class="home-main-eyebrow">
+              <span class="is-ok">主线完成</span>
+            </p>
+
+            <div class="home-main-title-row">
+              <div class="home-main-title-wrap">
+                <h2 class="home-main-title">全部通关</h2>
+                <p class="home-main-meta">主线关卡已全部完成，去成就页看看收获吧</p>
+              </div>
+
+              <div class="home-main-actions">
+                <RouterLink to="/achievements" class="btn-primary home-main-cta">成就</RouterLink>
+                <RouterLink to="/leaderboard" class="btn-ghost home-main-map">排行</RouterLink>
+              </div>
+            </div>
+          </template>
         </div>
 
         <div class="home-main-foot">
