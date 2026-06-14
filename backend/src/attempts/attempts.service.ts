@@ -411,11 +411,11 @@ export class AttemptsService {
    */
   async resetAttemptSteps(userId: bigint, attemptId: bigint) {
     const attempt = await this.findOwnedAttempt(userId, attemptId);
-    if (attempt.status !== "IN_PROGRESS") {
-      throw new BadRequestException("仅进行中的练习可清空步骤");
+    if (attempt.status !== "IN_PROGRESS" && attempt.status !== "COMPLETED") {
+      throw new BadRequestException("当前练习不可重置");
     }
     if (attempt.stepCount === 0) {
-      throw new BadRequestException("当前没有可清空的步骤");
+      throw new BadRequestException("当前没有可重置的步骤");
     }
 
     const level = await this.prisma.level.findUnique({ where: { id: attempt.levelId } });
@@ -448,6 +448,7 @@ export class AttemptsService {
         data: {
           currentState: toPrismaJson(initialState),
           stepCount: 0,
+          status: "IN_PROGRESS",
           completedAt: null,
         },
       });

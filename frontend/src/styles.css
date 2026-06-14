@@ -2543,6 +2543,13 @@ a:hover { color: var(--accent-hover); }
   color: #0c0a09;
   background: var(--branch-color);
 }
+.commit-branch.is-remote-tracking {
+  border-style: dashed;
+}
+.commit-branch.is-remote-ahead {
+  border-style: dashed;
+  opacity: 0.75;
+}
 .commit-head-tag {
   font-size: 0.62rem;
   padding: 1px 6px;

@@ -353,7 +353,7 @@ const LEGACY_LEVELS: LevelSeed[] = [
   // ══ 第 5 章：回溯补过（5 关）sortOrder 21-25 ══
   {
     courseId: "mvp", chapterId: "undo", title: "撤回暂存", sortOrder: 21,
-    description: "secret.key 被误加入暂存区。取消暂存，但保留工作区里的 new-secret。",
+    description: "secret.key 被误加入暂存区。取消暂存，但保留 secret.key 工作区内容为 new-secret（不要提交也不要丢弃）。",
     difficulty: Difficulty.INTERMEDIATE,
     initialState: {
       ...makeRepoWithCommit("main", "u1a2b3c", "base", { "secret.key": "old-secret" }),

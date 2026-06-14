@@ -63,7 +63,7 @@ const terminalLines = ref<Array<{ text: string; type: string }>>([]);
 const commandInput = ref("");
 /** 是否提交中 */
 const submitting = ref(false);
-/** 是否正在清空步骤 */
+/** 是否正在重置步骤 */
 const resettingSteps = ref(false);
 /** 是否已通关 */
 const completed = ref(false);
@@ -716,7 +716,7 @@ const submitCommand = () => {
  * 返回值：无。
  */
 const resetAttemptSteps = () => {
-  if (!attemptId.value || submitting.value || resettingSteps.value || completed.value) {
+  if (!attemptId.value || submitting.value || resettingSteps.value) {
     return;
   }
   if (stepCount.value === 0) {
@@ -724,7 +724,7 @@ const resetAttemptSteps = () => {
   }
 
   const confirmed = window.confirm(
-    "确定清空本关已执行的全部命令？仓库将恢复到开局状态，此操作不可撤销。",
+    "确定重置本关已执行的全部命令？仓库将恢复到开局状态，此操作不可撤销。",
   );
   if (!confirmed) {
     return;
@@ -740,7 +740,8 @@ const resetAttemptSteps = () => {
   attemptsApi.resetSteps(attemptId.value)
     .then((attempt) => {
       applyAttemptSession(attempt);
-      terminalLines.value.push({ text: "已清空步骤，仓库已恢复为开局状态", type: "success" });
+      completedNextLevel.value = null;
+      terminalLines.value.push({ text: "已重置，仓库已恢复为开局状态", type: "success" });
       scrollTerminalToBottom();
       focusCommandInput();
     })
@@ -852,13 +853,13 @@ const goReplay = () => {
             </div>
             <span class="meta-chip">步骤 {{ stepCount }}</span>
             <button
-              v-if="!completed && stepCount > 0"
+              v-if="stepCount > 0"
               type="button"
               class="meta-chip practice-reset-steps"
               :disabled="submitting || resettingSteps"
               @click="resetAttemptSteps"
             >
-              {{ resettingSteps ? '清空中…' : '清空步骤' }}
+              {{ resettingSteps ? '重置中…' : '重置' }}
             </button>
             <span class="meta-chip" :class="{ done: judge.passed }">
               {{ judge.passed ? '已通关' : `进度 ${progressPct}%` }}

@@ -128,6 +128,16 @@ export interface StashEntry {
   index?: Record<string, string>;
 }
 
+/** 远程仓库快照 */
+export interface RemoteRepo {
+  /** 远程仓库 URL */
+  url: string;
+  /** 远程分支名 -> 最新 commit id */
+  branches: Record<string, string>;
+  /** 远程提交对象 */
+  commits: Record<string, CommitNode>;
+}
+
 /** 仓库状态 */
 export interface RepoState {
   commits: Record<string, CommitNode>;
@@ -138,6 +148,10 @@ export interface RepoState {
   conflicts: Record<string, ConflictFile>;
   /** 贮藏栈 */
   stash?: StashEntry[];
+  /** 已配置的远程仓库 */
+  remotes?: Record<string, RemoteRepo>;
+  /** 远程跟踪分支，键如 origin/main */
+  remoteTracking?: Record<string, string>;
 }
 
 /** 命令历史条目 */
