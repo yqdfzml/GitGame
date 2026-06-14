@@ -6,10 +6,10 @@ import {
 import type { Difficulty } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import type {
-  CheckInCalendarResponse,
   LevelUnlockState,
   NextLevelAfterComplete,
   PointWalletResponse,
+  PracticeCalendarResponse,
 } from "./points.constants";
 import {
   addShanghaiDays,
@@ -70,39 +70,45 @@ export class PointsService {
    * 返回值：签到后的钱包摘要。
    */
   /**
-   * 获取近一年签到日历数据。
-   * 功能：返回 GitHub 风格热力图所需的日期与积分。
+   * 获取近一年解题日历数据。
+   * 功能：按上海自然日统计通关次数，供热力图展示。
    * 参数：userId - 用户 id。
-   * 返回值：CheckInCalendarResponse。
+   * 返回值：PracticeCalendarResponse。
    */
-  async getCheckInCalendar(userId: bigint): Promise<CheckInCalendarResponse> {
+  async getPracticeCalendar(userId: bigint): Promise<PracticeCalendarResponse> {
     const endDate = formatShanghaiDate(new Date());
     const rawStartDate = addShanghaiDays(endDate, -364);
     const startDate = getSundayOnOrBefore(rawStartDate);
 
-    const rows = await this.prisma.dailyCheckIn.findMany({
+    const rangeStart = parseDateOnly(startDate);
+
+    const attempts = await this.prisma.attempt.findMany({
       where: {
         userId,
-        checkInDate: {
-          gte: parseDateOnly(startDate),
-          lte: parseDateOnly(endDate),
-        },
+        status: "COMPLETED",
+        completedAt: { not: null, gte: rangeStart },
       },
-      select: {
-        checkInDate: true,
-        pointsAwarded: true,
-      },
-      orderBy: { checkInDate: "asc" },
+      select: { completedAt: true },
     });
 
-    return {
-      startDate,
-      endDate,
-      days: rows.map((row) => ({
-        date: toDateText(row.checkInDate)!,
-        pointsAwarded: row.pointsAwarded,
-      })),
-    };
+    /** 日期 -> 当日通关次数 */
+    const solveCountMap = new Map<string, number>();
+    for (const attempt of attempts) {
+      if (!attempt.completedAt) {
+        continue;
+      }
+      const date = formatShanghaiDate(attempt.completedAt);
+      if (date < startDate || date > endDate) {
+        continue;
+      }
+      solveCountMap.set(date, (solveCountMap.get(date) ?? 0) + 1);
+    }
+
+    const days = Array.from(solveCountMap.entries())
+      .map(([date, solveCount]) => ({ date, solveCount }))
+      .sort((left, right) => left.date.localeCompare(right.date));
+
+    return { startDate, endDate, days };
   }
 
   async checkIn(userId: bigint): Promise<PointWalletResponse> {

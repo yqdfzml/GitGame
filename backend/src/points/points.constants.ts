@@ -40,17 +40,17 @@ export interface LevelUnlockState {
   canStart: boolean;
 }
 
-/** 单日签到记录，供日历热力图使用 */
-export interface CheckInCalendarDay {
+/** 单日解题记录，供日历热力图使用 */
+export interface PracticeCalendarDay {
   date: string;
-  pointsAwarded: number;
+  solveCount: number;
 }
 
-/** 近一年签到日历 DTO */
-export interface CheckInCalendarResponse {
+/** 近一年解题日历 DTO */
+export interface PracticeCalendarResponse {
   startDate: string;
   endDate: string;
-  days: CheckInCalendarDay[];
+  days: PracticeCalendarDay[];
 }
 
 /** 通关后下一关信息 DTO */

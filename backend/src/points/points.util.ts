@@ -152,6 +152,28 @@ export function getSundayOnOrBefore(dateText: string): string {
 }
 
 /**
+ * 根据当日解题次数计算热力等级。
+ * 功能：映射到 GitHub 风格 0-4 档颜色。
+ * 参数：solveCount - 当日通关次数，0 表示未解题。
+ * 返回值：0-4 热力等级。
+ */
+export function calcPracticeHeatLevel(solveCount: number): number {
+  if (solveCount <= 0) {
+    return 0;
+  }
+  if (solveCount === 1) {
+    return 1;
+  }
+  if (solveCount <= 3) {
+    return 2;
+  }
+  if (solveCount <= 6) {
+    return 3;
+  }
+  return 4;
+}
+
+/**
  * 根据签到积分计算热力等级。
  * 功能：映射到 GitHub 风格 0-4 档颜色。
  * 参数：pointsAwarded - 当日签到积分，0 表示未签到。

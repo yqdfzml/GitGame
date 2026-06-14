@@ -1,32 +1,32 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { pointsApi } from "../api/client";
-import type { CheckInCalendarResponse } from "../types";
+import type { PracticeCalendarResponse } from "../types";
 import {
-  buildCheckInCalendarGrid,
-  formatCheckInCellTitle,
-  type CheckInCalendarCell,
-} from "../utils/checkInCalendar";
+  buildPracticeCalendarGrid,
+  formatPracticeCellTitle,
+  type PracticeCalendarCell,
+} from "../utils/practiceCalendar";
 
 /** 日历 API 原始数据 */
-const calendarData = ref<CheckInCalendarResponse | null>(null);
+const calendarData = ref<PracticeCalendarResponse | null>(null);
 /** 是否正在加载 */
 const loading = ref(true);
 /** 加载失败时的错误信息 */
 const error = ref("");
 
 /**
- * 拉取签到日历数据。
- * 功能：从后端获取近一年签到记录并渲染热力图。
+ * 拉取解题日历数据。
+ * 功能：从后端获取近一年通关次数并渲染热力图。
  * 参数：无。
- * 返回值：Promise<CheckInCalendarResponse | null>。
+ * 返回值：Promise<PracticeCalendarResponse | null>。
  */
 const loadCalendar = () => {
   loading.value = true;
   error.value = "";
 
   return pointsApi
-    .checkInCalendar()
+    .practiceCalendar()
     .then((data) => {
       calendarData.value = data;
       return data;
@@ -52,7 +52,7 @@ const calendarGrid = computed(() => {
   if (!calendarData.value) {
     return null;
   }
-  return buildCheckInCalendarGrid(calendarData.value);
+  return buildPracticeCalendarGrid(calendarData.value);
 });
 
 /** 热力图图例等级 */
@@ -64,7 +64,7 @@ const legendLevels = [0, 1, 2, 3, 4];
  * 参数：cell - 日历格数据。
  * 返回值：CSS class 字符串。
  */
-const cellClass = (cell: CheckInCalendarCell) => {
+const cellClass = (cell: PracticeCalendarCell) => {
   if (!cell.date) {
     return "check-in-cell check-in-cell--empty";
   }
@@ -75,11 +75,11 @@ const cellClass = (cell: CheckInCalendarCell) => {
 <template>
   <section class="check-in-calendar card">
     <div class="check-in-calendar-head">
-      <span class="check-in-calendar-title">签到记录</span>
-      <span v-if="calendarGrid" class="check-in-calendar-count">近一年 {{ calendarGrid.totalCheckIns }} 天</span>
+      <span class="check-in-calendar-title">解题记录</span>
+      <span v-if="calendarGrid" class="check-in-calendar-count">近一年 {{ calendarGrid.totalSolves }} 次</span>
     </div>
 
-    <div v-if="loading" class="check-in-calendar-loading">加载签到记录...</div>
+    <div v-if="loading" class="check-in-calendar-loading">加载解题记录...</div>
     <p v-else-if="error" class="error-msg check-in-calendar-error">{{ error }}</p>
 
     <template v-else-if="calendarGrid">
@@ -112,7 +112,7 @@ const cellClass = (cell: CheckInCalendarCell) => {
                 v-for="(cell, dayIndex) in weekColumn"
                 :key="`${weekIndex}-${dayIndex}`"
                 :class="cellClass(cell)"
-                :title="formatCheckInCellTitle(cell)"
+                :title="formatPracticeCellTitle(cell)"
               />
             </div>
           </div>

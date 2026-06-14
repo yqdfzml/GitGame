@@ -51,17 +51,17 @@ export interface PointWalletSummary {
   lastCheckInDate: string | null;
 }
 
-/** 单日签到记录 */
-export interface CheckInCalendarDay {
+/** 单日解题记录 */
+export interface PracticeCalendarDay {
   date: string;
-  pointsAwarded: number;
+  solveCount: number;
 }
 
-/** 近一年签到日历 */
-export interface CheckInCalendarResponse {
+/** 近一年解题日历 */
+export interface PracticeCalendarResponse {
   startDate: string;
   endDate: string;
-  days: CheckInCalendarDay[];
+  days: PracticeCalendarDay[];
 }
 
 /** 关卡解锁结果 */

@@ -60,6 +60,17 @@ describe("isFreePublishedLevel", () => {
   });
 });
 
+describe("calcPracticeHeatLevel", () => {
+  it("按解题次数映射热力等级", async () => {
+    const { calcPracticeHeatLevel } = await import("../src/points/points.util");
+    expect(calcPracticeHeatLevel(0)).toBe(0);
+    expect(calcPracticeHeatLevel(1)).toBe(1);
+    expect(calcPracticeHeatLevel(3)).toBe(2);
+    expect(calcPracticeHeatLevel(6)).toBe(3);
+    expect(calcPracticeHeatLevel(10)).toBe(4);
+  });
+});
+
 describe("addShanghaiDays", () => {
   it("可向前向后偏移自然日", async () => {
     const { addShanghaiDays, getSundayOnOrBefore } = await import("../src/points/points.util");

@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { homeApi, levelsApi, usersApi } from "../api/client";
 import ActivityFeedPanel from "./ActivityFeedPanel.vue";
-import CheckInCalendar from "./CheckInCalendar.vue";
+import PracticeCalendar from "./PracticeCalendar.vue";
 import LeaderboardPanel from "./LeaderboardPanel.vue";
 import { usePointsStore } from "../stores/points";
 import type { BadgeItem, HomeActivityItem, LeaderboardEntry, LevelSummary } from "../types";
@@ -155,7 +155,7 @@ const canContinue = computed(() => {
           </div>
         </section>
 
-        <CheckInCalendar />
+        <PracticeCalendar />
       </div>
 
       <section class="home-dashboard-secondary">

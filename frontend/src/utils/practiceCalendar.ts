@@ -1,23 +1,23 @@
-import type { CheckInCalendarResponse } from "../types";
+import type { PracticeCalendarResponse } from "../types";
 
 /** 日历格数据 */
-export interface CheckInCalendarCell {
+export interface PracticeCalendarCell {
   date: string | null;
   level: number;
-  pointsAwarded: number;
+  solveCount: number;
 }
 
 /** 月份标签 */
-export interface CheckInCalendarMonthLabel {
+export interface PracticeCalendarMonthLabel {
   weekIndex: number;
   label: string;
 }
 
 /** 构建后的日历网格 */
-export interface CheckInCalendarGrid {
-  weekColumns: CheckInCalendarCell[][];
-  monthLabels: CheckInCalendarMonthLabel[];
-  totalCheckIns: number;
+export interface PracticeCalendarGrid {
+  weekColumns: PracticeCalendarCell[][];
+  monthLabels: PracticeCalendarMonthLabel[];
+  totalSolves: number;
 }
 
 /**
@@ -70,22 +70,22 @@ function getWeekIndex(startDate: string, dateText: string): number {
 }
 
 /**
- * 根据签到积分映射热力等级。
- * 功能：0 未签到，1-4 对应 GitHub 四档绿色。
- * 参数：pointsAwarded - 当日积分。
+ * 根据当日解题次数映射热力等级。
+ * 功能：0 未解题，1-4 对应 GitHub 四档绿色。
+ * 参数：solveCount - 当日通关次数。
  * 返回值：0-4。
  */
-function calcHeatLevel(pointsAwarded: number): number {
-  if (pointsAwarded <= 0) {
+function calcHeatLevel(solveCount: number): number {
+  if (solveCount <= 0) {
     return 0;
   }
-  if (pointsAwarded <= 10) {
+  if (solveCount === 1) {
     return 1;
   }
-  if (pointsAwarded <= 12) {
+  if (solveCount <= 3) {
     return 2;
   }
-  if (pointsAwarded <= 18) {
+  if (solveCount <= 6) {
     return 3;
   }
   return 4;
@@ -103,29 +103,30 @@ function formatMonthLabel(dateText: string): string {
 }
 
 /**
- * 构建 GitHub 风格签到日历网格。
+ * 构建 GitHub 风格解题日历网格。
  * 功能：把 API 数据转成按周分列、按星期分行的格子。
- * 参数：data - 签到日历 API 响应。
- * 返回值：CheckInCalendarGrid。
+ * 参数：data - 解题日历 API 响应。
+ * 返回值：PracticeCalendarGrid。
  */
-export function buildCheckInCalendarGrid(data: CheckInCalendarResponse): CheckInCalendarGrid {
-  const checkInMap = new Map<string, number>();
+export function buildPracticeCalendarGrid(data: PracticeCalendarResponse): PracticeCalendarGrid {
+  const solveMap = new Map<string, number>();
   for (const item of data.days) {
-    checkInMap.set(item.date, item.pointsAwarded);
+    solveMap.set(item.date, item.solveCount);
   }
 
   const weekCount = getWeekIndex(data.startDate, data.endDate) + 1;
-  const rows: CheckInCalendarCell[][] = Array.from({ length: 7 }, () =>
+  const rows: PracticeCalendarCell[][] = Array.from({ length: 7 }, () =>
     Array.from({ length: weekCount }, () => ({
       date: null,
       level: 0,
-      pointsAwarded: 0,
+      solveCount: 0,
     })),
   );
 
-  const monthLabels: CheckInCalendarMonthLabel[] = [];
+  const monthLabels: PracticeCalendarMonthLabel[] = [];
   let lastMonth = "";
   let cursor = data.startDate;
+  let totalSolves = 0;
 
   while (cursor <= data.endDate) {
     const monthKey = cursor.slice(0, 7);
@@ -139,20 +140,21 @@ export function buildCheckInCalendarGrid(data: CheckInCalendarResponse): CheckIn
 
     const dayOfWeek = getDayOfWeek(cursor);
     const weekIndex = getWeekIndex(data.startDate, cursor);
-    const pointsAwarded = checkInMap.get(cursor) ?? 0;
+    const solveCount = solveMap.get(cursor) ?? 0;
+    totalSolves += solveCount;
 
     rows[dayOfWeek][weekIndex] = {
       date: cursor,
-      level: calcHeatLevel(pointsAwarded),
-      pointsAwarded,
+      level: calcHeatLevel(solveCount),
+      solveCount,
     };
 
     cursor = addDays(cursor, 1);
   }
 
-  const weekColumns: CheckInCalendarCell[][] = [];
+  const weekColumns: PracticeCalendarCell[][] = [];
   for (let weekIndex = 0; weekIndex < weekCount; weekIndex += 1) {
-    const column: CheckInCalendarCell[] = [];
+    const column: PracticeCalendarCell[] = [];
     for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek += 1) {
       column.push(rows[dayOfWeek][weekIndex]);
     }
@@ -162,22 +164,22 @@ export function buildCheckInCalendarGrid(data: CheckInCalendarResponse): CheckIn
   return {
     weekColumns,
     monthLabels,
-    totalCheckIns: data.days.length,
+    totalSolves,
   };
 }
 
 /**
  * 生成日历格 hover 提示文案。
- * 功能：展示日期与签到积分。
+ * 功能：展示日期与当日解题次数。
  * 参数：cell - 日历格数据。
  * 返回值：title 文案，空格子返回空字符串。
  */
-export function formatCheckInCellTitle(cell: CheckInCalendarCell): string {
+export function formatPracticeCellTitle(cell: PracticeCalendarCell): string {
   if (!cell.date) {
     return "";
   }
-  if (cell.pointsAwarded <= 0) {
-    return `${cell.date} 未签到`;
+  if (cell.solveCount <= 0) {
+    return `${cell.date} 未解题`;
   }
-  return `${cell.date} 签到 +${cell.pointsAwarded} 积分`;
+  return `${cell.date} 解题 ${cell.solveCount} 次`;
 }
