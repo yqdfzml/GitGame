@@ -2670,11 +2670,39 @@ a:hover { color: var(--accent-hover); }
 .conflict-dialog {
   width: min(480px, 100%);
   padding: 20px;
+  position: relative;
+}
+
+.conflict-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .conflict-dialog-title {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 1.05rem;
+}
+
+.conflict-dialog-close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.conflict-dialog-close:hover {
+  color: var(--text);
+  background: var(--bg-elevated);
 }
 
 .conflict-dialog-summary {

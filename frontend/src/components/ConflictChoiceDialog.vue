@@ -19,6 +19,16 @@ const emit = defineEmits<{
 }>();
 
 /**
+ * 关闭选择弹窗。
+ * 功能：不打开编辑器，让玩家回到练习页继续操作（如清空步骤）。
+ * 参数：无。
+ * 返回值：无。
+ */
+const closeDialog = () => {
+  emit("update:show", false);
+};
+
+/**
  * 确认编辑方式并打开对应编辑器。
  * 功能：向父组件传递 vim 或 visual 选择后关闭弹窗。
  * 参数：mode - 玩家选中的编辑模式。
@@ -33,7 +43,10 @@ const pickMode = (mode: "vim" | "visual") => {
 <template>
   <div v-if="show" class="conflict-dialog-overlay">
     <div class="conflict-dialog card">
-      <h2 class="conflict-dialog-title">需要解决冲突</h2>
+      <div class="conflict-dialog-head">
+        <h2 class="conflict-dialog-title">需要解决冲突</h2>
+        <button type="button" class="conflict-dialog-close" aria-label="关闭" @click="closeDialog">×</button>
+      </div>
       <p class="conflict-dialog-summary">
         <span class="conflict-dialog-files">{{ conflictPaths.join("、") }}</span>
         存在冲突，请选择编辑方式：
