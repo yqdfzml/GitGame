@@ -42,30 +42,23 @@ onMounted(() => {
       <span class="home-live-badge">实时播报</span>
     </header>
 
-    <div class="home-dashboard-grid">
-      <section class="home-dashboard-block">
-        <div class="home-dashboard-block-head">
-          <h3>排行榜</h3>
-          <RouterLink to="/leaderboard" class="home-section-link">完整榜单</RouterLink>
-        </div>
-        <LeaderboardPanel
-          :entries="leaderboard"
-          :preview-limit="8"
-          :loading="loading"
-          :error="error"
-        />
-      </section>
+    <ActivityFeedPanel
+      :activities="activities"
+      :loading="loading"
+      :error="error"
+    />
 
-      <section class="home-dashboard-block">
-        <div class="home-dashboard-block-head">
-          <h3>通关动态</h3>
-        </div>
-        <ActivityFeedPanel
-          :activities="activities"
-          :loading="loading"
-          :error="error"
-        />
-      </section>
-    </div>
+    <section class="home-dashboard-block home-dashboard-leaderboard">
+      <div class="home-dashboard-block-head">
+        <h3>排行榜</h3>
+        <RouterLink to="/leaderboard" class="home-section-link">完整榜单</RouterLink>
+      </div>
+      <LeaderboardPanel
+        :entries="leaderboard"
+        :preview-limit="8"
+        :loading="loading"
+        :error="error"
+      />
+    </section>
   </section>
 </template>

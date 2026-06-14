@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import type { HomeActivityItem } from "../types";
 
-defineProps<{
+const props = defineProps<{
   /** 动态列表 */
   activities: HomeActivityItem[];
   /** 是否加载中 */
@@ -9,6 +10,19 @@ defineProps<{
   /** 错误信息 */
   error: string;
 }>();
+
+/**
+ * 滚动播报条目（复制两份，实现无缝循环）。
+ * 功能：把原始动态列表拼接成两倍长度，供 CSS 动画循环播放。
+ * 参数：无（读取 props.activities）。
+ * 返回值：用于滚动的条目数组。
+ */
+const marqueeItems = computed(() => {
+  if (props.activities.length === 0) {
+    return [];
+  }
+  return [...props.activities, ...props.activities];
+});
 
 /**
  * 格式化相对时间。
@@ -48,29 +62,37 @@ const activityTypeLabel = (type: HomeActivityItem["type"]) => {
 </script>
 
 <template>
-  <div class="activity-feed-panel">
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner" />
+  <div class="activity-marquee-bar">
+    <span class="activity-marquee-label">
+      <span class="activity-marquee-live-dot" />
+      通关动态
+    </span>
+
+    <div v-if="loading" class="activity-marquee-status">
+      <div class="loading-spinner activity-marquee-spinner" />
       <span>加载动态中...</span>
     </div>
 
-    <p v-if="error" class="error-msg">{{ error }}</p>
+    <p v-else-if="error" class="activity-marquee-status activity-marquee-error">{{ error }}</p>
 
-    <ul v-if="!loading && !error" class="activity-feed-list">
-      <li v-for="item in activities" :key="item.id" class="activity-feed-item">
-        <span class="activity-feed-dot" :class="item.type" />
-        <div class="activity-feed-body">
-          <div class="activity-feed-top">
-            <strong>{{ item.displayName }}</strong>
-            <span class="activity-feed-tag">{{ activityTypeLabel(item.type) }}</span>
-            <span class="activity-feed-time">{{ formatRelativeTime(item.happenedAt) }}</span>
-          </div>
-          <p class="activity-feed-message">{{ item.message }}</p>
-        </div>
-      </li>
-      <li v-if="activities.length === 0" class="activity-feed-empty">
-        暂无通关动态，完成关卡后会在这里播报
-      </li>
-    </ul>
+    <div v-else-if="activities.length === 0" class="activity-marquee-status">
+      暂无通关动态，完成关卡后会在这里播报
+    </div>
+
+    <div v-else class="activity-marquee-viewport">
+      <ul class="activity-marquee-track">
+        <li
+          v-for="(item, index) in marqueeItems"
+          :key="`${item.id}-${index}`"
+          class="activity-marquee-item"
+        >
+          <span class="activity-feed-dot" :class="item.type" />
+          <strong>{{ item.displayName }}</strong>
+          <span class="activity-feed-tag">{{ activityTypeLabel(item.type) }}</span>
+          <span class="activity-marquee-message">{{ item.message }}</span>
+          <span class="activity-marquee-time">{{ formatRelativeTime(item.happenedAt) }}</span>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
