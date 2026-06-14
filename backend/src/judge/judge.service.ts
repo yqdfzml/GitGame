@@ -13,6 +13,15 @@ import {
   refreshWorkingTreeStatus,
 } from "../git-engine/git-engine.utils";
 import { DEFAULT_LEVEL_BASE_SCORE } from "./scoring.constants";
+import {
+  formatBranchFileContentGap,
+  formatBranchMergedGap,
+  formatCurrentBranchGap,
+  formatFileContentGap,
+  formatIndexContentGap,
+  formatMergeCommitRequiredGap,
+  formatWorkingTreeContentGap,
+} from "./judge-messages";
 
 /**
  * 结果导向判题服务。
@@ -36,6 +45,8 @@ export class JudgeService {
   ): JudgeResult {
     const satisfied: string[] = [];
     const gaps: Array<{ key: string; message: string }> = [];
+    /** 关卡要求最终所在分支，用于文件类提示文案 */
+    const goalBranch = goal.currentBranch ?? null;
 
     // 1. 检查当前分支
     if (goal.currentBranch !== undefined) {
@@ -45,7 +56,10 @@ export class JudgeService {
       } else {
         gaps.push({
           key: "currentBranch",
-          message: `当前应在分支 '${goal.currentBranch}'，实际为 '${currentBranch ?? "detached"}'`,
+          message: formatCurrentBranchGap(
+            goal.currentBranch,
+            currentBranch ?? "detached",
+          ),
         });
       }
     }
@@ -123,7 +137,7 @@ export class JudgeService {
           } else {
             gaps.push({
               key: `branchFileContents:${branch}:${path}`,
-              message: `分支 '${branch}' 的 '${path}' 内容不符合目标`,
+              message: formatBranchFileContentGap(branch, path, actual, expected),
             });
           }
         }
@@ -141,7 +155,7 @@ export class JudgeService {
         } else {
           gaps.push({
             key: `fileContents:${path}`,
-            message: `提交历史中 '${path}' 内容不符合目标`,
+            message: formatFileContentGap(path, actual, goalBranch, expected),
           });
         }
       }
@@ -173,7 +187,7 @@ export class JudgeService {
         } else {
           gaps.push({
             key: `workingTreeContents:${path}`,
-            message: `工作区 '${path}' 内容不符合目标`,
+            message: formatWorkingTreeContentGap(path),
           });
         }
       }
@@ -207,7 +221,7 @@ export class JudgeService {
         } else {
           gaps.push({
             key: `indexContents:${path}`,
-            message: `暂存区 '${path}' 内容不符合目标`,
+            message: formatIndexContentGap(path),
           });
         }
       }
@@ -265,7 +279,7 @@ export class JudgeService {
         } else {
           gaps.push({
             key: "branchMerged",
-            message: `'${item.source}' 尚未合并到 '${item.target}'`,
+            message: formatBranchMergedGap(item.source, item.target),
           });
         }
       }
@@ -278,7 +292,10 @@ export class JudgeService {
       if (headCommit && headCommit.parents.length >= 2) {
         satisfied.push("mergeCommitRequired");
       } else {
-        gaps.push({ key: "mergeCommitRequired", message: "当前提交应为 merge commit（两个父提交）" });
+        gaps.push({
+          key: "mergeCommitRequired",
+          message: formatMergeCommitRequiredGap(goalBranch),
+        });
       }
     }
 

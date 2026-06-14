@@ -105,9 +105,13 @@ const LEVEL_HINTS_BY_ORDER: Record<number, LevelLearningHints> = {
     keyPoints: ["git merge feature，合并后 main 包含 feature 的全部改动。"],
   },
   17: {
-    concepts: ["两分支各有独立提交时，merge 会产生 merge commit（两个父提交）。"],
-    directions: ["当前在 main，执行 git merge feature，保留双方文件改动。"],
-    keyPoints: ["git merge feature → 完成 merge commit，main 同时有 main.txt 与 feature.txt。"],
+    concepts: ["两分支各有独立提交时，merge 会产生 merge commit（两个父提交），并合入双方各自新增的文件。"],
+    directions: ["先在 main 提交 main.txt，再切到 feature 新建 feature.txt 并提交，最后回到 main 执行合并。"],
+    keyPoints: [
+      "main：git add main.txt → git commit（工作区已是 main only）",
+      "feature：git switch feature → echo \"feature only\" > feature.txt → add → commit",
+      "main：git switch main → git merge feature，合并后两文件内容均保留",
+    ],
   },
   18: {
     concepts: ["修改不同行时 Git 可自动合并，无需手动解决冲突。"],

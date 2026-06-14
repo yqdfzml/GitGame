@@ -143,13 +143,15 @@ const buildLevelHints = (goal: Record<string, unknown>, sortOrder: number): Leve
 };
 
 /**
- * 从 goal 生成通关目标 checklist（不含答案细节）。
- * 功能：让用户知道要达成什么，明确分支/合并方向等，但不泄露 commit hash。
+ * 从 goal 生成通关目标 checklist。
+ * 功能：让用户知道要达成什么；文件类目标需写明路径与内容，避免「目标内容」等模糊表述。
  * 参数：goal - 关卡目标 JSON。
  * 返回值：目标提示字符串数组。
  */
 const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
   const targets: string[] = [];
+  /** 关卡最终应在的分支，用于 fileContents 文案 */
+  const goalBranch = typeof goal.currentBranch === "string" ? goal.currentBranch : null;
 
   if (goal.branchMerged) {
     const merges = goal.branchMerged as Array<{ source: string; target: string }>;
@@ -170,23 +172,28 @@ const buildGoalTargets = (goal: Record<string, unknown>): string[] => {
   if (goal.branchFileContents) {
     const branchFiles = goal.branchFileContents as Record<string, Record<string, string>>;
     for (const [branch, files] of Object.entries(branchFiles)) {
-      const paths = Object.keys(files).join("、");
-      targets.push(`分支 '${branch}' 上 ${paths} 需达到目标内容`);
+      for (const [path, content] of Object.entries(files)) {
+        targets.push(`分支「${branch}」需提交「${path}」，内容为「${content}」`);
+      }
     }
   }
   if (goal.fileContents) {
-    for (const path of Object.keys(goal.fileContents as Record<string, string>)) {
-      targets.push(`版本库中 ${path} 需达到目标内容`);
+    for (const [path, content] of Object.entries(goal.fileContents as Record<string, string>)) {
+      if (goalBranch) {
+        targets.push(`分支「${goalBranch}」最终需包含「${path}」，内容为「${content}」`);
+      } else {
+        targets.push(`「${path}」最终内容应为「${content}」`);
+      }
     }
   }
   if (goal.workingTreeContents) {
-    for (const path of Object.keys(goal.workingTreeContents as Record<string, string>)) {
-      targets.push(`工作区 ${path} 需达到目标内容`);
+    for (const [path, content] of Object.entries(goal.workingTreeContents as Record<string, string>)) {
+      targets.push(`工作区「${path}」需保持内容为「${content}」`);
     }
   }
   if (goal.indexContents) {
-    for (const path of Object.keys(goal.indexContents as Record<string, string>)) {
-      targets.push(`暂存区需包含 ${path}`);
+    for (const [path, content] of Object.entries(goal.indexContents as Record<string, string>)) {
+      targets.push(`暂存区「${path}」内容应为「${content}」`);
     }
   }
   if (goal.stashContents) {

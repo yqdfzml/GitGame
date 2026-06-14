@@ -2028,6 +2028,7 @@ a:hover { color: var(--accent-hover); }
 .practice-layout {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(340px, 1.18fr) minmax(260px, 0.82fr);
   gap: 14px;
@@ -2070,6 +2071,7 @@ a:hover { color: var(--accent-hover); }
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -2087,7 +2089,9 @@ a:hover { color: var(--accent-hover); }
 .practice-panel-goal {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   padding: 10px 12px;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -2137,6 +2141,34 @@ a:hover { color: var(--accent-hover); }
   color: var(--text-muted);
 }
 
+.practice-panel-goal .goal-target-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.practice-panel-goal .goal-target-list li {
+  padding: 6px 8px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 960px) {
+  .practice-panel-goal .goal-target-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 .practice-panel-goal .goal-progress {
   margin-bottom: 8px;
   padding: 8px 10px;
@@ -2168,14 +2200,46 @@ a:hover { color: var(--accent-hover); }
 
 .practice-panel-goal .gap-item {
   padding: 6px 8px;
-  margin-bottom: 3px;
-  font-size: 0.78rem;
+  margin-bottom: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .practice-panel-goal .satisfied-item {
   padding: 6px 8px;
-  margin-bottom: 3px;
-  font-size: 0.78rem;
+  margin-bottom: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 目标反馈：待完成 / 已达成 两列排布，避免单条过宽撑出横向滚动 */
+.practice-panel-goal .goal-feedback {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.practice-panel-goal .gap-list,
+.practice-panel-goal .satisfied-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.practice-panel-goal .gap-list .empty-hint {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 960px) {
+  .practice-panel-goal .gap-list,
+  .practice-panel-goal .satisfied-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .meta-chip {
@@ -2270,10 +2334,10 @@ a:hover { color: var(--accent-hover); }
   padding: 10px 14px 12px;
   min-height: 0;
 }
-.terminal-input-row { display: flex; gap: 10px; align-items: center; }
+.terminal-input-row { display: flex; gap: 10px; align-items: center; min-width: 0; }
 .prompt-symbol { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); flex-shrink: 0; }
 .terminal-input-row input {
-  flex: 1; padding: 10px 0; background: transparent; border: none; color: var(--text);
+  flex: 1; min-width: 0; padding: 10px 0; background: transparent; border: none; color: var(--text);
   font-family: var(--font-mono); font-size: 0.88rem;
 }
 .terminal-input-row input:focus { outline: none; }

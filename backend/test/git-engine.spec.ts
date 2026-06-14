@@ -377,4 +377,48 @@ describe("merge 多路径", () => {
     );
     expect(judgeResult.passed).toBe(true);
   });
+
+  /** 关卡「双亲之印」：两分支各有独立提交，merge 后应同时保留双方文件 */
+  it("双亲 merge 应保留 main.txt 与 feature.txt", () => {
+    const twinParentState: RepoState = {
+      commits: {
+        base01: { id: "base01", message: "init", parents: [], files: { "readme.md": "hi" }, timestamp: 1 },
+        main01: { id: "main01", message: "main change", parents: ["base01"], files: { "readme.md": "hi", "main.txt": "main only" }, timestamp: 2 },
+        feat01: { id: "feat01", message: "feature change", parents: ["base01"], files: { "readme.md": "hi", "feature.txt": "feature only" }, timestamp: 3 },
+      },
+      branches: { main: "main01", feature: "feat01" },
+      head: { type: "branch", ref: "main" },
+      workingTree: {
+        "readme.md": { content: "hi", status: "unchanged" },
+        "main.txt": { content: "main only", status: "unchanged" },
+      },
+      index: {},
+      conflicts: {},
+      stash: [],
+      tags: {},
+      reflog: [],
+    };
+    const merged = gitEngine.executeCommand("git merge feature", twinParentState);
+    expect(merged.success).toBe(true);
+    const headId = merged.state.branches.main;
+    const headFiles = merged.state.commits[headId].files;
+    expect(headFiles["main.txt"]).toBe("main only");
+    expect(headFiles["feature.txt"]).toBe("feature only");
+    expect(merged.state.commits[headId].parents).toHaveLength(2);
+    const judgeResult = judge.evaluate(
+      merged.state,
+      {
+        currentBranch: "main",
+        workingTreeClean: true,
+        indexEmpty: true,
+        noConflicts: true,
+        mergeCommitRequired: true,
+        branchMerged: [{ source: "feature", target: "main" }],
+        fileContents: { "main.txt": "main only", "feature.txt": "feature only" },
+      },
+      { baseScore: 30 },
+      1,
+    );
+    expect(judgeResult.passed).toBe(true);
+  });
 });

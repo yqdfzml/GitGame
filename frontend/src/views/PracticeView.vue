@@ -369,6 +369,7 @@ const goReplay = () => {
           <GoalFeedback
             :judge="judge"
             :task-description="levelDescription"
+            :goal-targets="goalHints.targets"
             :progress-pct="progressPct"
             :initial-gap-count="initialGapCount"
             :initial-satisfied-keys="initialSatisfiedKeys"

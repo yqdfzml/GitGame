@@ -8,6 +8,8 @@ const props = defineProps<{
   judge: JudgeResult;
   /** 关卡任务说明 */
   taskDescription: string;
+  /** 通关条件清单（含文件内容等明确要求） */
+  goalTargets?: string[];
   /** 完成进度百分比 */
   progressPct: number;
   /** 开局时的差距项数量，进度从 0 起算 */
@@ -61,6 +63,9 @@ const statusLabel = computed(() => {
 
     <p class="panel-title">关卡目标</p>
     <p class="task-desc">{{ taskDescription }}</p>
+    <ul v-if="goalTargets && goalTargets.length > 0" class="goal-target-list">
+      <li v-for="target in goalTargets" :key="target">{{ target }}</li>
+    </ul>
 
     <p v-if="visibleSatisfied.length > 0" class="panel-title">已达成</p>
     <ul v-if="visibleSatisfied.length > 0" class="satisfied-list">

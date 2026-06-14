@@ -450,6 +450,8 @@ export class GitEngineService {
       };
     }
 
+    // 无冲突时把合并结果写入暂存区，createCommit 才会带上双方文件
+    state.index = { ...mergedFiles };
     createCommit(state, `Merge branch '${branchName}'`, [currentId, targetId]);
     return { success: true, output: "Merge made by the 'recursive' strategy.", feedback: `已合并 '${branchName}'`, state };
   }
