@@ -2,8 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { levelsApi } from "../api/client";
-import UserStatusPanel from "../components/UserStatusPanel.vue";
-import { usePointsStore } from "../stores/points";
+import LevelChallengeCard from "../components/LevelChallengeCard.vue";
 import type { LevelSummary } from "../types";
 import { findNextRecommendedLevel } from "../utils/levelProgress";
 import {
@@ -14,8 +13,6 @@ import {
 
 /** 关卡列表 */
 const levels = ref<LevelSummary[]>([]);
-/** 积分钱包 Store */
-const pointsStore = usePointsStore();
 /** 加载中 */
 const loading = ref(true);
 /** 错误信息 */
@@ -44,44 +41,24 @@ const loadLevels = () => {
     });
 };
 
-/**
- * 签到或解锁后刷新页面数据。
- * 功能：重新拉取关卡列表与积分钱包。
- * 参数：无。
- * 返回值：无。
- */
-const handleRefresh = () => {
-  loadLevels();
-  pointsStore.loadWallet();
-};
+onMounted(loadLevels);
 
-onMounted(() => {
-  loadLevels();
-  pointsStore.loadWallet();
-});
-
-/** 学习地图节点数据 */
+/** 章节卡片数据 */
 const mapNodes = computed(() => {
-  return TOPIC_CHAPTER_IDS.map((chapterId: TopicChapterId, index) => {
+  return TOPIC_CHAPTER_IDS.map((chapterId: TopicChapterId) => {
     const presentation = getLevelPresentation(chapterId);
     const chapterLevels = levels.value
       .filter((level) => level.chapterId === chapterId)
       .sort((a, b) => a.sortOrder - b.sortOrder);
     const completedCount = chapterLevels.filter((level) => level.unlockStatus === "completed").length;
     const totalCount = chapterLevels.length;
-    const nextLevel = chapterLevels.find((level) => level.unlockStatus !== "completed");
-    const isCurrent = nextLevel !== undefined && totalCount > 0;
 
     return {
       chapterId,
-      index,
       presentation,
       levelCount: chapterLevels.length,
       completedCount,
       totalCount,
-      nextLevel,
-      isCurrent,
-      isDone: totalCount > 0 && completedCount >= totalCount,
     };
   });
 });
@@ -103,81 +80,36 @@ const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
 
     <p v-if="error" class="error-msg">{{ error }}</p>
 
-    <div v-if="!loading && !error" class="learning-map-layout">
-      <section class="learning-map-main card">
-        <div v-if="recommendedLevel" class="learning-map-banner">
-          <strong class="learning-map-banner-title">{{ recommendedLevel.title }}</strong>
-          <RouterLink
-            v-if="recommendedLevel.canStart && recommendedLevel.unlockStatus !== 'completed'"
-            :to="`/practice/${recommendedLevel.id}`"
-            class="btn-primary"
-          >
-            继续
-          </RouterLink>
-          <RouterLink
-            v-else-if="recommendedLevel.chapterId"
-            :to="`/levels/${recommendedLevel.chapterId}`"
-            class="btn-ghost"
-          >
-            解锁
-          </RouterLink>
-        </div>
+    <section v-if="!loading && !error" class="learning-map-main card">
+      <div v-if="recommendedLevel" class="learning-map-banner">
+        <strong class="learning-map-banner-title">{{ recommendedLevel.title }}</strong>
+        <RouterLink
+          v-if="recommendedLevel.canStart && recommendedLevel.unlockStatus !== 'completed'"
+          :to="`/practice/${recommendedLevel.id}`"
+          class="btn-primary"
+        >
+          继续
+        </RouterLink>
+        <RouterLink
+          v-else-if="recommendedLevel.chapterId"
+          :to="`/levels/${recommendedLevel.chapterId}`"
+          class="btn-ghost"
+        >
+          解锁
+        </RouterLink>
+      </div>
 
-        <ol class="learning-map-route">
-          <li
-            v-for="node in mapNodes"
-            :key="node.chapterId"
-            class="learning-map-node"
-            :class="{
-              current: node.isCurrent && !node.isDone,
-              done: node.isDone,
-              empty: node.levelCount === 0,
-            }"
-          >
-            <div class="learning-map-node-marker">
-              <span class="learning-map-node-index">{{ node.index + 1 }}</span>
-            </div>
-
-            <div class="learning-map-node-body">
-              <div class="learning-map-node-head">
-                <strong>{{ node.presentation.chapterLabel }}</strong>
-                <span v-if="node.isDone" class="learning-map-node-badge done">已完成</span>
-                <span v-else-if="node.isCurrent" class="learning-map-node-badge current">进行中</span>
-                <span v-else-if="node.levelCount === 0" class="learning-map-node-badge locked">开发中</span>
-              </div>
-              <p class="learning-map-node-progress">{{ node.completedCount }}/{{ node.totalCount }}</p>
-
-              <div v-if="node.nextLevel" class="learning-map-node-next">
-                <span class="learning-map-node-next-title">{{ node.nextLevel.title }}</span>
-                <RouterLink
-                  v-if="node.nextLevel.canStart"
-                  :to="`/practice/${node.nextLevel.id}`"
-                  class="learning-map-node-link"
-                >
-                  开始
-                </RouterLink>
-                <RouterLink
-                  v-else
-                  :to="`/levels/${node.chapterId}`"
-                  class="learning-map-node-link"
-                >
-                  解锁
-                </RouterLink>
-              </div>
-
-              <RouterLink
-                v-if="node.levelCount > 0"
-                :to="`/levels/${node.chapterId}`"
-                class="learning-map-node-entry"
-              >
-                进入
-              </RouterLink>
-            </div>
-          </li>
-        </ol>
-      </section>
-
-      <UserStatusPanel compact :levels="levels" @checked-in="handleRefresh" />
-    </div>
+      <div class="topic-lane-grid learning-map-cards">
+        <LevelChallengeCard
+          v-for="node in mapNodes"
+          :key="node.chapterId"
+          :chapter-id="node.chapterId"
+          :presentation="node.presentation"
+          :level-count="node.levelCount"
+          :completed-count="node.completedCount"
+          :total-count="node.totalCount"
+        />
+      </div>
+    </section>
   </section>
 </template>
