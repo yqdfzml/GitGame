@@ -389,10 +389,6 @@ a:hover { color: var(--accent-hover); }
   }
 }
 
-.leaderboard-panel .loading-state {
-  min-height: 120px;
-}
-
 .page-title-serif {
   font-family: var(--font-serif);
   font-weight: 600;
