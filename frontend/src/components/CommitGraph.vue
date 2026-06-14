@@ -44,7 +44,7 @@ const buildGraph = () => {
 </script>
 
 <template>
-  <div class="commit-graph">
+  <div class="commit-graph dark-scroll">
     <div
       v-for="node in buildGraph()"
       :key="node.id"

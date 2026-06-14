@@ -36,7 +36,7 @@ const stashFilePaths = (entry: StashEntry) => {
       <span v-if="state.head.type === 'detached'" class="working-tree-detached">（分离 HEAD）</span>
     </div>
 
-    <div class="working-tree-scroll">
+    <div class="working-tree-scroll dark-scroll">
       <ul class="file-list">
         <li v-for="(file, path) in state.workingTree" :key="path" class="file-item">
           <span class="file-path">{{ path }}</span>

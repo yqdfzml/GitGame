@@ -1924,6 +1924,51 @@ a:hover { color: var(--accent-hover); }
   width: 0;
 }
 
+/* 深色滚动条：终端、工作区、提交图谱等面板复用 */
+.dark-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(154, 146, 136, 0.42) transparent;
+}
+
+.dark-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark-scroll::-webkit-scrollbar-thumb {
+  background: rgba(154, 146, 136, 0.38);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.dark-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(242, 189, 75, 0.42);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.dark-scroll::-webkit-scrollbar-button,
+.dark-scroll::-webkit-scrollbar-corner {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.dark-scroll--terminal {
+  scrollbar-color: rgba(154, 146, 136, 0.42) #0c0a09;
+}
+
+.dark-scroll--terminal::-webkit-scrollbar-track {
+  background: #0c0a09;
+  margin: 4px 0;
+  border-radius: 4px;
+}
+
 .practice-hint-panel-title {
   margin-bottom: 10px;
   font-size: 0.72rem;
@@ -1984,7 +2029,7 @@ a:hover { color: var(--accent-hover); }
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
+  grid-template-columns: minmax(300px, 0.74fr) 1.26fr;
   gap: 14px;
   align-items: stretch;
   overflow: hidden;
@@ -2006,7 +2051,12 @@ a:hover { color: var(--accent-hover); }
     overflow: visible;
   }
   .practice-layout { grid-template-columns: 1fr; }
-  .practice-sidebar-row { grid-template-columns: 1fr; }
+  .practice-sidebar-row {
+    grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
+    min-height: 200px;
+  }
 }
 
 @media (min-width: 961px) {
@@ -2025,11 +2075,20 @@ a:hover { color: var(--accent-hover); }
 
 .practice-sidebar-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
   gap: 12px;
-  flex: 0 0 172px;
-  height: 172px;
+  flex: 0 0 auto;
+  height: clamp(200px, 26vh, 236px);
+  max-height: 236px;
   min-height: 0;
+  overflow: hidden;
+}
+
+.practice-panel-goal {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 12px;
+  overflow-y: auto;
 }
 
 .practice-panel-compact {
@@ -2066,42 +2125,57 @@ a:hover { color: var(--accent-hover); }
   padding: 6px 8px;
 }
 
-.practice-panel-goal {
-  flex: 1;
-  min-height: 0;
-  padding: 12px 14px;
-  overflow-y: auto;
-}
-
 .practice-panel-goal .panel-title {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
 }
 
 .practice-panel-goal .task-desc {
-  margin: 0 0 12px;
-  font-size: 0.84rem;
-  line-height: 1.5;
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  line-height: 1.45;
   color: var(--text-muted);
 }
 
 .practice-panel-goal .goal-progress {
-  margin-bottom: 12px;
-  padding: 10px 12px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+}
+
+.practice-panel-goal .progress-ring {
+  width: 40px;
+  height: 40px;
+}
+
+.practice-panel-goal .progress-ring-inner {
+  width: 30px;
+  height: 30px;
+  font-size: 0.62rem;
+}
+
+.practice-panel-goal .goal-progress-text {
+  font-size: 0.8rem;
 }
 
 .practice-panel-goal .hint-list {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .practice-panel-goal .hint-list li {
-  padding: 5px 0 5px 16px;
-  font-size: 0.82rem;
+  padding: 4px 0 4px 16px;
+  font-size: 0.78rem;
 }
 
 .practice-panel-goal .gap-item {
-  padding: 8px 10px;
-  margin-bottom: 4px;
-  font-size: 0.82rem;
+  padding: 6px 8px;
+  margin-bottom: 3px;
+  font-size: 0.78rem;
+}
+
+.practice-panel-goal .satisfied-item {
+  padding: 6px 8px;
+  margin-bottom: 3px;
+  font-size: 0.78rem;
 }
 
 .meta-chip {
@@ -2130,6 +2204,7 @@ a:hover { color: var(--accent-hover); }
   display: flex;
   flex-direction: column;
 }
+
 .terminal-chrome {
   display: flex; align-items: center; gap: 8px; padding: 10px 14px;
   background: var(--bg-elevated); border-bottom: 1px solid var(--border);
@@ -2143,13 +2218,12 @@ a:hover { color: var(--accent-hover); }
 
 .terminal {
   background: #0c0a09;
-  padding: 14px;
+  padding: 14px 14px 18px;
   font-family: var(--font-mono);
   font-size: 0.82rem;
   line-height: 1.55;
   flex: 1 1 auto;
   min-height: 0;
-  height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2163,9 +2237,15 @@ a:hover { color: var(--accent-hover); }
   padding: 12px 14px;
   background: var(--bg-elevated);
   border-top: 1px solid var(--border);
+  flex: 0 0 auto;
   flex-shrink: 0;
   min-height: 56px;
   overflow: hidden;
+}
+
+.terminal-input-area.is-completed {
+  padding: 10px 14px 12px;
+  min-height: 0;
 }
 .terminal-input-row { display: flex; gap: 10px; align-items: center; }
 .prompt-symbol { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); flex-shrink: 0; }
@@ -2175,7 +2255,12 @@ a:hover { color: var(--accent-hover); }
 }
 .terminal-input-row input:focus { outline: none; }
 .terminal-input-row input::placeholder { color: var(--text-faint); }
-.terminal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.terminal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0;
+}
 
 .commit-graph {
   font-family: var(--font-mono);

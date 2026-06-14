@@ -7,7 +7,7 @@ import GoalFeedback from "../components/GoalFeedback.vue";
 import WorkingTreePanel from "../components/WorkingTreePanel.vue";
 import { usePointsStore } from "../stores/points";
 import { useToastStore } from "../stores/toast";
-import type { AttemptDetail, LevelGoalHints, NextLevelAfterComplete, RepoState } from "../types";
+import type { AttemptDetail, CommandResponse, LevelGoalHints, NextLevelAfterComplete, RepoState } from "../types";
 import { EMPTY_LEVEL_GOAL_HINTS } from "../types";
 import { calcChallengeProgress } from "../utils/challengeProgress";
 import {
@@ -254,6 +254,37 @@ watch(
 );
 
 /**
+ * 将命令执行结果写入终端。
+ * 功能：展示 output 与 feedback；二者文案相同时只输出一行，避免重复报错。
+ * 参数：result - 命令提交响应。
+ * 返回值：无。
+ */
+const appendCommandResult = (result: CommandResponse) => {
+  /** 命令原始输出，去掉首尾空白后用于比较 */
+  const outputText = result.output.trim();
+  /** 系统反馈文案，去掉首尾空白后用于比较 */
+  const feedbackText = result.feedback.trim();
+  /** 结果行样式：成功为 output/success，失败为 error */
+  const resultType = result.success ? (outputText ? "output" : "success") : "error";
+
+  if (outputText) {
+    terminalLines.value.push({ text: result.output, type: resultType });
+  }
+
+  if (feedbackText && feedbackText !== outputText) {
+    terminalLines.value.push({
+      text: result.feedback,
+      type: result.success ? "success" : "error",
+    });
+  } else if (!outputText && feedbackText) {
+    terminalLines.value.push({
+      text: result.feedback,
+      type: result.success ? "success" : "error",
+    });
+  }
+};
+
+/**
  * 提交 Git 命令。
  * 功能：调用 API 执行命令并刷新 UI。
  * 参数：无（读取 commandInput）。
@@ -269,13 +300,7 @@ const submitCommand = () => {
 
   attemptsApi.submitCommand(attemptId.value, cmd)
     .then((result) => {
-      if (result.output) {
-        terminalLines.value.push({ text: result.output, type: result.success ? "output" : "error" });
-      }
-      terminalLines.value.push({
-        text: result.feedback,
-        type: result.success ? "success" : "error",
-      });
+      appendCommandResult(result);
       repoState.value = result.state;
       judge.value = result.judge;
       stepCount.value = result.stepCount;
@@ -381,11 +406,6 @@ const goReplay = () => {
 
     <p v-else-if="error" class="error-msg practice-error">{{ error }}</p>
 
-    <div v-if="completed && judge" class="success-banner practice-success-banner">
-      <span class="success-banner-icon">✓</span>
-      恭喜通关！得分 {{ judge.score }} 分
-    </div>
-
     <div v-if="repoState && judge" class="practice-layout">
       <div class="practice-sidebar">
         <div class="practice-sidebar-row">
@@ -418,7 +438,7 @@ const goReplay = () => {
           <span class="terminal-chrome-title">Git 终端</span>
         </div>
         <div class="terminal-body">
-          <div ref="terminalOutputRef" class="terminal">
+          <div ref="terminalOutputRef" class="terminal dark-scroll dark-scroll--terminal">
             <div
               v-for="(line, i) in terminalLines"
               :key="i"
@@ -427,21 +447,20 @@ const goReplay = () => {
             >{{ line.text }}</div>
           </div>
         </div>
-        <div class="terminal-input-area">
-          <div class="terminal-input-row">
+        <div class="terminal-input-area" :class="{ 'is-completed': completed }">
+          <div v-if="!completed" class="terminal-input-row">
             <span class="prompt-symbol">❯</span>
             <input
               ref="commandInputRef"
               v-model="commandInput"
               placeholder="git status"
-              :disabled="completed"
               @keydown.enter="submitCommand"
             />
-            <button class="btn-primary" :disabled="completed || submitting" @click="submitCommand">
+            <button class="btn-primary" :disabled="submitting" @click="submitCommand">
               执行
             </button>
           </div>
-          <div v-if="completed" class="terminal-actions">
+          <div v-else class="terminal-actions">
             <button
               v-if="completedNextLevel && completedNextLevel.canStart"
               type="button"
