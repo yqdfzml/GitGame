@@ -887,4 +887,141 @@ a:hover { color: var(--accent-hover); }
 .result-tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
 .result-tag.ok { color: var(--accent-2); background: var(--success-soft); }
 .result-tag.fail { color: var(--danger); background: var(--danger-soft); }
+
+.title-badge-chip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--title-color) 45%, transparent);
+  background: color-mix(in srgb, var(--title-color) 14%, transparent);
+  color: var(--title-color);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.achievements-page .achievement-section { padding: 20px; margin-bottom: 18px; }
+.achievement-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.achievement-section-desc {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  margin-bottom: 16px;
+}
+.achievements-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.achievements-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+.achievements-active-title { font-size: 1.1rem; }
+.achievements-active-title.muted { color: var(--text-muted); font-size: 0.95rem; }
+.achievements-rank-en {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.badge-card {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  min-height: 118px;
+}
+.badge-card.unlocked {
+  border-color: color-mix(in srgb, var(--badge-color) 45%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--badge-color) 12%, transparent), rgba(255, 255, 255, 0.02));
+}
+.badge-card.locked { opacity: 0.62; filter: grayscale(0.35); }
+.badge-tier-wood.unlocked { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04); }
+.badge-tier-energy.unlocked { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--badge-color) 25%, transparent), 0 0 16px color-mix(in srgb, var(--badge-color) 12%, transparent); }
+.badge-tier-cosmic.unlocked { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--badge-color) 20%, transparent), 0 0 20px color-mix(in srgb, var(--badge-color) 16%, transparent); }
+.badge-tier-legend.unlocked { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--badge-color) 30%, transparent), 0 0 24px color-mix(in srgb, var(--badge-color) 22%, transparent); }
+.badge-icon-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--badge-color) 35%, transparent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.18);
+}
+.badge-card.unlocked .badge-icon-ring {
+  background: color-mix(in srgb, var(--badge-color) 18%, transparent);
+}
+.badge-icon-inner {
+  font-size: 1.2rem;
+  color: var(--badge-color);
+  font-family: var(--font-mono);
+}
+.badge-body { min-width: 0; flex: 1; }
+.badge-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.badge-head strong { font-size: 0.92rem; color: var(--text); }
+.badge-level {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  color: var(--badge-color);
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--badge-color) 35%, transparent);
+}
+.badge-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+.badge-ability {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+.badge-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+.badge-status.unlocked {
+  color: #0a1a14;
+  background: var(--accent-2);
+}
+.badge-status.locked {
+  color: var(--text-faint);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 760px) {
+  .achievements-summary { grid-template-columns: 1fr; }
+  .title-badge-chip { display: none; }
+}
 .table-footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }

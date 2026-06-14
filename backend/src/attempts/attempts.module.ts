@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { BadgesModule } from "../badges/badges.module";
 import { GitEngineModule } from "../git-engine/git-engine.module";
 import { JudgeModule } from "../judge/judge.module";
 import { LevelsModule } from "../levels/levels.module";
@@ -8,7 +9,7 @@ import { AttemptsService } from "./attempts.service";
 
 /** 练习会话模块 */
 @Module({
-  imports: [AuthModule, LevelsModule, GitEngineModule, JudgeModule],
+  imports: [AuthModule, LevelsModule, GitEngineModule, JudgeModule, BadgesModule],
   controllers: [AttemptsController],
   providers: [AttemptsService],
 })

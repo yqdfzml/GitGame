@@ -8,6 +8,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { GitEngineService } from "../git-engine/git-engine.service";
 import { JudgeService } from "../judge/judge.service";
 import { LevelsService } from "../levels/levels.service";
+import { BadgesService } from "../badges/badges.service";
 import type {
   LevelConstraints,
   LevelGoal,
@@ -32,6 +33,7 @@ export class AttemptsService {
     private readonly gitEngine: GitEngineService,
     private readonly judge: JudgeService,
     private readonly levelsService: LevelsService,
+    private readonly badgesService: BadgesService,
   ) {}
 
   /**
@@ -241,6 +243,11 @@ export class AttemptsService {
       }
     });
 
+    let newlyUnlockedBadges: string[] = [];
+    if (judgeResult.passed) {
+      newlyUnlockedBadges = await this.badgesService.syncAfterLevelComplete(userId);
+    }
+
     return {
       success: result.success,
       output: result.output,
@@ -249,6 +256,7 @@ export class AttemptsService {
       stepCount: newStepCount,
       judge: judgeResult,
       completed: judgeResult.passed,
+      newlyUnlockedBadges,
     };
   }
 

@@ -24,6 +24,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/achievements",
+      name: "achievements",
+      component: () => import("../views/AchievementsView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/practice/:levelId",
       name: "practice",
       component: () => import("../views/PracticeView.vue"),

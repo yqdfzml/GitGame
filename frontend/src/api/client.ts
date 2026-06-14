@@ -152,12 +152,8 @@ export const leaderboardApi = {
 
 /** 用户 API */
 export const usersApi = {
-  stats: () =>
-    request<{
-      completedLevelCount: number;
-      totalScore: number;
-      completedLevelIds: string[];
-    }>("/users/me/stats"),
+  stats: () => request<import("./types").UserStats>("/users/me/stats"),
+  badges: () => request<import("./types").UserBadgesResponse>("/users/me/badges"),
 };
 
 /** 管理 API */

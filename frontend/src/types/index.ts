@@ -91,6 +91,58 @@ export interface CommandResponse {
   stepCount: number;
   judge: JudgeResult;
   completed: boolean;
+  /** 本次通关新解锁的徽章 id */
+  newlyUnlockedBadges?: string[];
+}
+
+/** 当前主线称号 */
+export interface ActiveTitle {
+  id: string;
+  name: string;
+  level: number;
+  color: string;
+  iconKey: string;
+  visualTier: number;
+}
+
+/** 修炼段位 */
+export interface RankInfo {
+  id: string;
+  name: string;
+  label: string;
+}
+
+/** 徽章条目 */
+export interface BadgeItem {
+  id: string;
+  category: "title" | "command" | "result";
+  name: string;
+  description: string;
+  ability: string;
+  iconKey: string;
+  color: string;
+  visualTier: number;
+  titleLevel?: number;
+  unlocked: boolean;
+  unlockedAt: string | null;
+}
+
+/** 徽章页数据 */
+export interface UserBadgesResponse {
+  activeTitle: ActiveTitle | null;
+  rank: RankInfo;
+  badges: BadgeItem[];
+  unlockedCount: number;
+  totalCount: number;
+}
+
+/** 用户学习统计 */
+export interface UserStats {
+  completedLevelCount: number;
+  totalScore: number;
+  completedLevelIds: string[];
+  activeTitle: ActiveTitle | null;
+  rank: RankInfo;
 }
 
 /** 排行榜条目 */

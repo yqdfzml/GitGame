@@ -132,6 +132,12 @@ const submitCommand = () => {
       if (result.completed) {
         terminalLines.value.push({ text: `通关！得分: ${result.judge.score}`, type: "success" });
       }
+      if (result.newlyUnlockedBadges && result.newlyUnlockedBadges.length > 0) {
+        terminalLines.value.push({
+          text: `解锁徽章 ${result.newlyUnlockedBadges.length} 枚，前往「徽章」页查看`,
+          type: "success",
+        });
+      }
     })
     .catch((err: Error) => {
       terminalLines.value.push({ text: err.message, type: "error" });

@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { BookOpenCheck, GitBranch, Shield, Trophy } from "lucide-vue-next";
+import { BookOpenCheck, GitBranch, Medal, Shield, Trophy } from "lucide-vue-next";
+import { onMounted, ref, watch } from "vue";
 import { RouterLink, RouterView } from "vue-router";
+import { usersApi } from "./api/client";
 import { useAuthStore } from "./stores/auth";
+import type { ActiveTitle } from "./types";
 
 const auth = useAuthStore();
+/** 当前主线称号，用于顶栏展示 */
+const activeTitle = ref<ActiveTitle | null>(null);
 
 /**
  * 获取用户名首字母，用于头像占位。
@@ -17,6 +22,27 @@ const userInitial = () => {
 };
 
 /**
+ * 加载用户当前称号。
+ * 功能：登录状态下请求 stats 并更新顶栏称号徽章。
+ * 参数：无。
+ * 返回值：无。
+ */
+const loadUserTitle = () => {
+  if (!auth.isLoggedIn) {
+    activeTitle.value = null;
+    return;
+  }
+  usersApi
+    .stats()
+    .then((stats) => {
+      activeTitle.value = stats.activeTitle;
+    })
+    .catch(() => {
+      activeTitle.value = null;
+    });
+};
+
+/**
  * 处理登出点击。
  * 功能：调用 store 登出并跳转登录页。
  * 参数：无。
@@ -27,6 +53,9 @@ const handleLogout = () => {
     window.location.href = "/login";
   });
 };
+
+onMounted(loadUserTitle);
+watch(() => auth.isLoggedIn, loadUserTitle);
 </script>
 
 <template>
@@ -41,6 +70,10 @@ const handleLogout = () => {
           <BookOpenCheck aria-hidden="true" />
           关卡
         </RouterLink>
+        <RouterLink to="/achievements">
+          <Medal aria-hidden="true" />
+          徽章
+        </RouterLink>
         <RouterLink to="/leaderboard">
           <Trophy aria-hidden="true" />
           排行榜
@@ -51,6 +84,13 @@ const handleLogout = () => {
         </RouterLink>
       </nav>
       <div class="user-area">
+        <span
+          v-if="activeTitle"
+          class="title-badge-chip"
+          :style="{ '--title-color': activeTitle.color }"
+        >
+          {{ activeTitle.name }}
+        </span>
         <div v-if="auth.user" class="user-chip">
           <span class="user-avatar">{{ userInitial() }}</span>
           {{ auth.user.displayName || auth.user.id }}

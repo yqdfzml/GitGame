@@ -50,6 +50,7 @@ model User {
   levelResults       LevelResult[]
   leaderboardEntries LeaderboardEntry[]
   refreshTokens      RefreshToken[]
+  badges             UserBadge[]
 
   @@index([status])
   @@map("users")
@@ -179,4 +180,18 @@ model LeaderboardEntry {
   @@unique([userId, levelId])
   @@index([levelId, score, durationSeconds])
   @@map("leaderboard_entries")
+}
+
+/** 用户已解锁徽章 */
+model UserBadge {
+  id         BigInt   @id @default(autoincrement())
+  userId     BigInt   @map("user_id")
+  badgeId    String   @map("badge_id") @db.VarChar(64)
+  unlockedAt DateTime @default(now()) @map("unlocked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
 }

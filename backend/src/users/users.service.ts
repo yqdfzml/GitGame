@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { BadgesService } from "../badges/badges.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 /**
@@ -9,7 +10,10 @@ import { PrismaService } from "../prisma/prisma.service";
  */
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly badgesService: BadgesService,
+  ) {}
 
   /**
    * 获取用户学习统计。
@@ -32,11 +36,14 @@ export class UsersService {
     });
 
     const totalScore = allResults.reduce((sum, item) => sum + item.score, 0);
+    const titleSummary = await this.badgesService.getTitleAndRankSummary(userId);
 
     return {
       completedLevelCount: completedCount,
       totalScore,
       completedLevelIds: allResults.map((item) => item.levelId.toString()),
+      activeTitle: titleSummary.activeTitle,
+      rank: titleSummary.rank,
       recentResults: results.map((item) => ({
         levelId: item.levelId.toString(),
         title: item.level.title,
