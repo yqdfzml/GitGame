@@ -10,6 +10,8 @@ import { getLevelPresentation } from "../utils/levelPresentation";
 const props = defineProps<{
   /** 全部关卡，用于计算今日建议 */
   levels: LevelSummary[];
+  /** 精简模式：仅保留签到与进度，用于学习地图页避免信息重复 */
+  compact?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -54,51 +56,63 @@ const handleCheckedIn = () => {
 </script>
 
 <template>
-  <aside class="user-status-panel card">
+  <aside class="user-status-panel card" :class="{ 'user-status-panel-compact': compact }">
     <CheckInPanel @checked-in="handleCheckedIn" />
 
-    <div class="user-status-metrics">
-      <div class="user-status-metric">
-        <span class="user-status-label">进度</span>
-        <strong>{{ routeProgress.percent }}%</strong>
-        <div class="progress-track user-status-track">
-          <div :style="{ width: `${routeProgress.percent}%` }" />
+    <div v-if="compact" class="user-status-progress">
+      <div class="user-status-progress-top">
+        <span class="user-status-label">修行进度</span>
+        <span class="user-status-progress-num">{{ routeProgress.completed }}/{{ routeProgress.total }} · {{ routeProgress.percent }}%</span>
+      </div>
+      <div class="progress-track user-status-track">
+        <div :style="{ width: `${routeProgress.percent}%` }" />
+      </div>
+    </div>
+
+    <template v-else>
+      <div class="user-status-metrics">
+        <div class="user-status-metric">
+          <span class="user-status-label">进度</span>
+          <strong>{{ routeProgress.percent }}%</strong>
+          <div class="progress-track user-status-track">
+            <div :style="{ width: `${routeProgress.percent}%` }" />
+          </div>
+        </div>
+
+        <div class="user-status-metric">
+          <span class="user-status-label">积分</span>
+          <strong>{{ pointsStore.balance ?? 0 }}</strong>
+        </div>
+
+        <div class="user-status-metric">
+          <span class="user-status-label">连签</span>
+          <strong>{{ pointsStore.wallet?.currentStreak ?? 0 }}天</strong>
         </div>
       </div>
 
-      <div class="user-status-metric">
-        <span class="user-status-label">积分</span>
-        <strong>{{ pointsStore.balance ?? 0 }}</strong>
+      <div v-if="recommendedLevel" class="user-status-next card-inset">
+        <div class="user-status-next-head">
+          <span v-if="recommendedPresentation" class="ui-chip">{{ recommendedPresentation.chapterLabel }}</span>
+          <span class="ui-chip" :class="isContinue ? 'ui-chip-ok' : 'ui-chip-warn'">
+            {{ isContinue ? "可开始" : `${recommendedLevel.unlockCost} 积分` }}
+          </span>
+        </div>
+        <strong class="user-status-next-title">{{ recommendedLevel.title }}</strong>
+        <RouterLink
+          v-if="isContinue"
+          :to="`/practice/${recommendedLevel.id}`"
+          class="btn-primary user-status-cta"
+        >
+          开始
+        </RouterLink>
+        <RouterLink
+          v-else-if="recommendedLevel.chapterId"
+          :to="`/levels/${recommendedLevel.chapterId}`"
+          class="btn-ghost user-status-cta"
+        >
+          解锁
+        </RouterLink>
       </div>
-
-      <div class="user-status-metric">
-        <span class="user-status-label">连签</span>
-        <strong>{{ pointsStore.wallet?.currentStreak ?? 0 }}天</strong>
-      </div>
-    </div>
-
-    <div v-if="recommendedLevel" class="user-status-next card-inset">
-      <div class="user-status-next-head">
-        <span v-if="recommendedPresentation" class="ui-chip">{{ recommendedPresentation.chapterLabel }}</span>
-        <span class="ui-chip" :class="isContinue ? 'ui-chip-ok' : 'ui-chip-warn'">
-          {{ isContinue ? "可开始" : `${recommendedLevel.unlockCost} 积分` }}
-        </span>
-      </div>
-      <strong class="user-status-next-title">{{ recommendedLevel.title }}</strong>
-      <RouterLink
-        v-if="isContinue"
-        :to="`/practice/${recommendedLevel.id}`"
-        class="btn-primary user-status-cta"
-      >
-        开始
-      </RouterLink>
-      <RouterLink
-        v-else-if="recommendedLevel.chapterId"
-        :to="`/levels/${recommendedLevel.chapterId}`"
-        class="btn-ghost user-status-cta"
-      >
-        解锁
-      </RouterLink>
-    </div>
+    </template>
   </aside>
 </template>

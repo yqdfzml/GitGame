@@ -1029,25 +1029,25 @@ a:hover { color: var(--accent-hover); }
 .learning-map-route {
   list-style: none;
   margin: 0;
-  padding: 18px;
+  padding: 12px 18px 16px;
   display: grid;
   gap: 0;
 }
 
 .learning-map-node {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 14px;
-  padding: 16px 0;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
   position: relative;
 }
 
 .learning-map-node:not(:last-child)::after {
   content: "";
   position: absolute;
-  left: 23px;
-  top: 52px;
-  bottom: -8px;
+  left: 19px;
+  top: 44px;
+  bottom: -6px;
   width: 2px;
   background: var(--border);
 }
@@ -1063,8 +1063,8 @@ a:hover { color: var(--accent-hover); }
 }
 
 .learning-map-node-marker {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 2px solid var(--border);
   display: grid;
@@ -1149,6 +1149,32 @@ a:hover { color: var(--accent-hover); }
   gap: 12px;
   position: sticky;
   top: calc(var(--topbar-h) + 16px);
+  align-self: start;
+}
+
+.user-status-panel-compact {
+  gap: 14px;
+}
+
+.user-status-progress {
+  display: grid;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.user-status-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.user-status-progress-num {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
 }
 
 .user-status-metrics {

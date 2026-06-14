@@ -34,7 +34,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="check-in-panel card">
+  <div class="check-in-panel">
     <div v-if="pointsStore.loading" class="check-in-loading">加载积分中...</div>
 
     <template v-else-if="pointsStore.wallet">

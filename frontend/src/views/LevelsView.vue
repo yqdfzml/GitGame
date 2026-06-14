@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { levelsApi } from "../api/client";
-import LevelChallengeCard from "../components/LevelChallengeCard.vue";
 import UserStatusPanel from "../components/UserStatusPanel.vue";
 import { usePointsStore } from "../stores/points";
 import type { LevelSummary } from "../types";
@@ -176,21 +175,9 @@ const recommendedLevel = computed(() => findNextRecommendedLevel(levels.value));
             </div>
           </li>
         </ol>
-
-        <div class="topic-lane-grid learning-map-cards">
-          <LevelChallengeCard
-            v-for="node in mapNodes"
-            :key="`card-${node.chapterId}`"
-            :chapter-id="node.chapterId"
-            :presentation="node.presentation"
-            :level-count="node.levelCount"
-            :completed-count="node.completedCount"
-            :total-count="node.totalCount"
-          />
-        </div>
       </section>
 
-      <UserStatusPanel :levels="levels" @checked-in="handleRefresh" />
+      <UserStatusPanel compact :levels="levels" @checked-in="handleRefresh" />
     </div>
   </section>
 </template>
