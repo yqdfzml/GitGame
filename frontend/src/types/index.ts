@@ -148,6 +148,11 @@ export interface AttemptDetail {
   state: RepoState;
   judge: JudgeResult;
   commands: CommandEntry[];
+  /** 开局时的差距项数量，用于进度条从 0% 起算 */
+  initialGapCount: number;
+  /** 开局时已满足的条件 key */
+  initialSatisfiedKeys: string[];
+  completedAt?: string | null;
 }
 
 /** 命令提交响应 */

@@ -14,6 +14,11 @@ import {
   findHistorySuggestion,
   pushCommandHistory,
 } from "../utils/commandHistorySuggestion";
+import {
+  buildTerminalLinesFromCommands,
+  extractCommandHistory,
+  appendCommandEntryLines,
+} from "../utils/terminalLines";
 import { calcChallengeProgress } from "../utils/challengeProgress";
 import {
   allLevelsCompleteToast,
@@ -158,8 +163,36 @@ const resetPracticeState = () => {
 };
 
 /**
+ * 把服务端 attempt 会话应用到练习页。
+ * 功能：刷新后恢复仓库状态、终端输出、进度与命令历史。
+ * 参数：attempt - 服务端返回的会话详情。
+ * 返回值：无。
+ */
+const applyAttemptSession = (attempt: AttemptDetail) => {
+  const isCompleted = attempt.status === "COMPLETED";
+  const isResumed = attempt.stepCount > 0;
+
+  attemptId.value = attempt.id;
+  repoState.value = attempt.state;
+  judge.value = attempt.judge;
+  initialGapCount.value = attempt.initialGapCount;
+  initialSatisfiedKeys.value = [...attempt.initialSatisfiedKeys];
+  stepCount.value = attempt.stepCount;
+  completed.value = isCompleted;
+  terminalLines.value = buildTerminalLinesFromCommands(attempt.commands, {
+    resumed: isResumed,
+    completed: isCompleted,
+    score: isCompleted ? attempt.judge.score : undefined,
+  });
+  commandHistory.value = extractCommandHistory(attempt.commands);
+  historyBrowseIndex.value = -1;
+  historyDraftInput.value = "";
+  commandInput.value = "";
+};
+
+/**
  * 加载并开启指定关卡的练习。
- * 功能：拉取关卡详情并创建新的 attempt 会话。
+ * 功能：拉取关卡详情并创建或恢复 attempt 会话。
  * 参数：targetLevelId - 目标关卡 id。
  * 返回值：无。
  */
@@ -178,13 +211,7 @@ const initPracticeLevel = (targetLevelId: string) => {
   });
 
   attemptsApi.create(targetLevelId).then((attempt) => {
-    attemptId.value = attempt.id;
-    repoState.value = attempt.state;
-    judge.value = attempt.judge;
-    initialGapCount.value = attempt.judge.gaps.length;
-    initialSatisfiedKeys.value = [...attempt.judge.satisfied];
-    stepCount.value = attempt.stepCount;
-    terminalLines.value.push({ text: "练习已开始。输入 git 命令并按 Enter 执行。", type: "success" });
+    applyAttemptSession(attempt);
     scrollTerminalToBottom();
     focusCommandInput();
   }).catch((err: Error) => {
@@ -289,28 +316,13 @@ watch(
  * 返回值：无。
  */
 const appendCommandResult = (result: CommandResponse) => {
-  /** 命令原始输出，去掉首尾空白后用于比较 */
-  const outputText = result.output.trim();
-  /** 系统反馈文案，去掉首尾空白后用于比较 */
-  const feedbackText = result.feedback.trim();
-  /** 结果行样式：成功为 output/success，失败为 error */
-  const resultType = result.success ? (outputText ? "output" : "success") : "error";
-
-  if (outputText) {
-    terminalLines.value.push({ text: result.output, type: resultType });
-  }
-
-  if (feedbackText && feedbackText !== outputText) {
-    terminalLines.value.push({
-      text: result.feedback,
-      type: result.success ? "success" : "error",
-    });
-  } else if (!outputText && feedbackText) {
-    terminalLines.value.push({
-      text: result.feedback,
-      type: result.success ? "success" : "error",
-    });
-  }
+  appendCommandEntryLines(terminalLines.value, {
+    stepIndex: stepCount.value,
+    command: "",
+    success: result.success,
+    feedback: result.feedback,
+    output: result.output,
+  });
 };
 
 /**

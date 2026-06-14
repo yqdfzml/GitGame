@@ -39,10 +39,10 @@ export class AttemptsService {
   ) {}
 
   /**
-   * 创建新练习会话。
-   * 功能：复制关卡 initialState 作为 currentState。
+   * 创建或恢复练习会话。
+   * 功能：若存在未完成的 attempt 则直接恢复，否则用关卡 initialState 新建。
    * 参数：userId - 用户 id；levelId - 关卡 id。
-   * 返回值：attempt 摘要。
+   * 返回值：attempt 详情（含命令历史）。
    */
   async createAttempt(userId: bigint, levelId: bigint) {
     const level = await this.levelsService.getLevelForAttempt(levelId);
@@ -51,6 +51,32 @@ export class AttemptsService {
     }
 
     await this.pointsService.assertLevelStartable(userId, levelId);
+
+    const existingAttempt = await this.prisma.attempt.findFirst({
+      where: {
+        userId,
+        levelId,
+        status: "IN_PROGRESS",
+      },
+      orderBy: { startedAt: "desc" },
+    });
+
+    if (existingAttempt) {
+      return this.buildAttemptDetail(existingAttempt, level);
+    }
+
+    const latestCompletedAttempt = await this.prisma.attempt.findFirst({
+      where: {
+        userId,
+        levelId,
+        status: "COMPLETED",
+      },
+      orderBy: { completedAt: "desc" },
+    });
+
+    if (latestCompletedAttempt) {
+      return this.buildAttemptDetail(latestCompletedAttempt, level);
+    }
 
     const initialState = cloneRepoState(fromPrismaJson<RepoState>(level.initialState));
     const attempt = await this.prisma.attempt.create({
@@ -70,19 +96,7 @@ export class AttemptsService {
       },
     });
 
-    const goal = fromPrismaJson<LevelGoal>(level.goal);
-    const constraints = fromPrismaJson<LevelConstraints>(level.constraints);
-    const judgeResult = this.judge.evaluate(initialState, goal, constraints, 0);
-
-    return {
-      id: attempt.id.toString(),
-      levelId: levelId.toString(),
-      status: attempt.status,
-      stepCount: 0,
-      state: initialState,
-      judge: judgeResult,
-      startedAt: attempt.startedAt,
-    };
+    return this.buildAttemptDetail(attempt, level);
   }
 
   /**
@@ -98,33 +112,7 @@ export class AttemptsService {
       throw new NotFoundException("关卡不存在");
     }
 
-    const state = fromPrismaJson<RepoState>(attempt.currentState);
-    const goal = fromPrismaJson<LevelGoal>(level.goal);
-    const constraints = fromPrismaJson<LevelConstraints>(level.constraints);
-    const judgeResult = this.judge.evaluate(state, goal, constraints, attempt.stepCount);
-
-    const commands = await this.prisma.attemptCommand.findMany({
-      where: { attemptId },
-      orderBy: { stepIndex: "asc" },
-    });
-
-    return {
-      id: attempt.id.toString(),
-      levelId: attempt.levelId.toString(),
-      status: attempt.status,
-      stepCount: attempt.stepCount,
-      state,
-      judge: judgeResult,
-      commands: commands.map((cmd) => ({
-        stepIndex: cmd.stepIndex,
-        command: cmd.command,
-        success: cmd.success,
-        feedback: cmd.feedback,
-        output: cmd.output,
-      })),
-      startedAt: attempt.startedAt,
-      completedAt: attempt.completedAt,
-    };
+    return this.buildAttemptDetail(attempt, level);
   }
 
   /**
@@ -294,6 +282,71 @@ export class AttemptsService {
         state: s.state,
         createdAt: s.createdAt,
       })),
+    };
+  }
+
+  /**
+   * 组装练习会话详情响应。
+   * 功能：统一 create/get 返回结构，并计算开局进度基准。
+   * 参数：attempt - 数据库会话记录；level - 关卡实体。
+   * 返回值：前端可直接恢复的 attempt 详情。
+   */
+  private async buildAttemptDetail(
+    attempt: {
+      id: bigint;
+      levelId: bigint;
+      status: string;
+      currentState: unknown;
+      stepCount: number;
+      startedAt: Date;
+      completedAt: Date | null;
+    },
+    level: {
+      goal: unknown;
+      constraints: unknown;
+    },
+  ) {
+    const state = fromPrismaJson<RepoState>(attempt.currentState);
+    const goal = fromPrismaJson<LevelGoal>(level.goal);
+    const constraints = fromPrismaJson<LevelConstraints>(level.constraints);
+    const judgeResult = this.judge.evaluate(state, goal, constraints, attempt.stepCount);
+
+    const initialSnapshot = await this.prisma.attemptSnapshot.findFirst({
+      where: {
+        attemptId: attempt.id,
+        stepIndex: 0,
+      },
+    });
+    if (!initialSnapshot) {
+      throw new NotFoundException("练习初始快照不存在");
+    }
+
+    const initialState = fromPrismaJson<RepoState>(initialSnapshot.state);
+    const initialJudge = this.judge.evaluate(initialState, goal, constraints, 0);
+
+    const commands = await this.prisma.attemptCommand.findMany({
+      where: { attemptId: attempt.id },
+      orderBy: { stepIndex: "asc" },
+    });
+
+    return {
+      id: attempt.id.toString(),
+      levelId: attempt.levelId.toString(),
+      status: attempt.status,
+      stepCount: attempt.stepCount,
+      state,
+      judge: judgeResult,
+      commands: commands.map((cmd) => ({
+        stepIndex: cmd.stepIndex,
+        command: cmd.command,
+        success: cmd.success,
+        feedback: cmd.feedback,
+        output: cmd.output,
+      })),
+      initialGapCount: initialJudge.gaps.length,
+      initialSatisfiedKeys: initialJudge.satisfied,
+      startedAt: attempt.startedAt,
+      completedAt: attempt.completedAt,
     };
   }
 

@@ -22,7 +22,7 @@ export class AttemptsController {
    * 创建新的练习会话。
    * 功能：根据关卡 initialState 初始化虚拟仓库。
    * 参数：levelId - 关卡 id；req - 鉴权请求。
-   * 返回值：attempt 摘要。
+   * 返回值：attempt 详情（新建或恢复）。
    */
   @Post("levels/:levelId/attempts")
   @UseGuards(JwtAuthGuard)
