@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, UserRole, UserStatus } from "@prisma/client";
 import { BadgesService } from "../badges/badges.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { UsersService } from "../users/users.service";
+import { UpdateUserDto } from "./dto/admin-user.dto";
 
 /** 管理端用户列表查询参数 */
 export interface AdminUserListQuery {
@@ -37,11 +38,11 @@ export class AdminUsersService {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
     const skip = (page - 1) * pageSize;
-    const where: Prisma.UserWhereInput = {};
+    const where: Prisma.UserWhereInput = {
+      // 用户管理只展示普通玩家，管理员账号不在此列出
+      role: "USER",
+    };
 
-    if (query.role) {
-      where.role = query.role;
-    }
     if (query.status) {
       where.status = query.status;
     }
@@ -169,6 +170,100 @@ export class AdminUsersService {
       })),
       activeSessionCount,
     };
+  }
+
+  /**
+   * 更新用户资料。
+   * 功能：修改昵称、邮箱、角色与状态，禁止操作者修改自己的角色或禁用自己。
+   * 参数：userId - 目标用户；dto - 更新字段；operatorId - 操作管理员 id。
+   * 返回值：更新后的用户摘要。
+   */
+  async updateUser(userId: bigint, dto: UpdateUserDto, operatorId: bigint) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException("用户不存在");
+    }
+
+    if (userId === operatorId) {
+      if (dto.role !== undefined && dto.role !== user.role) {
+        throw new BadRequestException("不能修改自己的角色");
+      }
+      if (dto.status === "DISABLED") {
+        throw new BadRequestException("不能禁用自己的账号");
+      }
+    }
+
+    if (dto.email !== undefined && dto.email !== user.email) {
+      const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (existing) {
+        throw new ConflictException("邮箱已被占用");
+      }
+    }
+
+    const data: Prisma.UserUpdateInput = {};
+    if (dto.displayName !== undefined) {
+      data.displayName = dto.displayName;
+    }
+    if (dto.email !== undefined) {
+      data.email = dto.email;
+    }
+    if (dto.role !== undefined) {
+      data.role = dto.role;
+    }
+    if (dto.status !== undefined) {
+      data.status = dto.status;
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        role: true,
+        status: true,
+      },
+    });
+
+    return {
+      id: updated.id.toString(),
+      email: updated.email,
+      displayName: updated.displayName,
+      role: updated.role,
+      status: updated.status,
+    };
+  }
+
+  /**
+   * 删除用户。
+   * 功能：清理关联数据后永久删除账号，禁止删除自己。
+   * 参数：userId - 目标用户；operatorId - 操作管理员 id。
+   * 返回值：删除结果。
+   */
+  async deleteUser(userId: bigint, operatorId: bigint) {
+    if (userId === operatorId) {
+      throw new BadRequestException("不能删除自己的账号");
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException("用户不存在");
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // 英雄帖占用关系需要先解除，否则外键会阻止删除
+      await tx.heroInvite.updateMany({
+        where: { usedById: userId },
+        data: { usedById: null, usedAt: null },
+      });
+      await tx.leaderboardEntry.deleteMany({ where: { userId } });
+      await tx.levelResult.deleteMany({ where: { userId } });
+      await tx.attempt.deleteMany({ where: { userId } });
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    return { id: userId.toString(), deleted: true };
   }
 
   /**

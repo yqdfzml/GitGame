@@ -157,6 +157,20 @@ export interface AdminUserActionResult {
   status: "ACTIVE" | "DISABLED";
 }
 
+/** 用户编辑提交数据 */
+export interface AdminUserUpdatePayload {
+  displayName?: string;
+  email?: string;
+  role?: "USER" | "ADMIN";
+  status?: "ACTIVE" | "DISABLED";
+}
+
+/** 用户删除结果 */
+export interface AdminUserDeleteResult {
+  id: string;
+  deleted: boolean;
+}
+
 /** 撤销会话结果 */
 export interface AdminRevokeSessionsResult {
   revokedCount: number;

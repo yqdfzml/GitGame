@@ -27,6 +27,8 @@ import type {
   AdminRevokeSessionsResult,
   AdminUnlockListResult,
   AdminUserActionResult,
+  AdminUserDeleteResult,
+  AdminUserUpdatePayload,
   AdminUserDetail,
   AdminUserListFilters,
   AdminUserListResult,
@@ -176,6 +178,10 @@ export const adminUsersApi = {
     return request<AdminUserListResult>(query ? `/admin/users?${query}` : "/admin/users");
   },
   getUser: (id: string) => request<AdminUserDetail>(`/admin/users/${id}`),
+  updateUser: (id: string, data: AdminUserUpdatePayload) =>
+    request<AdminUserActionResult>(`/admin/users/${id}`, { method: "PATCH", body: data }),
+  deleteUser: (id: string) =>
+    request<AdminUserDeleteResult>(`/admin/users/${id}`, { method: "DELETE" }),
   updateStatus: (id: string, status: "ACTIVE" | "DISABLED") =>
     request<AdminUserActionResult>(`/admin/users/${id}/status`, { method: "PATCH", body: { status } }),
   updateRole: (id: string, role: "USER" | "ADMIN") =>

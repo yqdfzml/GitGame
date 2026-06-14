@@ -4,10 +4,12 @@ import { useRoute, useRouter } from "vue-router";
 import { adminUsersApi } from "../api/client";
 import AdminListState from "../components/admin/AdminListState.vue";
 import AdminPageHeader from "../components/admin/AdminPageHeader.vue";
+import { useAuthStore } from "../stores/auth";
 import type { AdminUserDetail } from "../types/admin";
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 /** 用户 id，来自路由参数 */
 const userId = String(route.params.id);
@@ -23,10 +25,10 @@ const message = ref("");
 const isError = ref(false);
 /** 状态变更中 */
 const statusUpdating = ref(false);
-/** 角色变更中 */
-const roleUpdating = ref(false);
 /** 撤销会话中 */
 const revoking = ref(false);
+/** 删除中 */
+const deleting = ref(false);
 
 /**
  * 加载用户详情。
@@ -41,6 +43,11 @@ const loadUserDetail = () => {
   adminUsersApi
     .getUser(userId)
     .then((detail) => {
+      if (detail.role === "ADMIN") {
+        detailError.value = "管理员账号不在用户管理中";
+        userDetail.value = null;
+        return;
+      }
       userDetail.value = detail;
     })
     .catch((err: Error) => {
@@ -105,45 +112,6 @@ const toggleUserStatus = () => {
 };
 
 /**
- * 切换用户角色。
- * 功能：USER 与 ADMIN 互切，变更前二次确认。
- * 参数：无。
- * 返回值：无。
- */
-const toggleUserRole = () => {
-  if (!userDetail.value) {
-    return;
-  }
-
-  const nextRole = userDetail.value.role === "ADMIN" ? "USER" : "ADMIN";
-  const roleText = nextRole === "ADMIN" ? "管理员" : "普通用户";
-  const confirmed = window.confirm(`确认将「${userDetail.value.displayName}」调整为${roleText}？`);
-  if (!confirmed) {
-    return;
-  }
-
-  roleUpdating.value = true;
-  message.value = "";
-
-  adminUsersApi
-    .updateRole(userId, nextRole)
-    .then((result) => {
-      message.value = `角色已更新为${roleText}`;
-      isError.value = false;
-      if (userDetail.value) {
-        userDetail.value.role = result.role;
-      }
-    })
-    .catch((err: Error) => {
-      message.value = err.message;
-      isError.value = true;
-    })
-    .finally(() => {
-      roleUpdating.value = false;
-    });
-};
-
-/**
  * 撤销用户全部登录态。
  * 功能：作废 refresh token，强制重新登录。
  * 参数：无。
@@ -181,13 +149,55 @@ const revokeSessions = () => {
 };
 
 /**
+ * 删除当前用户。
+ * 功能：二次确认后永久删除账号。
+ * 参数：无。
+ * 返回值：无。
+ */
+const deleteCurrentUser = () => {
+  if (!userDetail.value) {
+    return;
+  }
+
+  if (authStore.user?.id === userDetail.value.id) {
+    message.value = "不能删除当前登录的管理员账号";
+    isError.value = true;
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `确认删除用户「${userDetail.value.displayName}」？此操作不可恢复。`,
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  deleting.value = true;
+  message.value = "";
+
+  adminUsersApi
+    .deleteUser(userId)
+    .then(() => {
+      router.push({ name: "users" });
+    })
+    .catch((err: Error) => {
+      message.value = err.message;
+      isError.value = true;
+    })
+    .finally(() => {
+      deleting.value = false;
+    });
+};
+
+/** 玩家端地址 */
+const playerBaseUrl = import.meta.env.VITE_PLAYER_URL ?? "http://localhost:5173";
+
+/**
  * 跳转到 attempt 回放页。
  * 功能：从最近练习记录进入现有 replay 页面。
  * 参数：attemptId - attempt id。
  * 返回值：无。
  */
-/** 玩家端地址 */
-const playerBaseUrl = import.meta.env.VITE_PLAYER_URL ?? "http://localhost:5173";
 const goToReplay = (attemptId: string) => {
   window.open(`${playerBaseUrl}/replay/${attemptId}`, "_blank");
 };
@@ -236,7 +246,6 @@ onMounted(() => {
                 <p>{{ userDetail.email }}</p>
                 <p class="admin-user-profile-meta">
                   ID {{ userDetail.id }} ·
-                  {{ userDetail.role === "ADMIN" ? "管理员" : "普通用户" }} ·
                   {{ userDetail.status === "ACTIVE" ? "正常" : "已禁用" }}
                 </p>
               </div>
@@ -252,11 +261,15 @@ onMounted(() => {
               <button class="btn-ghost" :disabled="statusUpdating" @click="toggleUserStatus">
                 {{ statusUpdating ? "处理中..." : userDetail.status === "ACTIVE" ? "禁用用户" : "启用用户" }}
               </button>
-              <button class="btn-ghost" :disabled="roleUpdating" @click="toggleUserRole">
-                {{ roleUpdating ? "处理中..." : userDetail.role === "ADMIN" ? "降为普通用户" : "设为管理员" }}
-              </button>
               <button class="btn-ghost" :disabled="revoking" @click="revokeSessions">
                 {{ revoking ? "撤销中..." : "撤销登录态" }}
+              </button>
+              <button
+                class="btn-ghost admin-table-btn-danger"
+                :disabled="deleting"
+                @click="deleteCurrentUser"
+              >
+                {{ deleting ? "删除中..." : "删除用户" }}
               </button>
             </div>
 

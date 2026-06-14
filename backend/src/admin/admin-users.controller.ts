@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -14,7 +15,7 @@ import { UserRole, UserStatus } from "@prisma/client";
 import { AdminGuard } from "../auth/guards/admin.guard";
 import { AuthRequest, JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { AdminUsersService } from "./admin-users.service";
-import { UpdateUserRoleDto, UpdateUserStatusDto } from "./dto/admin-user.dto";
+import { UpdateUserDto, UpdateUserRoleDto, UpdateUserStatusDto } from "./dto/admin-user.dto";
 
 /** 管理端用户控制器 */
 @Controller("admin/users")
@@ -54,6 +55,34 @@ export class AdminUsersController {
   @Get(":id")
   getUser(@Param("id", ParseIntPipe) id: number) {
     return this.adminUsersService.getUserDetail(BigInt(id));
+  }
+
+  /**
+   * 更新用户资料。
+   * 功能：修改昵称、邮箱、角色与状态。
+   * 参数：id - 用户 id；dto - 更新字段；req - 当前管理员请求。
+   * 返回值：更新后的用户摘要。
+   */
+  @Patch(":id")
+  updateUser(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateUserDto,
+    @Req() req: AuthRequest,
+  ) {
+    const operatorId = BigInt(req.user!.sub);
+    return this.adminUsersService.updateUser(BigInt(id), dto, operatorId);
+  }
+
+  /**
+   * 删除用户。
+   * 功能：永久删除账号及关联数据。
+   * 参数：id - 用户 id；req - 当前管理员请求。
+   * 返回值：删除结果。
+   */
+  @Delete(":id")
+  deleteUser(@Param("id", ParseIntPipe) id: number, @Req() req: AuthRequest) {
+    const operatorId = BigInt(req.user!.sub);
+    return this.adminUsersService.deleteUser(BigInt(id), operatorId);
   }
 
   /**
