@@ -44,10 +44,10 @@ describe("PointsService", () => {
       },
       level: {
         findMany: vi.fn().mockResolvedValue([
-          { id: 1n, difficulty: "BEGINNER" },
-          { id: 2n, difficulty: "BEGINNER" },
-          { id: 3n, difficulty: "BEGINNER" },
-          { id: 4n, difficulty: "INTERMEDIATE" },
+          { id: 1n, difficulty: "BEGINNER", title: "关1" },
+          { id: 2n, difficulty: "BEGINNER", title: "关2" },
+          { id: 3n, difficulty: "BEGINNER", title: "关3" },
+          { id: 4n, difficulty: "INTERMEDIATE", title: "关4" },
         ]),
       },
       $transaction: vi.fn(),
@@ -170,5 +170,44 @@ describe("PointsService", () => {
 
   it("未解锁关卡 assertLevelStartable 抛 403", async () => {
     await expect(service.assertLevelStartable(1n, 4n)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("通关后积分足够时自动解锁下一关", async () => {
+    const wallet = {
+      userId: 1n,
+      balance: 20,
+      totalEarned: 20,
+      totalSpent: 0,
+      currentStreak: 1,
+      longestStreak: 1,
+      lastCheckInDate: null,
+    };
+
+    prisma.userPointWallet = {
+      upsert: vi.fn().mockResolvedValue(wallet),
+      update: vi.fn().mockResolvedValue({ ...wallet, balance: 8, totalSpent: 12 }),
+    };
+
+    prisma.$transaction = mockTransaction({
+      userPointWallet: prisma.userPointWallet,
+      levelUnlock: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 1n }),
+      },
+      levelResult: {
+        findUnique: vi.fn().mockResolvedValue(null),
+      },
+      pointLedger: {
+        create: vi.fn().mockResolvedValue({ id: 1n }),
+      },
+    });
+
+    const result = await service.tryAutoUnlockNextLevel(1n, 3n);
+
+    expect(result).not.toBeNull();
+    expect(result?.levelId).toBe("4");
+    expect(result?.title).toBe("关4");
+    expect(result?.autoUnlocked).toBe(true);
+    expect(result?.canStart).toBe(true);
   });
 });

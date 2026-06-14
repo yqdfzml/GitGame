@@ -8,6 +8,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import type {
   CheckInCalendarResponse,
   LevelUnlockState,
+  NextLevelAfterComplete,
   PointWalletResponse,
 } from "./points.constants";
 import {
@@ -27,6 +28,7 @@ interface PublishedLevelMeta {
   id: bigint;
   difficulty: Difficulty;
   publishedIndex: number;
+  title: string;
 }
 
 /**
@@ -269,6 +271,51 @@ export class PointsService {
   }
 
   /**
+   * 通关后尝试自动解锁下一关。
+   * 功能：找到路径上下一关，积分足够时自动扣分解锁。
+   * 参数：userId - 用户 id；completedLevelId - 刚通关的关卡 id。
+   * 返回值：下一关信息，无下一关时返回 null。
+   */
+  async tryAutoUnlockNextLevel(
+    userId: bigint,
+    completedLevelId: bigint,
+  ): Promise<NextLevelAfterComplete | null> {
+    const publishedLevels = await this.loadPublishedLevelMeta();
+    const currentIndex = publishedLevels.findIndex((item) => item.id === completedLevelId);
+    if (currentIndex === -1 || currentIndex >= publishedLevels.length - 1) {
+      return null;
+    }
+
+    const nextMeta = publishedLevels[currentIndex + 1];
+    const unlockState = await this.resolveUnlockState(userId, nextMeta, publishedLevels);
+
+    const baseResult: NextLevelAfterComplete = {
+      levelId: nextMeta.id.toString(),
+      title: nextMeta.title,
+      canStart: unlockState.canStart,
+      autoUnlocked: false,
+      unlockCost: unlockState.unlockCost,
+    };
+
+    if (unlockState.canStart) {
+      return baseResult;
+    }
+
+    const wallet = await this.ensureWallet(userId);
+    if (wallet.balance < unlockState.unlockCost) {
+      return baseResult;
+    }
+
+    await this.unlockLevel(userId, nextMeta.id);
+
+    return {
+      ...baseResult,
+      canStart: true,
+      autoUnlocked: true,
+    };
+  }
+
+  /**
    * 批量计算已发布关卡的解锁状态。
    * 功能：供关卡列表一次性返回 unlockStatus。
    * 参数：userId - 用户 id，可为空。
@@ -316,6 +363,7 @@ export class PointsService {
       select: {
         id: true,
         difficulty: true,
+        title: true,
       },
     });
 
@@ -323,6 +371,7 @@ export class PointsService {
       id: level.id,
       difficulty: level.difficulty,
       publishedIndex: index,
+      title: level.title,
     }));
   }
 

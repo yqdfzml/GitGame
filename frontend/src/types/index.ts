@@ -133,6 +133,17 @@ export interface CommandResponse {
   completed: boolean;
   /** 本次通关新解锁的徽章 id */
   newlyUnlockedBadges?: string[];
+  /** 通关后下一关信息，含是否已自动解锁 */
+  nextLevel?: NextLevelAfterComplete | null;
+}
+
+/** 通关后下一关信息 */
+export interface NextLevelAfterComplete {
+  levelId: string;
+  title: string;
+  canStart: boolean;
+  autoUnlocked: boolean;
+  unlockCost: number;
 }
 
 /** 当前主线称号 */

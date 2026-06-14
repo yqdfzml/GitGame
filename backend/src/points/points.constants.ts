@@ -52,3 +52,12 @@ export interface CheckInCalendarResponse {
   endDate: string;
   days: CheckInCalendarDay[];
 }
+
+/** 通关后下一关信息 DTO */
+export interface NextLevelAfterComplete {
+  levelId: string;
+  title: string;
+  canStart: boolean;
+  autoUnlocked: boolean;
+  unlockCost: number;
+}

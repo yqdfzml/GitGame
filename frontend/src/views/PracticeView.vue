@@ -5,9 +5,8 @@ import { attemptsApi, levelsApi } from "../api/client";
 import CommitGraph from "../components/CommitGraph.vue";
 import GoalFeedback from "../components/GoalFeedback.vue";
 import WorkingTreePanel from "../components/WorkingTreePanel.vue";
-import type { AttemptDetail, LevelSummary, RepoState } from "../types";
+import type { AttemptDetail, NextLevelAfterComplete, RepoState } from "../types";
 import { calcChallengeProgress } from "../utils/challengeProgress";
-import { findNextLevelAfter } from "../utils/levelProgress";
 
 const route = useRoute();
 const router = useRouter();
@@ -45,24 +44,8 @@ const lockedError = ref(false);
 const commandInputRef = ref<HTMLInputElement | null>(null);
 /** 终端输出区域 DOM 引用，用于命令执行后滚到底部 */
 const terminalOutputRef = ref<HTMLDivElement | null>(null);
-/** 全部关卡，通关后用于计算下一关 */
-const allLevels = ref<LevelSummary[]>([]);
-
-/** 路径上的下一关，仅通关后展示 */
-const nextLevel = computed(() => {
-  if (!completed.value || allLevels.value.length === 0) {
-    return null;
-  }
-  return findNextLevelAfter(levelId, allLevels.value);
-});
-
-/** 下一关是否可直接开始练习 */
-const nextLevelCanStart = computed(() => {
-  if (!nextLevel.value) {
-    return false;
-  }
-  return nextLevel.value.canStart;
-});
+/** 通关后下一关信息，来自服务端（含自动解锁结果） */
+const completedNextLevel = ref<NextLevelAfterComplete | null>(null);
 
 /** 目标完成百分比，以开局差距为基准从 0% 起算 */
 const progressPct = computed(() => {
@@ -102,39 +85,34 @@ const scrollTerminalToBottom = () => {
 };
 
 /**
- * 加载全部关卡。
- * 功能：通关后刷新列表，便于计算下一关跳转目标。
- * 参数：无。
- * 返回值：Promise<LevelSummary[]>。
- */
-const loadAllLevels = () => {
-  return levelsApi.list().then((list) => {
-    allLevels.value = list;
-    return list;
-  });
-};
-
-/**
  * 通关后在终端提示下一关信息。
- * 功能：根据最新关卡列表输出下一关标题与操作指引。
- * 参数：无。
+ * 功能：展示服务端返回的下一关状态，含是否已自动解锁。
+ * 参数：nextLevelInfo - 服务端下一关摘要，null 表示已全部通关。
  * 返回值：无。
  */
-const appendNextLevelHint = () => {
-  const next = findNextLevelAfter(levelId, allLevels.value);
-  if (!next) {
+const appendNextLevelHint = (nextLevelInfo: NextLevelAfterComplete | null | undefined) => {
+  if (!nextLevelInfo) {
+    completedNextLevel.value = null;
     terminalLines.value.push({ text: "恭喜完成全部已发布关卡！", type: "success" });
     scrollTerminalToBottom();
     return;
   }
-  if (next.canStart) {
+
+  completedNextLevel.value = nextLevelInfo;
+
+  if (nextLevelInfo.autoUnlocked) {
     terminalLines.value.push({
-      text: `下一关：${next.title}，点击下方「下一关」继续`,
+      text: `已自动解锁下一关：${nextLevelInfo.title}（消耗 ${nextLevelInfo.unlockCost} 积分）`,
+      type: "success",
+    });
+  } else if (nextLevelInfo.canStart) {
+    terminalLines.value.push({
+      text: `下一关：${nextLevelInfo.title}，点击下方「下一关」继续`,
       type: "success",
     });
   } else {
     terminalLines.value.push({
-      text: `下一关：${next.title}，需 ${next.unlockCost} 积分解锁`,
+      text: `下一关：${nextLevelInfo.title}，积分不足（需 ${nextLevelInfo.unlockCost} 积分）`,
       type: "output",
     });
   }
@@ -142,7 +120,6 @@ const appendNextLevelHint = () => {
 };
 
 onMounted(() => {
-  loadAllLevels();
   levelsApi.get(levelId).then((level) => {
     levelTitle.value = level.title;
     levelDescription.value = level.description;
@@ -200,9 +177,7 @@ const submitCommand = () => {
       completed.value = result.completed;
       if (result.completed) {
         terminalLines.value.push({ text: `通关！得分: ${result.judge.score}`, type: "success" });
-        loadAllLevels().then(() => {
-          appendNextLevelHint();
-        });
+        appendNextLevelHint(result.nextLevel);
       }
       if (result.newlyUnlockedBadges && result.newlyUnlockedBadges.length > 0) {
         terminalLines.value.push({
@@ -314,18 +289,18 @@ const goReplay = () => {
           </div>
           <div v-if="completed" class="terminal-actions">
             <RouterLink
-              v-if="nextLevel && nextLevelCanStart"
-              :to="`/practice/${nextLevel.id}`"
+              v-if="completedNextLevel && completedNextLevel.canStart"
+              :to="`/practice/${completedNextLevel.levelId}`"
               class="btn-primary"
             >
               下一关
             </RouterLink>
             <RouterLink
-              v-else-if="nextLevel && nextLevel.chapterId"
-              :to="`/levels/${nextLevel.chapterId}`"
+              v-else-if="completedNextLevel && !completedNextLevel.canStart"
+              to="/levels"
               class="btn-primary"
             >
-              解锁下一关
+              去赚取积分
             </RouterLink>
             <button class="btn-success" @click="goReplay">查看复盘</button>
             <RouterLink to="/levels" class="btn-ghost">返回关卡</RouterLink>

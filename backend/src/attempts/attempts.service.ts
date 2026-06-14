@@ -248,8 +248,10 @@ export class AttemptsService {
     });
 
     let newlyUnlockedBadges: string[] = [];
+    let nextLevel = null;
     if (judgeResult.passed) {
       newlyUnlockedBadges = await this.badgesService.syncAfterLevelComplete(userId);
+      nextLevel = await this.pointsService.tryAutoUnlockNextLevel(userId, attempt.levelId);
     }
 
     return {
@@ -261,6 +263,7 @@ export class AttemptsService {
       judge: judgeResult,
       completed: judgeResult.passed,
       newlyUnlockedBadges,
+      nextLevel,
     };
   }
 
