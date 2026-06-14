@@ -9,6 +9,11 @@ import { usePointsStore } from "../stores/points";
 import { useToastStore } from "../stores/toast";
 import type { AttemptDetail, CommandResponse, LevelGoalHints, NextLevelAfterComplete, RepoState } from "../types";
 import { EMPTY_LEVEL_GOAL_HINTS } from "../types";
+import {
+  buildHistorySuggestionSuffix,
+  findHistorySuggestion,
+  pushCommandHistory,
+} from "../utils/commandHistorySuggestion";
 import { calcChallengeProgress } from "../utils/challengeProgress";
 import {
   allLevelsCompleteToast,
@@ -64,6 +69,14 @@ const commandInputRef = ref<HTMLInputElement | null>(null);
 const terminalOutputRef = ref<HTMLDivElement | null>(null);
 /** 通关后下一关信息，来自服务端（含自动解锁结果） */
 const completedNextLevel = ref<NextLevelAfterComplete | null>(null);
+/** 本会话已执行命令历史（旧到新） */
+const commandHistory = ref<string[]>([]);
+/** 上下键翻历史时的游标，-1 表示正在正常输入 */
+const historyBrowseIndex = ref(-1);
+/** 开始翻历史前暂存的输入，用于按 Down 回到最新位置时恢复 */
+const historyDraftInput = ref("");
+/** 程序改写输入框时，避免 input 事件重置翻历史状态 */
+const suppressHistoryBrowseReset = ref(false);
 
 /** 目标完成百分比，以开局差距为基准从 0% 起算 */
 const progressPct = computed(() => {
@@ -72,6 +85,19 @@ const progressPct = computed(() => {
     judge.value,
     initialGapCount.value,
   );
+});
+
+/** 当前输入匹配到的历史命令建议 */
+const historySuggestion = computed(() => {
+  if (historyBrowseIndex.value >= 0) {
+    return null;
+  }
+  return findHistorySuggestion(commandInput.value, commandHistory.value);
+});
+
+/** 历史建议的灰色幽灵后缀 */
+const historySuggestionSuffix = computed(() => {
+  return buildHistorySuggestionSuffix(commandInput.value, historySuggestion.value);
 });
 
 /**
@@ -126,6 +152,9 @@ const resetPracticeState = () => {
   error.value = "";
   lockedError.value = false;
   completedNextLevel.value = null;
+  commandHistory.value = [];
+  historyBrowseIndex.value = -1;
+  historyDraftInput.value = "";
 };
 
 /**
@@ -285,6 +314,143 @@ const appendCommandResult = (result: CommandResponse) => {
 };
 
 /**
+ * 接受当前历史幽灵建议。
+ * 功能：把输入框内容补全为完整历史命令。
+ * 参数：无。
+ * 返回值：无。
+ */
+const acceptHistorySuggestion = () => {
+  if (!historySuggestion.value) {
+    return;
+  }
+  suppressHistoryBrowseReset.value = true;
+  commandInput.value = historySuggestion.value;
+  nextTick(() => {
+    suppressHistoryBrowseReset.value = false;
+    const inputEl = commandInputRef.value;
+    if (!inputEl) {
+      return;
+    }
+    const end = inputEl.value.length;
+    inputEl.setSelectionRange(end, end);
+    focusCommandInput();
+  });
+};
+
+/**
+ * 判断光标是否在输入框末尾。
+ * 功能：只有光标在末尾时才接受幽灵建议，避免打断中间编辑。
+ * 参数：inputEl - 输入框元素。
+ * 返回值：true 表示光标在末尾。
+ */
+const isCursorAtInputEnd = (inputEl: HTMLInputElement): boolean => {
+  return inputEl.selectionStart === inputEl.value.length
+    && inputEl.selectionEnd === inputEl.value.length;
+};
+
+/**
+ * 向上翻阅更早的历史命令。
+ * 功能：模拟终端按 Up 查看上一条命令。
+ * 参数：无。
+ * 返回值：无。
+ */
+const browseHistoryOlder = () => {
+  if (commandHistory.value.length === 0) {
+    return;
+  }
+
+  suppressHistoryBrowseReset.value = true;
+  if (historyBrowseIndex.value < 0) {
+    historyDraftInput.value = commandInput.value;
+    historyBrowseIndex.value = commandHistory.value.length - 1;
+  } else if (historyBrowseIndex.value > 0) {
+    historyBrowseIndex.value -= 1;
+  }
+  commandInput.value = commandHistory.value[historyBrowseIndex.value];
+  nextTick(() => {
+    suppressHistoryBrowseReset.value = false;
+    focusCommandInput();
+  });
+};
+
+/**
+ * 向下翻阅更新的历史命令。
+ * 功能：模拟终端按 Down 回到较新的命令或恢复原始输入。
+ * 参数：无。
+ * 返回值：无。
+ */
+const browseHistoryNewer = () => {
+  if (historyBrowseIndex.value < 0) {
+    return;
+  }
+
+  suppressHistoryBrowseReset.value = true;
+  if (historyBrowseIndex.value >= commandHistory.value.length - 1) {
+    historyBrowseIndex.value = -1;
+    commandInput.value = historyDraftInput.value;
+    historyDraftInput.value = "";
+  } else {
+    historyBrowseIndex.value += 1;
+    commandInput.value = commandHistory.value[historyBrowseIndex.value];
+  }
+  nextTick(() => {
+    suppressHistoryBrowseReset.value = false;
+    focusCommandInput();
+  });
+};
+
+/**
+ * 处理输入框内容变化。
+ * 功能：用户手动输入时退出历史翻阅模式。
+ * 参数：无。
+ * 返回值：无。
+ */
+const handleCommandInput = () => {
+  if (suppressHistoryBrowseReset.value) {
+    return;
+  }
+  historyBrowseIndex.value = -1;
+  historyDraftInput.value = "";
+};
+
+/**
+ * 处理命令输入框键盘事件。
+ * 功能：历史幽灵建议、上下翻历史、执行命令。
+ * 参数：event - 键盘事件。
+ * 返回值：无。
+ */
+const handleCommandKeydown = (event: KeyboardEvent) => {
+  const inputEl = commandInputRef.value;
+
+  if (
+    (event.key === "ArrowRight" || event.key === "End" || event.key === "Tab")
+    && historySuggestionSuffix.value
+    && inputEl
+    && isCursorAtInputEnd(inputEl)
+  ) {
+    event.preventDefault();
+    acceptHistorySuggestion();
+    return;
+  }
+
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    browseHistoryOlder();
+    return;
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    browseHistoryNewer();
+    return;
+  }
+
+  if (event.key === "Enter") {
+    submitCommand();
+  }
+};
+
+/**
  * 提交 Git 命令。
  * 功能：调用 API 执行命令并刷新 UI。
  * 参数：无（读取 commandInput）。
@@ -295,6 +461,9 @@ const submitCommand = () => {
   if (!cmd || !attemptId.value || submitting.value) return;
 
   submitting.value = true;
+  commandHistory.value = pushCommandHistory(commandHistory.value, cmd);
+  historyBrowseIndex.value = -1;
+  historyDraftInput.value = "";
   terminalLines.value.push({ text: `$ ${cmd}`, type: "output" });
   commandInput.value = "";
 
@@ -447,12 +616,19 @@ const goReplay = () => {
         <div class="terminal-input-area" :class="{ 'is-completed': completed }">
           <div v-if="!completed" class="terminal-input-row">
             <span class="prompt-symbol">❯</span>
-            <input
-              ref="commandInputRef"
-              v-model="commandInput"
-              placeholder="git status"
-              @keydown.enter="submitCommand"
-            />
+            <div class="terminal-input-shell">
+              <div class="terminal-input-ghost" aria-hidden="true">
+                <span class="ghost-typed">{{ commandInput }}</span><span class="ghost-suffix">{{ historySuggestionSuffix }}</span>
+              </div>
+              <input
+                ref="commandInputRef"
+                v-model="commandInput"
+                class="terminal-input-field"
+                placeholder="git status"
+                @keydown="handleCommandKeydown"
+                @input="handleCommandInput"
+              />
+            </div>
             <button class="btn-primary" :disabled="submitting" @click="submitCommand">
               执行
             </button>

@@ -2436,14 +2436,46 @@ a:hover { color: var(--accent-hover); }
   padding: 10px 14px 12px;
   min-height: 0;
 }
+.terminal-input-shell {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.terminal-input-ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.2;
+  white-space: pre;
+  overflow: hidden;
+}
+.ghost-typed {
+  color: transparent;
+}
+.ghost-suffix {
+  color: var(--text-faint);
+  font-style: italic;
+  opacity: 0.6;
+}
+.terminal-input-field {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+}
+.terminal-input-field:focus { outline: none; }
+.terminal-input-field::placeholder { color: var(--text-faint); }
 .terminal-input-row { display: flex; gap: 10px; align-items: center; min-width: 0; }
 .prompt-symbol { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); flex-shrink: 0; }
-.terminal-input-row input {
-  flex: 1; min-width: 0; padding: 10px 0; background: transparent; border: none; color: var(--text);
-  font-family: var(--font-mono); font-size: 0.88rem;
-}
-.terminal-input-row input:focus { outline: none; }
-.terminal-input-row input::placeholder { color: var(--text-faint); }
 .terminal-actions {
   display: flex;
   flex-wrap: wrap;
