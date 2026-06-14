@@ -6,14 +6,23 @@ import CommitGraph from "../components/CommitGraph.vue";
 import GoalFeedback from "../components/GoalFeedback.vue";
 import WorkingTreePanel from "../components/WorkingTreePanel.vue";
 import { usePointsStore } from "../stores/points";
+import { useToastStore } from "../stores/toast";
 import type { AttemptDetail, LevelGoalHints, NextLevelAfterComplete, RepoState } from "../types";
 import { EMPTY_LEVEL_GOAL_HINTS } from "../types";
 import { calcChallengeProgress } from "../utils/challengeProgress";
+import {
+  allLevelsCompleteToast,
+  badgeUnlockToast,
+  levelCompleteToast,
+  nextLevelUnlockToast,
+} from "../utils/toastMessages";
 
 const route = useRoute();
 const router = useRouter();
 /** 积分 Store，自动解锁下一关后刷新顶栏余额 */
 const pointsStore = usePointsStore();
+/** Toast Store，通关等正反馈弹窗 */
+const toastStore = useToastStore();
 /** 当前练习关卡 id，随路由参数变化 */
 const levelId = computed(() => route.params.levelId as string);
 
@@ -177,6 +186,8 @@ const appendNextLevelHint = (nextLevelInfo: NextLevelAfterComplete | null | unde
   if (!nextLevelInfo) {
     completedNextLevel.value = null;
     terminalLines.value.push({ text: "恭喜完成全部已发布关卡！", type: "success" });
+    const allDoneToast = allLevelsCompleteToast();
+    toastStore.success(allDoneToast.message, allDoneToast.emoji);
     scrollTerminalToBottom();
     return;
   }
@@ -188,6 +199,8 @@ const appendNextLevelHint = (nextLevelInfo: NextLevelAfterComplete | null | unde
       text: `已自动解锁下一关：${nextLevelInfo.title}（消耗 ${nextLevelInfo.unlockCost} 积分），点击下方「下一关」继续`,
       type: "success",
     });
+    const nextToast = nextLevelUnlockToast(nextLevelInfo.title);
+    toastStore.info(nextToast.message, nextToast.emoji);
     pointsStore.loadWallet();
   } else if (nextLevelInfo.canStart) {
     terminalLines.value.push({
@@ -269,13 +282,18 @@ const submitCommand = () => {
       completed.value = result.completed;
       if (result.completed) {
         terminalLines.value.push({ text: `通关！得分: ${result.judge.score}`, type: "success" });
+        const completeToast = levelCompleteToast(result.judge.score);
+        toastStore.success(completeToast.message, completeToast.emoji);
         appendNextLevelHint(result.nextLevel);
       }
       if (result.newlyUnlockedBadges && result.newlyUnlockedBadges.length > 0) {
+        const badgeCount = result.newlyUnlockedBadges.length;
         terminalLines.value.push({
-          text: `解锁徽章 ${result.newlyUnlockedBadges.length} 枚，前往「徽章」页查看`,
+          text: `解锁徽章 ${badgeCount} 枚，前往「徽章」页查看`,
           type: "success",
         });
+        const badgeToast = badgeUnlockToast(badgeCount);
+        toastStore.success(badgeToast.message, badgeToast.emoji);
       }
     })
     .catch((err: Error) => {

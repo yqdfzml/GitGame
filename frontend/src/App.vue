@@ -2,14 +2,19 @@
 import { BookOpenCheck, CalendarCheck, ChevronDown, GitBranch, Home, Medal, Trophy } from "lucide-vue-next";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, RouterView } from "vue-router";
+import ToastContainer from "./components/ToastContainer.vue";
 import { usersApi } from "./api/client";
 import { useAuthStore } from "./stores/auth";
 import { usePointsStore } from "./stores/points";
+import { useToastStore } from "./stores/toast";
 import type { ActiveTitle } from "./types";
+import { checkInSuccessToast } from "./utils/toastMessages";
 
 const auth = useAuthStore();
 /** 积分钱包 Store，顶栏积分与其保持同步 */
 const pointsStore = usePointsStore();
+/** Toast Store，签到等全局正反馈 */
+const toastStore = useToastStore();
 /** 当前主线称号，用于顶栏展示 */
 const activeTitle = ref<ActiveTitle | null>(null);
 
@@ -137,7 +142,12 @@ const checkInDisabled = computed(() => {
  * 返回值：无。
  */
 const handleCheckIn = () => {
-  pointsStore.checkIn();
+  pointsStore.checkIn().then((result) => {
+    if (result.justCheckedIn && result.wallet) {
+      const checkInToast = checkInSuccessToast(result.pointsAwarded, result.wallet.currentStreak);
+      toastStore.success(checkInToast.message, checkInToast.emoji);
+    }
+  });
 };
 
 /**
@@ -253,5 +263,6 @@ const handleDocumentClick = (event: MouseEvent) => {
     <main class="main-content">
       <RouterView />
     </main>
+    <ToastContainer />
   </div>
 </template>

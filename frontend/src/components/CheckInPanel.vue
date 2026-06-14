@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 import { usePointsStore } from "../stores/points";
+import { useToastStore } from "../stores/toast";
+import { checkInSuccessToast } from "../utils/toastMessages";
 
 const emit = defineEmits<{
   /** 签到成功后通知父组件刷新关卡等数据 */
@@ -9,6 +11,8 @@ const emit = defineEmits<{
 
 /** 积分钱包 Store */
 const pointsStore = usePointsStore();
+/** Toast Store，签到成功正反馈 */
+const toastStore = useToastStore();
 
 /**
  * 执行每日签到。
@@ -17,8 +21,10 @@ const pointsStore = usePointsStore();
  * 返回值：无。
  */
 const handleCheckIn = () => {
-  pointsStore.checkIn().then((wallet) => {
-    if (wallet?.checkedInToday) {
+  pointsStore.checkIn().then((result) => {
+    if (result.justCheckedIn && result.wallet) {
+      const checkInToast = checkInSuccessToast(result.pointsAwarded, result.wallet.currentStreak);
+      toastStore.success(checkInToast.message, checkInToast.emoji);
       emit("checkedIn");
     }
   });

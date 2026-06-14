@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { levelsApi } from "../api/client";
+import { useToastStore } from "../stores/toast";
+import { levelUnlockToast } from "../utils/toastMessages";
 import type { LevelUnlockStatus } from "../types";
 
 const props = defineProps<{
@@ -23,6 +25,8 @@ const emit = defineEmits<{
 const unlocking = ref(false);
 /** 错误提示 */
 const error = ref("");
+/** Toast Store，解锁成功正反馈 */
+const toastStore = useToastStore();
 
 /** 余额是否足够解锁 */
 const canAfford = computed(() => props.balance >= props.unlockCost);
@@ -58,6 +62,8 @@ const handleUnlock = () => {
   levelsApi
     .unlock(props.levelId)
     .then(() => {
+      const unlockToast = levelUnlockToast();
+      toastStore.success(unlockToast.message, unlockToast.emoji);
       emit("unlocked");
     })
     .catch((err: Error) => {
